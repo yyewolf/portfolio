@@ -48,6 +48,43 @@ Replace npm with your package manager of choice. `npm`, `pnpm`, `yarn`, `bun`, e
 | Command                   | Action                                           |
 | :------------------------ | :----------------------------------------------- |
 | `npm install`             | Installs dependencies                            |
+| `npm run dev`             | Start local dev server at `localhost:4321`       |
+| `npm run build`           | Build your production site to `./dist/`          |
+| `npm run preview`         | Preview your build locally before deploying      |
+
+## 🐳 Docker Support
+
+This portfolio site includes Docker support for easy deployment and consistent environments, optimized for performance.
+
+### Docker Commands
+
+| Command                                | Action                                           |
+| :------------------------------------- | :----------------------------------------------- |
+| `docker build -t portfolio-nginx .`    | Build the Nginx image                            |
+| `docker run -p 8080:80 portfolio-nginx` | Run the Nginx container on port 8080             |
+| `docker-compose up`                    | Build and run the container                      |
+| `docker-compose up --build`            | Rebuild and run the container                    |
+| `./benchmark-boot-time.sh`             | Measure the boot time of the Nginx container     |
+
+### Optimized for Speed
+
+The site is served using Nginx, an ultra-minimal Alpine-based server optimized for static content, providing an excellent balance of features and performance.
+
+### GitHub Actions Workflow
+
+The repository includes a GitHub Actions workflow that:
+
+1. Builds the Docker image when you push to the main branch
+2. Pushes the image to GitHub Container Registry
+3. Deploys the image to your server (requires configuring SSH secrets)
+
+### Required GitHub Secrets for Deployment
+
+To enable automatic deployment, add these secrets to your GitHub repository:
+
+- `SSH_HOST`: Your server's hostname or IP address
+- `SSH_USERNAME`: SSH username for your server
+- `SSH_PRIVATE_KEY`: SSH private key for authentication
 | `npm run dev`             | Starts local dev server at `localhost:4321`      |
 | `npm run dev:network`     | Starts local dev server on local network         |
 | `npm run sync`            | Generates TypeScript types for all Astro modules.|

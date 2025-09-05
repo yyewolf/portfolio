@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  # Optimized Nginx
+  portfolio-nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 1s
