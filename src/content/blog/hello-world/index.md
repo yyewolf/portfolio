@@ -1,7 +1,7 @@
 ---
 title: "Hello World!"
 description: "Welcome to my portfolio blog"
-date: "Sep 5 2025"
+date: "Sep 5 2024"
 ---
 
 Hi there! 👋
