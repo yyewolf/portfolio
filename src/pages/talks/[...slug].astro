@@ -1,0 +1,59 @@
+---
+import { getCollection } from 'astro:content';
+import Container from '@components/Container.astro';
+import BackToPrev from '@components/BackToPrev.astro';
+import Link from '@components/Link.astro';
+import PageLayout from '@layouts/PageLayout.astro';
+import FormattedDate from '@components/FormattedDate.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('talks');
+  return entries.map(entry => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await entry.render();
+---
+
+<PageLayout title={entry.data.title} description={entry.data.description}>
+  <Container>
+    <div class="py-10">
+      <div class="mb-8">
+        <BackToPrev href="/talks" text="Back to all talks" />
+      </div>
+      
+      <div class="prose prose-lg dark:prose-invert max-w-none">
+        <h1 class="mb-2">{entry.data.title}</h1>
+        
+        <div class="flex flex-wrap gap-y-2 items-center text-gray-600 dark:text-gray-400 mb-6">
+          <span>{entry.data.event}</span>
+          <span class="mx-2">•</span>
+          <FormattedDate date={entry.data.date} class="text-sm" />
+        </div>
+
+        <div class="flex flex-wrap gap-3 mb-8">
+          {entry.data.repoURL && (
+            <Link href={entry.data.repoURL} external>
+              GitHub Repository
+            </Link>
+          )}
+          {entry.data.slidesURL && (
+            <Link href={entry.data.slidesURL} external>
+              Presentation Slides
+            </Link>
+          )}
+          {entry.data.videoURL && (
+            <Link href={entry.data.videoURL} external>
+              Watch Recording
+            </Link>
+          )}
+        </div>
+
+        <Content />
+      </div>
+    </div>
+  </Container>
+</PageLayout>

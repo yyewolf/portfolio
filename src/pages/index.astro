@@ -1,0 +1,449 @@
+---
+import { getCollection } from "astro:content";
+import Container from "@components/Container.astro";
+import PageLayout from "@layouts/PageLayout.astro";
+import Link from "@components/Link.astro";
+import { dateRange } from "@lib/utils";
+import { SITE, HOME, SOCIALS } from "@consts";
+
+const blog = (await getCollection("blog"))
+  .filter(post => !post.data.draft)
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .slice(0,SITE.NUM_POSTS_ON_HOMEPAGE);
+
+const projects = (await getCollection("projects"))
+  .filter(project => !project.data.draft)
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .slice(0,SITE.NUM_PROJECTS_ON_HOMEPAGE);
+  
+const talks = (await getCollection("talks"))
+  .filter(talk => !talk.data.draft)
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const allwork = (await getCollection("work"))
+  .sort((a, b) => new Date(b.data.dateStart).valueOf() - new Date(a.data.dateStart).valueOf())
+  .slice(0,SITE.NUM_WORKS_ON_HOMEPAGE);
+
+const work = await Promise.all(
+  allwork.map(async (item) => {
+    const { Content } = await item.render();
+    return { ...item, Content };
+  })
+);
+
+const alleducation = (await getCollection("education"))
+  .sort((a, b) => new Date(b.data.dateStart).valueOf() - new Date(a.data.dateStart).valueOf());
+
+const education = await Promise.all(
+  alleducation.map(async (item) => {
+    const { Content } = await item.render();
+    return { ...item, Content };
+  })
+);
+
+---
+
+<PageLayout title={HOME.TITLE} description={HOME.DESCRIPTION}>
+  <Container>
+    <div class="py-10 flex flex-col items-start">
+      <div class="w-full flex flex-col items-center mb-8">
+        <div class="logo-container">
+          <img src="/logo-1.png" alt="Yewolf Logo" class="h-32 w-32 rounded-full object-cover animate-fade-in" />
+        </div>
+      </div>
+
+      <div class="relative">
+        <h2 class="text-4xl md:text-5xl font-semibold text-black dark:text-white mb-6 animate-fade-in">
+          Hi, I'm <span class="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Yewolf</span> <span class="wave text-2xl">👋🏻</span>
+        </h2>
+        <div class="h-1 w-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full mb-8"></div>
+      </div>
+      
+      <section class="mb-12">
+        <article class="prose prose-lg dark:prose-invert max-w-none">
+          <p class="animate-fade-up opacity-85 leading-relaxed">
+            Hi, I'm Yewolf, a Software Engineer at Infomaniak | The Ethical Cloud in Geneva, Switzerland.
+            I specialize in Go and distributed systems development, focusing on creating efficient cloud 
+            infrastructure and services with a sustainable approach.
+          </p>
+          <p class="animate-fade-up opacity-85 leading-relaxed">
+            As a TELECOM Nancy graduate, I've developed expertise in containerization (Docker, Kubernetes),
+            risk analysis, and software development. I enjoy solving complex problems, optimizing performance,
+            and building reliable systems that scale effectively. This portfolio itself is built using a scale-to-zero architecture,
+            demonstrating efficient resource utilization and cost optimization in modern cloud deployments.
+          </p>
+          <p class="animate-fade-up opacity-85 leading-relaxed">
+            At Infomaniak, I'm currently working on cloud infrastructure after successfully completing an internship 
+            focused on custom branding using K8s, Go, and Laravel. My GitHub showcases various personal projects including 
+            the Terraform Provider for Infomaniak, Go CD for continuous deployment, and other utilities.
+            Check out my 
+            <Link href="https://github.com/yyewolf" aria-label="GitHub" external>
+              GitHub profile
+            </Link> 
+            to see my work.
+          </p>
+        </article>
+      </section>
+
+      <section class="mb-16 animate-fade-up">
+        <div class="flex flex-wrap gap-y-2 items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-2 mb-6">
+          <h3 class="text-2xl font-bold text-black dark:text-white">
+            Latest Posts
+          </h3>
+          <Link href="/blog" underline={false} class="px-4 py-1 rounded-full text-sm bg-gray-100 dark:bg-gray-800 hover:bg-blue-100 hover:dark:bg-blue-900 transition-colors">
+            See all posts →
+          </Link>
+        </div>
+        <div class="grid gap-6 md:grid-cols-3">
+          {blog.map(post => (
+            <div class="group">
+              <a href={`/${post.collection}/${post.slug}`} class="block h-full p-6 rounded-lg border border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-700 bg-white dark:bg-gray-900 shadow-sm hover:shadow-md transition-all duration-300">
+                <h4 class="font-semibold mb-2 text-black dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                  {post.data.title}
+                </h4>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  {post.data.description}
+                </p>
+                <div class="text-xs text-gray-500 dark:text-gray-500 mt-auto">
+                  {new Date(post.data.date).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                  })}
+                </div>
+              </a>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section class="mb-16 animate-fade-up">
+        <div class="flex flex-wrap gap-y-2 items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-2 mb-6">
+          <h3 class="text-2xl font-bold text-black dark:text-white">
+            Work Experience
+          </h3>
+          <Link href="/work" underline={false} class="px-4 py-1 rounded-full text-sm bg-gray-100 dark:bg-gray-800 hover:bg-blue-100 hover:dark:bg-blue-900 transition-colors">
+            See all work →
+          </Link>
+        </div>
+        <div class="space-y-8">
+          {work.map(entry => (
+            <div class="relative pl-6 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[2px] before:bg-gradient-to-b before:from-blue-500 before:to-purple-500">
+              <div class="text-sm font-medium text-blue-600 dark:text-blue-400">
+                {dateRange(entry.data.dateStart, entry.data.dateEnd)}
+              </div>
+              <h4 class="text-lg font-bold text-black dark:text-white mt-1">
+                {entry.data.url ? (
+                  <a href={entry.data.url} target="_blank" rel="noopener noreferrer" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    {entry.data.company}
+                    <span class="inline-block ml-1 text-blue-600 dark:text-blue-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                      </svg>
+                    </span>
+                  </a>
+                ) : (
+                  entry.data.company
+                )}
+              </h4>
+              <div class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                {entry.data.role}
+              </div>
+              <article class="prose prose-sm dark:prose-invert max-w-none text-gray-600 dark:text-gray-400">
+                <entry.Content />
+              </article>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section class="mb-16 animate-fade-up">
+        <div class="flex flex-wrap gap-y-2 items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-2 mb-6">
+          <h3 class="text-2xl font-bold text-black dark:text-white">
+            Recent Projects
+          </h3>
+          <Link href="/projects" underline={false} class="px-4 py-1 rounded-full text-sm bg-gray-100 dark:bg-gray-800 hover:bg-blue-100 hover:dark:bg-blue-900 transition-colors">
+            See all projects →
+          </Link>
+        </div>
+        <div class="grid gap-6 md:grid-cols-2">
+          {projects.map(project => (
+            <div class="group transform hover:-translate-y-1 transition-all duration-300">
+              <div class="block h-full p-6 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300">
+                <div class="flex justify-between items-start mb-4">
+                  <h4 class="font-bold text-lg text-black dark:text-white transition-colors">
+                    <a href={`/${project.collection}/${project.slug}`} class="hover:text-blue-600 dark:hover:text-blue-400">
+                      {project.data.title}
+                    </a>
+                  </h4>
+                  {project.data.repoURL && (
+                    <a href={project.data.repoURL} target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                      </svg>
+                      <span class="text-sm">GitHub</span>
+                    </a>
+                  )}
+                </div>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  {project.data.description}
+                </p>
+                <div class="flex justify-between items-center mt-4">
+                  <a href={`/${project.collection}/${project.slug}`} class="text-blue-600 dark:text-blue-400 text-sm hover:underline">View details</a>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section class="mb-16 animate-fade-up">
+        <div class="flex flex-wrap gap-y-2 items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-2 mb-6">
+          <h3 class="text-2xl font-bold text-black dark:text-white">
+            Talks & Presentations
+          </h3>
+          <Link href="/talks" underline={false} class="px-4 py-1 rounded-full text-sm bg-gray-100 dark:bg-gray-800 hover:bg-blue-100 hover:dark:bg-blue-900 transition-colors">
+            See all talks →
+          </Link>
+        </div>
+        <div class="grid gap-6 md:grid-cols-1">
+          {talks.map(talk => (
+            <div class="group transform hover:-translate-y-1 transition-all duration-300">
+              <div class="block h-full p-6 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300">
+                <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
+                  <div>
+                    <h4 class="font-bold text-lg text-black dark:text-white transition-colors">
+                      <a href={`/${talk.collection}/${talk.slug}`} class="hover:text-blue-600 dark:hover:text-blue-400">
+                        {talk.data.title}
+                      </a>
+                    </h4>
+                    <div class="flex items-center gap-2 mb-2">
+                      <span class="text-gray-600 dark:text-gray-400 text-sm">
+                        {talk.data.event}
+                      </span>
+                      <span class="text-gray-400 dark:text-gray-500">•</span>
+                      <span class="text-gray-600 dark:text-gray-400 text-sm">
+                        {new Date(talk.data.date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short'
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="flex gap-3 mt-2 md:mt-0">
+                    {talk.data.repoURL && (
+                      <a href={talk.data.repoURL} target="_blank" rel="noopener noreferrer" 
+                        class="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                        </svg>
+                        <span class="text-sm">GitHub</span>
+                      </a>
+                    )}
+                  </div>
+                </div>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  {talk.data.description}
+                </p>
+                <div class="flex justify-between items-center mt-4">
+                  <a href={`/${talk.collection}/${talk.slug}`} class="text-blue-600 dark:text-blue-400 text-sm hover:underline">View details</a>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section class="mb-16 animate-fade-up">
+        <div class="flex flex-wrap gap-y-2 items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-2 mb-6">
+          <h3 class="text-2xl font-bold text-black dark:text-white">
+            Education
+          </h3>
+        </div>
+        <div class="space-y-8">
+          {education.map(entry => (
+            <div class="relative pl-6 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[2px] before:bg-gradient-to-b before:from-purple-500 before:to-blue-500">
+              <div class="text-sm font-medium text-blue-600 dark:text-blue-400">
+                {dateRange(entry.data.dateStart, entry.data.dateEnd)}
+              </div>
+              <h4 class="text-lg font-bold text-black dark:text-white mt-1">
+                {entry.data.url ? (
+                  <a href={entry.data.url} target="_blank" rel="noopener noreferrer" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    {entry.data.institution}
+                    <span class="inline-block ml-1 text-blue-600 dark:text-blue-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                      </svg>
+                    </span>
+                  </a>
+                ) : (
+                  entry.data.institution
+                )}
+              </h4>
+              <div class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                {entry.data.degree}
+              </div>
+              <article class="prose prose-sm dark:prose-invert max-w-none text-gray-600 dark:text-gray-400 mb-3">
+                <entry.Content />
+              </article>
+              {entry.data.skills && (
+                <div class="flex flex-wrap gap-2 mt-2">
+                  {entry.data.skills.map((skill: string) => (
+                    <span class="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 text-xs rounded-full">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section class="mb-16 animate-fade-up">
+        <div class="flex flex-wrap gap-y-2 items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-2 mb-6">
+          <h3 class="text-2xl font-bold text-black dark:text-white">
+            My Skills
+          </h3>
+        </div>
+        <div class="grid gap-4 md:grid-cols-4 sm:grid-cols-2 mb-12">
+          {[
+            { name: "Go", icon: "https://cdn.svgporn.com/logos/go.svg" },
+            { name: "Docker", icon: "https://cdn.svgporn.com/logos/docker-icon.svg" },
+            { name: "Kubernetes", icon: "https://cdn.svgporn.com/logos/kubernetes.svg" },
+            { name: "Terraform", icon: "https://cdn.svgporn.com/logos/terraform-icon.svg" },
+            { name: "TypeScript", icon: "https://cdn.svgporn.com/logos/typescript-icon.svg" },
+            { name: "Python", icon: "https://cdn.svgporn.com/logos/python.svg" },
+            { name: "Java", icon: "https://cdn.svgporn.com/logos/java.svg" },
+            { name: "PostgreSQL", icon: "https://cdn.svgporn.com/logos/postgresql.svg" }
+          ].map(skill => (
+            <div class="flex items-center p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
+              <img src={skill.icon} alt={skill.name} class="w-8 h-8 mr-3" />
+              <span class="font-medium text-gray-800 dark:text-gray-200">{skill.name}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+      
+      <section class="mb-16 animate-fade-up">
+        <div class="flex flex-wrap gap-y-2 items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-2 mb-6">
+          <h3 class="text-2xl font-bold text-black dark:text-white">
+            About This Site
+          </h3>
+        </div>
+        <div class="bg-white dark:bg-gray-900 p-6 rounded-lg border border-gray-200 dark:border-gray-800">
+          <div class="flex items-center gap-3 mb-3">
+            <img src="/logo-1.png" alt="Yewolf Logo" class="h-8 w-auto" />
+            <h4 class="font-bold text-lg text-black dark:text-white">Scale-to-Zero Architecture</h4>
+          </div>
+          <p class="text-gray-700 dark:text-gray-300 mb-4">
+            This portfolio website is built using a modern scale-to-zero architecture, leveraging technologies like:
+          </p>
+          <ul class="space-y-2 text-gray-700 dark:text-gray-300 mb-4 list-disc pl-5">
+            <li>Static site generation with <a href="https://astro.build" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 hover:underline">Astro</a>, ensuring fast load times and optimal performance</li>
+            <li>Deployment on serverless platforms that automatically scale down to zero when not in use</li>
+            <li>Optimized asset delivery and minimal JavaScript for reduced carbon footprint</li>
+          </ul>
+          <p class="text-gray-700 dark:text-gray-300">
+            This approach demonstrates my commitment to efficient resource utilization and cost optimization in cloud deployments. 
+            The site consumes resources only when being accessed, reducing both costs and environmental impact.
+          </p>
+        </div>
+      </section>
+
+      <section class="mb-8 animate-fade-up">
+        <div class="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-8 rounded-xl border border-gray-200 dark:border-gray-800">
+          <h3 class="text-2xl font-bold text-black dark:text-white mb-4">
+            Let's Connect
+          </h3>
+          <p class="text-gray-700 dark:text-gray-300 mb-6">
+            Interested in discussing container isolation, infrastructure automation, or any of my projects?
+            I'm always open to collaboration and new opportunities. Reach out through the links below.
+          </p>
+          <div class="flex flex-wrap gap-3">
+            {SOCIALS.map(SOCIAL => (
+              <a 
+                href={SOCIAL.HREF} 
+                target="_blank" 
+                class="px-4 py-2 bg-white dark:bg-gray-800 hover:bg-blue-100 hover:dark:bg-blue-900/40 rounded-full text-sm font-medium flex items-center gap-2 transition-colors"
+                aria-label={`${SITE.NAME} on ${SOCIAL.NAME}`}>
+                <span class="capitalize">{SOCIAL.NAME}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  </Container>
+</PageLayout>
+
+<style>
+  .animate-fade-in {
+    animation: fadeIn 0.8s ease-in-out;
+  }
+  
+  .animate-fade-up {
+    animation: fadeUp 0.8s ease-out both;
+    animation-delay: calc(var(--animation-delay, 0) * 0.1s);
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes fadeUp {
+    from { 
+      opacity: 0; 
+      transform: translateY(20px);
+    }
+    to { 
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .wave {
+    animation: wave 2.5s infinite;
+    display: inline-block;
+    transform-origin: 70% 70%;
+  }
+  
+  @keyframes wave {
+    0% { transform: rotate(0deg); }
+    10% { transform: rotate(14deg); }
+    20% { transform: rotate(-8deg); }
+    30% { transform: rotate(14deg); }
+    40% { transform: rotate(-4deg); }
+    50% { transform: rotate(10deg); }
+    60% { transform: rotate(0deg); }
+    100% { transform: rotate(0deg); }
+  }
+  
+  .logo-container {
+    position: relative;
+    padding: 4px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+  
+  .logo-container::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    padding: 3px;
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    -webkit-mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.8;
+  }
+</style>

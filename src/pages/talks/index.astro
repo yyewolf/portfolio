@@ -1,0 +1,96 @@
+---
+import { getCollection } from "astro:content";
+import Container from "@components/Container.astro";
+import PageLayout from "@layouts/PageLayout.astro";
+import { TALKS } from "@consts";
+
+const talks = (await getCollection("talks"))
+  .filter(talk => !talk.data.draft)
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const title = TALKS.TITLE;
+const description = TALKS.DESCRIPTION;
+---
+
+<PageLayout title={title} description={description}>
+  <Container>
+    <div class="py-10">
+      <div class="mb-8">
+        <div class="flex items-center gap-4 mb-4">
+          <img src="/logo-1.png" alt="Yewolf Logo" class="h-10 w-auto" />
+          <h1 class="text-4xl font-bold text-black dark:text-white">
+            {title}
+          </h1>
+        </div>
+        <p class="text-gray-600 dark:text-gray-400">
+          {description}
+        </p>
+      </div>
+
+      <div class="space-y-8">
+        {talks.map(talk => (
+          <div class="bg-white dark:bg-gray-900 p-6 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-300">
+            <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
+              <div>
+                <h2 class="text-xl font-bold text-black dark:text-white mb-2">
+                  {talk.data.title}
+                </h2>
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-gray-600 dark:text-gray-400 text-sm">
+                    {talk.data.event}
+                  </span>
+                  <span class="text-gray-400 dark:text-gray-500">•</span>
+                  <span class="text-gray-600 dark:text-gray-400 text-sm">
+                    {new Date(talk.data.date).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </span>
+                </div>
+              </div>
+              <div class="flex gap-3 mt-2 md:mt-0">
+                {talk.data.repoURL && (
+                  <a href={talk.data.repoURL} target="_blank" rel="noopener noreferrer" 
+                     class="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                    </svg>
+                    <span class="text-sm">GitHub</span>
+                  </a>
+                )}
+                {talk.data.slidesURL && (
+                  <a href={talk.data.slidesURL} target="_blank" rel="noopener noreferrer" 
+                     class="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                      <line x1="8" y1="21" x2="16" y2="21"></line>
+                      <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                    <span class="text-sm">Slides</span>
+                  </a>
+                )}
+                {talk.data.videoURL && (
+                  <a href={talk.data.videoURL} target="_blank" rel="noopener noreferrer" 
+                     class="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                      <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                    </svg>
+                    <span class="text-sm">Video</span>
+                  </a>
+                )}
+              </div>
+            </div>
+            <p class="text-gray-700 dark:text-gray-300 mt-3">
+              {talk.data.description}
+            </p>
+            <a href={`/talks/${talk.slug}`} class="inline-block mt-4 text-blue-600 dark:text-blue-400 text-sm hover:underline">
+              View details
+            </a>
+          </div>
+        ))}
+      </div>
+    </div>
+  </Container>
+</PageLayout>
