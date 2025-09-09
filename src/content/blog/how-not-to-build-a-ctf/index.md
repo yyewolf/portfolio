@@ -43,7 +43,7 @@ There are multiple types of CTFs :
 
 For a Jeopardy-style CTF, tasks can look a bit like this :
 
-<img src="https://blog.yewolf.fr/images/1ffaa143.png" width="350px">
+<img src="/blog/how-not-to-build-a-ctf/1ffaa143.png" width="350px">
 
 The challenges categories are usually the following ones:
 
@@ -97,7 +97,7 @@ Since I probably had the most motivation for the longest time, I also had to man
 
 To do that, we set up two boards («why?» : explained later on) using Github Projects :
 
-![image-2.png](https://blog.yewolf.fr/images/241b561e.png)
+![image-2.png](/blog/how-not-to-build-a-ctf/241b561e.png)
 
 To keep organized, we also had a "Project Tracking" issue, that allowed us to keep track of what was said during meetings and what was left to do before the next meeting.
 
@@ -284,7 +284,7 @@ We also added some helpful features :
 
 Exposed ports correspond to what's going to be accessible to the player, you can define HTTP ports or TCP ports which are going to be exposed differently. Here's what it would look like on the default theme :
 
-<img src="https://blog.yewolf.fr/images/3cbc4f13.png" width="350px">
+<img src="/blog/how-not-to-build-a-ctf/3cbc4f13.png" width="350px">
 
 Routing-wise, HTTP is fairly straightforward : 
 - client asks for a website
@@ -340,7 +340,7 @@ We had routes to manage instances of challenges so that the platform does not ha
 
 We also had a route (for CTFd) to generate a token for players to allow them to connect directly to the instancer and receive events, it worked a bit like this :
 
-![drawio.png](https://blog.yewolf.fr/images/91f12722.png)
+![drawio.png](/blog/how-not-to-build-a-ctf/91f12722.png)
 
 
 This websocket is used to notify players on instance status to avoid polling for the information, though, it also is possible to roll back to polling if necessary.
@@ -400,7 +400,7 @@ It was not meant to be hard (other than the `Chef` part), but it allows us to te
 
 Of course, here's a sneak peak of what Kall looked like for the players :
 
-![screenshot.png](https://blog.yewolf.fr/images/9a153b2c.png)
+![screenshot.png](/blog/how-not-to-build-a-ctf/9a153b2c.png)
 
 We ended up lending these resources to each instance :
 
@@ -505,7 +505,7 @@ However, to be completely built, CTFd requires to have the theme built and place
 
 To do this, I set up webhooks when commits were added on either the theme or the plugin and this webhook was pointed to my personnal n8n instance. The workflow then triggers the CI for the CTFd that can update its theme and/or plugin. After the build process, we would then push the image to our test environment. The workflow in n8n looked like this :
 
-![image-4.png](https://blog.yewolf.fr/images/0923d025.png)
+![image-4.png](/blog/how-not-to-build-a-ctf/0923d025.png)
 
 This was not auto deployed to production, and I manually updated if it was necessary during the event.
 
@@ -567,19 +567,19 @@ Then, we chose to keep the challenges open and instanciation open as well, to le
 
 During the CTF we recorded every data we could. So here's some graphs you may enjoy :
 
-<img src="https://blog.yewolf.fr/images/66bb63ec.png" width="500px">
+<img src="/blog/how-not-to-build-a-ctf/66bb63ec.png" width="500px">
 
 > On this one we can see quite a spike at the very beginning, which could explain the slowness we experienced for a short while.
 
-<img src="https://blog.yewolf.fr/images/503b1a05.png" width="500px">
+<img src="/blog/how-not-to-build-a-ctf/503b1a05.png" width="500px">
 
 > Memory usage was pretty much not impacted at all
 
-<img src="https://blog.yewolf.fr/images/de4727a9.png" width="500px">
+<img src="/blog/how-not-to-build-a-ctf/de4727a9.png" width="500px">
 
 > EVM Flattened Vyper was a notoriously hard challenge for most people who weren't used to Blockchains challenges.
 
-<img src="https://blog.yewolf.fr/images/4b059b39.png" width="500px">
+<img src="/blog/how-not-to-build-a-ctf/4b059b39.png" width="500px">
 
 > This is the final scoreboard, with the winners !
 
