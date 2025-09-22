@@ -1,7 +1,7 @@
 ---
 title: "GoCD"
 description: "Lightweight and fast CD utility for Docker"
-date: "Aug 31 2024"
+date: 2024-08-31
 repoURL: "https://github.com/yyewolf/gocd"
 ---
 

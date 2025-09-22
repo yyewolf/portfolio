@@ -2,7 +2,7 @@
 institution: "TELECOM Nancy"
 degree: "Computer Science & Engineering"
 dateStart: "09/01/2021"
-dateEnd: "06/30/2024"
+dateEnd: "09/01/2024"
 skills: ["Risk Analysis", "Docker", "Kubernetes", "Cloud Computing"]
 url: "https://telecomnancy.univ-lorraine.fr/"
 ---

@@ -1,7 +1,7 @@
 ---
 title: "Terraform Provider for Infomaniak"
 description: "Official Terraform provider for Infomaniak Cloud services"
-date: "Aug 15 2024"
+date: 2025-01-15
 repoURL: "https://github.com/infomaniak/terraform-provider-infomaniak"
 ---
 

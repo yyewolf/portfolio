@@ -1,7 +1,7 @@
 ---
 title: "GoIsolator"
 description: "Simple utility that allows for container isolation"
-date: "May 9 2024"
+date: 2024-05-09
 repoURL: "https://github.com/yyewolf/goisolator"
 ---
 

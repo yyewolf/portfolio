@@ -47,14 +47,14 @@ const education = await Promise.all(
   <Container>
     <div class="py-10 flex flex-col items-start">
       <div class="w-full flex flex-col items-center mb-8">
-        <div class="logo-container">
-          <img src="/logo-1.png" alt="Yewolf Logo" class="h-32 w-32 rounded-full object-cover animate-fade-in" />
+        <div class="logo-container  float-logo glow-logo">
+         <img src="/logo-1.png" alt="Yewolf Logo" class="h-32 w-32 rounded-full object-cover animate-fade-in" />
         </div>
       </div>
 
       <div class="relative">
         <h2 class="text-4xl md:text-5xl font-semibold text-black dark:text-white mb-6 animate-fade-in">
-          Hi, I'm <span class="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Yewolf</span> <span class="wave text-2xl">👋🏻</span>
+         Hi, I'm <span class="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Yewolf</span> <span class="wave text-5xl">👋🏻</span> 
         </h2>
         <div class="h-1 w-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full mb-8"></div>
       </div>
@@ -62,7 +62,7 @@ const education = await Promise.all(
       <section class="mb-12">
         <article class="prose prose-lg dark:prose-invert max-w-none">
           <p class="animate-fade-up opacity-85 leading-relaxed">
-            Hi, I'm Yewolf, a Software Engineer at Infomaniak | The Ethical Cloud in Geneva, Switzerland.
+            Hi, I'm Yewolf, currently a Software Engineer at <a href="https://infomaniak.com" target="_blank" rel="noopener noreferrer">Infomaniak</a> in Geneva, Switzerland.
             I specialize in Go and distributed systems development, focusing on creating efficient cloud 
             infrastructure and services with a sustainable approach.
           </p>
@@ -337,7 +337,7 @@ const education = await Promise.all(
         </div>
         <div class="bg-white dark:bg-gray-900 p-6 rounded-lg border border-gray-200 dark:border-gray-800">
           <div class="flex items-center gap-3 mb-3">
-            <img src="/logo-1.png" alt="Yewolf Logo" class="h-8 w-auto" />
+            <img src="/keda.webp" alt="Keda Logo" class="h-12 w-auto dark:bg-white p-1 rounded-full" />
             <h4 class="font-bold text-lg text-black dark:text-white">Scale-to-Zero Architecture</h4>
           </div>
           <p class="text-gray-700 dark:text-gray-300 mb-4">
@@ -446,4 +446,22 @@ const education = await Promise.all(
     mask-composite: exclude;
     opacity: 0.8;
   }
+
+    .float-logo {
+      animation: floatLogo 2.5s ease-in-out infinite;
+    }
+
+    @keyframes floatLogo {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-16px); }
+      100% { transform: translateY(0); }
+    }
+
+    .glow-logo {
+      box-shadow: 0 0 32px 4px #8b5cf6, 0 0 16px 2px #3b82f6;
+      transition: box-shadow 0.3s;
+    }
+    .glow-logo:hover {
+      box-shadow: 0 0 48px 8px #8b5cf6, 0 0 24px 4px #3b82f6;
+    }
 </style>
