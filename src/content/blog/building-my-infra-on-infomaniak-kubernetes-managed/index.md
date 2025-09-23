@@ -29,7 +29,7 @@ date: "Sep 22 2025"
 
 This article details my journey in building and managing my personal infrastructure as a self-hoster and also as a software engineer. It will also be a pretty good source of documentation for myself in the future, functioning as a sort of "infrastructure as code" diary.
 
-Let me first start of by throwing a lot of buzzwords at you about what I'll be covering in this article:
+Let me first start off by throwing a lot of buzzwords at you about what I'll be covering in this article:
 
 | Technology    | Description                                                                 |
 |---------------|-----------------------------------------------------------------------------|
@@ -57,7 +57,7 @@ Also a quick disclaimer: I am by no means a reference of any kind. I am learning
 
 I have been self-hosting various services for a few years now, I started somewhere around 2018 to self-host a Discord bot on a small VPS over at Scaleway (using Webmin for management). Over the years, I have experimented with various setups and technologies, but I always felt that there was room for improvement. (And I still feel that way!)
 
-This article will cover my current setup as of September 2025, and will probably not be updated in the future as I continue to learn and evolve my infrastructure.
+This article will cover my current setup as of September 2025, and will probably not be updated in the future as I continue evolve my infrastructure.
 
 I will try to keep the article ordered and structured, but please bear with me if it gets a bit messy at times.
 
@@ -156,11 +156,16 @@ table ip nat {
 }
 ```
 
+Understanding this table is fairly easy : 
+- Incoming packets from *172.21.x.x* going to *172.21.3.34* are redirected to *100.85.172.34*.
+- Any packets leaving this NAT box towards *100.85.172.34* or the *172.21.x.x* network will have their source IP replaced (masqueraded) with the router’s IP.
+- This setup allows hosts in the *172.21.0.0/16* network to transparently reach *100.85.172.34* when they think they’re talking to *172.21.3.34*.
+
 This allows my worker node to work seamlessly with the rest of the cluster, as if it was running in the same environment. (pod to pod communication works, svcs are reachable, etc.)
 
 This also allows me to use the OpenStack Load Balancer to expose services running on my home worker node to the internet, which is pretty neat and also an unintended side-effect.
 
-I haven't gotten around to play around running multiple worker nodes through this proxy, but I imagine it could work just as well. The natting rules might need to be adapted a bit, but the concept should remain the same (and also touching these rules can be a bit scary, so I haven't dared to try it yet...)
+I haven't gotten around to playing with multiple worker nodes through this proxy, but I imagine it could work just as well. The natting rules might need to be adapted a bit, but the concept should remain the same (and also touching these rules can be a bit scary, so I haven't dared to try it yet...)
 
 ### Gateway
 
@@ -241,7 +246,7 @@ The operator will automatically assign a Tailscale IP and DNS name to the servic
 
 For more advanced use cases, the operator supports features like ACLs, subnet routing, and sharing access with other Tailscale users or devices. Overall, it has made my hybrid infrastructure much easier to manage and more secure.
 
-It's also worth mentioning that Tailscale provides its own automatic TLS for any service exposed via its ingress. When you use the Tailscale Operator to expose a service, Tailscale automatically provisions and manages certificates for the generated `ts.net` domain. This means that all services accessible through Tailscale ingress are always served over HTTPS, with valid certificates, out of the box—no extra configuration required. This is a huge convenience for internal and hybrid services, as you get end-to-end encryption and trusted certificates without any manual certificate management.
+It's also worth mentioning that Tailscale provides its own automatic TLS for any service exposed via its ingress. When you use the Tailscale Operator to expose a service, Tailscale automatically provisions and manages certificates for the generated `ts.net` domain. This means that all services accessible through Tailscale ingress are always served over HTTPS, with valid certificates, out of the box, no extra configuration required. This is a huge convenience for internal and hybrid services, as you get end-to-end encryption and trusted certificates without any manual certificate management.
 
 ### Keda
 
@@ -261,39 +266,25 @@ Securing my services with TLS is a must, especially when dealing with sensitive 
 
 Cert Manager is a Kubernetes add-on that automates the management and issuance of TLS certificates from various sources, including Let's Encrypt. It handles certificate requests, renewals, and even failure recovery, so I don't have to worry about expiring certificates or manual intervention.
 
-In my setup, Cert Manager is deployed as a set of controllers in the cluster. I use the ACME HTTP-01 and DNS-01 challenge mechanisms, depending on the service and domain. For most public-facing services, HTTP-01 is enough, but for wildcard certificates or internal domains, DNS-01 is required.
+In my setup, Cert Manager is deployed as a set of controllers in the cluster. I mostly use the ACME DNS-01 challenge mechanisms. This allowed to get certificates even when my domain was not pointed to my infra (when I swapped from my old infra to my current infra). For most public-facing services, HTTP-01 is enough, but for wildcard certificates or internal domains, DNS-01 is required.
+
+#### ACME Protocol
+
+Little subsection about the ACME protocol and challenges.  
+
+When you want a TLS Certificate (and not pay an egregious amount of money), you'll most likely turn yourself to Let's Encrypt. This protocol was made by the ISRG specifically for Let's Encrypt.
+
+Long story short, when you want a certificate, you need to prove to them that the domain is yours. They use what's called "challenges" to do so, a challenge can have multiple forms :
+
+- HTTP-01 : Upload a file to your server and they'll check that it's the correct one, it proves that you control the server that the domain currently points to
+- DNS-01 : Add a TXT to your DNS to prove that you control the zone
+- TLS-01 : do ppl really use it ?
+
+For my use case (DNS-01), Cert Manager requires a [dns-01 provider](https://cert-manager.io/docs/configuration/acme/dns01/) (to setup the challenges), thus we will need to configure one.
 
 ### Infomaniak DNS
 
-Since all my domains are managed through Infomaniak, I needed a way for Cert Manager to automate DNS-01 challenges. Fortunately, there's a [cert-manager-webhook-infomaniak](https://github.com/yyewolf/cert-manager-webhook-infomaniak) project (which I maintain) that integrates Cert Manager with Infomaniak's DNS API. This allows Cert Manager to create and clean up DNS records automatically during certificate issuance and renewal.
-
-Here's a simplified example of how I configure a ClusterIssuer for DNS-01 with Infomaniak:
-
-```yaml
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: letsencrypt-infomaniak
-spec:
-  acme:
-    server: https://acme-v02.api.letsencrypt.org/directory
-    email: me@example.com
-    privateKeySecretRef:
-      name: letsencrypt-infomaniak
-    solvers:
-      - dns01:
-        webhook:
-          groupName: acme.infomaniak.com
-          solverName: infomaniak
-          config:
-            apiTokenSecretRef:
-              name: infomaniak-api-credentials
-              key: api-token
-```
-
-With this setup, requesting a certificate for any domain managed by Infomaniak is fully automated. Cert Manager creates the necessary DNS challenge records, waits for propagation, and finalizes the certificate issuance. Renewals are handled in the same way, so I never have to think about it again.
-
-For this to work you also need to have the infomaniak plugin deployed like so :
+Since all my domains are managed through Infomaniak. And since they already have a webhook provider: [cert-manager-webhook-infomaniak](https://github.com/Infomaniak/cert-manager-webhook-infomaniak). It was quite easy to setup like so (with Flux) : 
 
 ```yaml
 ---
@@ -328,19 +319,47 @@ spec:
       - infomaniak-api-credentials
 ```
 
+This allows Cert Manager to fill out DNS challenges on domains that are registered by Infomaniak.
+
+Here's a simplified example of how I configure a ClusterIssuer for DNS-01 with Infomaniak:
+
+```yaml
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-infomaniak
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: me@example.com
+    privateKeySecretRef:
+      name: letsencrypt-infomaniak
+    solvers:
+      - dns01:
+        webhook:
+          groupName: acme.infomaniak.com
+          solverName: infomaniak
+          config:
+            apiTokenSecretRef:
+              name: infomaniak-api-credentials
+              key: api-token
+```
+
+With this setup, requesting a certificate for any domain managed by Infomaniak is fully automated. Cert Manager creates the necessary DNS challenge records, waits for propagation, and finalizes the certificate issuance. Renewals are handled in the same way, so I never have to think about it again.
+
 ### Putting it all together
 
-With Cert Manager and Infomaniak DNS integration, all my services—whether exposed via Gateway API can have valid, automatically managed TLS certificates. This greatly improves the security and reliability of my infrastructure, and lets me focus on building and running services instead of worrying about certificates.
+With Cert Manager and Infomaniak DNS integration, all my services exposed via Gateway API can have valid, automatically managed TLS certificates. This greatly improves the security and reliability of my infrastructure, and lets me focus on building and running services instead of worrying about certificates.
 
 ## Always-on Services on My Cluster
 
-Not all my services run at home—some are always-on and live in my Infomaniak Kubernetes cluster for reliability, uptime, and public accessibility. Here’s a quick overview of the main services I keep running 24/7 in the cluster (not at home):
+Not all my services run at home, some are "always-on" and live in my Infomaniak Kubernetes cluster for reliability, uptime, and public accessibility. Here’s a quick overview of the main services I keep running 24/7 in the cluster (not at home):
 
 - **This Portfolio**: The very site you’re reading! It’s deployed as a static site, served via the Gateway API, and benefits from all the automation and security described above.
 
 - **CyberChef**: A self-hosted instance of the popular web app for encryption, encoding, compression, and data analysis. It’s a handy Swiss Army knife for all sorts of data manipulation tasks.
 
-- **PostgreSQL & pgAdmin (via Tailscale)**: My main database runs in the cluster, and I use pgAdmin for management. Both are exposed only via Tailscale ingress, so they’re never open to the public internet—only accessible from my private Tailscale network.
+- **PostgreSQL & pgAdmin (via Tailscale)**: My main database runs in the cluster, and I use pgAdmin for management. Both are exposed only via Tailscale ingress, so they’re never open to the public internet, only accessible from my private Tailscale network.
 
 - **Capsule**: A lightweight, multi-tenant, Kubernetes-native application platform. I use Capsule to help manage multi-tenancy and resource isolation for different projects and environments within my cluster.
 
@@ -358,7 +377,7 @@ All of these services benefit from the cluster’s high availability, automated 
 
 ## Services Running at Home (Storage-Heavy & Cost-Sensitive)
 
-While my cluster handles the always-on, public-facing, and critical services, I also run a set of services at home—mainly those that are storage-intensive or where I want to avoid cloud storage costs. Here’s what I keep on my home infrastructure:
+While my cluster handles the "always-on" and critical services, I also run a set of services at home, mainly those that are storage-intensive or where I want to avoid cloud storage costs. Here’s what I keep on my home infrastructure:
 
 - **The \*Arr Stack**: This includes Radarr, Sonarr, Lidarr, and other media management tools. These services handle my media library, downloads, and automation. They require a lot of disk space, so it makes sense to keep them on local storage where I have more control and no recurring cloud storage fees.
 
@@ -370,13 +389,13 @@ While my cluster handles the always-on, public-facing, and critical services, I 
 
 - **Immich**: A self-hosted photo and video album solution. Immich stores my personal photo library, which can quickly grow in size. Keeping it at home means I can scale storage as needed without worrying about cloud costs or upload limits.
 
-For all these services, local storage is key—I can use large, inexpensive disks and scale up as my needs grow, without worrying about cloud provider fees. Tailscale and my hybrid Kubernetes setup make it easy to securely access these services from anywhere, while keeping my data close and costs low.
+For all these services, local storage is key. I can use large, inexpensive disks and scale up as my needs grow, without worrying about cloud provider fees. Tailscale and my hybrid Kubernetes setup make it easy to securely access these services from anywhere, while keeping my data close and costs low.
 
 ## Backups with k8up
 
 To protect my data, I use k8up as my Kubernetes-native backup solution. k8up handles both application-level backups (by running custom commands inside containers) and persistent volume backups (PVC snapshots), making it flexible for a variety of workloads.
 
-For extra safety, I push my backups to a remote server using a push-only proxy. This means the backup destination is not directly accessible from my cluster, protecting my backups from accidental or malicious deletions—even if my main cluster is compromised, the backups remain safe on the remote server.
+For extra safety, I push my backups to a remote server using a push-only proxy. This means the backup destination is not directly accessible from my cluster, protecting my backups from accidental or malicious deletions, even if my main cluster is compromised, the backups remain safe on the remote server.
 
 k8up’s support for both command-based and PVC backups lets me cover everything from databases to file storage, ensuring I can restore critical data or entire applications if needed. This setup gives me peace of mind that my infrastructure and data are resilient against loss or disaster.
 
@@ -417,4 +436,8 @@ The schedule time is randomized a bit to avoid all my backups happening at the s
 
 ## Monitoring and Alerts
 
-To keep an eye on everything, I deploy the kube-prom-stack (Prometheus, Alertmanager, and Grafana) in my cluster. This stack collects metrics, visualizes them, and sends alerts when something goes wrong. For notifications, I use Alertmanager’s Discord integration, so I get real-time alerts directly in my Discord server—making it easy to see issues, I don't really mind not resolving them, but at least I'm aware of them.
+To keep an eye on everything, I deploy the kube-prom-stack (Prometheus, Alertmanager, and Grafana) in my cluster. This stack collects metrics, visualizes them, and sends alerts when something goes wrong. 
+
+For notifications, I use Alertmanager’s Discord integration. This way I get real-time alerts directly in my Discord server, making it easy to see issues. I don't really mind not resolving them, but at least I'm aware of them.
+
+PS: By the time you read this, (starting from the beginning of this article), the Portfolio Pod should have been scaled to zero :D
