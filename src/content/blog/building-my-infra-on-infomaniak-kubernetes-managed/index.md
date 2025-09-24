@@ -57,7 +57,7 @@ Also a quick disclaimer: I am by no means a reference of any kind. I am learning
 
 I have been self-hosting various services for a few years now, I started somewhere around 2018 to self-host a Discord bot on a small VPS over at Scaleway (using Webmin for management). Over the years, I have experimented with various setups and technologies, but I always felt that there was room for improvement. (And I still feel that way!)
 
-This article will cover my current setup as of September 2025, and will probably not be updated in the future as I continue evolve my infrastructure.
+This article will cover my current setup as of September 2025, and will probably not be updated in the future as I continue evolving my infrastructure.
 
 I will try to keep the article ordered and structured, but please bear with me if it gets a bit messy at times.
 
@@ -266,7 +266,7 @@ Securing my services with TLS is a must, especially when dealing with sensitive 
 
 Cert Manager is a Kubernetes add-on that automates the management and issuance of TLS certificates from various sources, including Let's Encrypt. It handles certificate requests, renewals, and even failure recovery, so I don't have to worry about expiring certificates or manual intervention.
 
-In my setup, Cert Manager is deployed as a set of controllers in the cluster. I mostly use the ACME DNS-01 challenge mechanisms. This allowed to get certificates even when my domain was not pointed to my infra (when I swapped from my old infra to my current infra). For most public-facing services, HTTP-01 is enough, but for wildcard certificates or internal domains, DNS-01 is required.
+In my setup, Cert Manager is deployed as a set of controllers in the cluster. I mostly use the ACME DNS-01 challenge mechanisms. This allowed me to get certificates even when my domain was not pointed to my infra (when I swapped from my old infra to my current infra). For most public-facing services, HTTP-01 is enough, but for wildcard certificates or internal domains, DNS-01 is required.
 
 #### ACME Protocol
 
