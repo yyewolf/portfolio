@@ -434,6 +434,14 @@ spec:
 
 The schedule time is randomized a bit to avoid all my backups happening at the same time, which could overload the system. I keep a few successful and failed jobs for history, and I prune old backups to save space.
 
+## Hosting External Services for Friends
+
+One of the cool things about running my own Kubernetes cluster is that I can safely host small services for friends and family. For example, I run an instance of [Uptime Kuma](https://github.com/louislam/uptime-kuma) for a friend—because, let's be honest, self-hosting your uptime monitor on the same server that might crash kinda defeats the whole purpose of the thing..
+
+To keep things secure and organized, I use separate Kubernetes namespaces and apply strict network policies. This means each friend's service is isolated from my own infrastructure, minimizing risks and ensuring privacy. If something goes wrong with one service, it won't affect the rest of my cluster.
+
+This setup allows me to offer reliable hosting for small apps, monitoring tools, or other utilities, without compromising my own services. It's a great way to share resources and help others, while still maintaining strong boundaries and security.
+
 ## Monitoring and Alerts
 
 To keep an eye on everything, I deploy the kube-prom-stack (Prometheus, Alertmanager, and Grafana) in my cluster. This stack collects metrics, visualizes them, and sends alerts when something goes wrong. 
