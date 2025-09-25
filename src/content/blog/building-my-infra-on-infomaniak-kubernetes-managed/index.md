@@ -197,7 +197,7 @@ spec:
 
 I also use it with the `mergeGateways` option enabled, that way I can have multiple Gateway resources that will be merged into a single Envoy configuration. I don't really use this feature yet, but I imagine it could be useful in the future.
 
-PS: The full configuration is available in my repository [here](https://github.com/yyewolf/infra/tree/main/infrastructure/gateway).
+PS: The full configuration is available in my repository [here](https://github.com/yyewolf/infra/tree/main/applications/backbone/gateway/gateway).
 
 ### Tailscale
 
@@ -256,7 +256,7 @@ My primary use case is via the HTTP Add-on, which allows me to scale deployments
 
 I also contributed to the addon by [adding support for a fallback target](https://github.com/kedacore/http-add-on/pull/1280), which allows you to route to a different target if the primary one is not available. This is useful for scenarios where you want to have a default response when your application is scaled down to zero. A good example is this blog, which is served by a booting-up instance.
 
-My fallback can be found [here](https://github.com/yyewolf/infra/blob/main/infrastructure/booting-up/configmap.yaml), it's simply a caddy instance with its page served from a configmap (yes, I know, but it works).
+My fallback can be found [here](https://github.com/yyewolf/infra/blob/main/applications/backbone/utility/booting-up/configmap.yaml), it's simply a caddy instance with its page served from a configmap (yes, I know, but it works).
 
 ## TLS, Cert Manager, and Infomaniak DNS
 
@@ -365,7 +365,7 @@ Not all my services run at home, some are "always-on" and live in my Infomaniak 
 
 - **DroneCI**: My continuous integration and delivery platform. DroneCI automates builds, tests, and deployments for my projects, integrating tightly with my Git repositories.
 
-- **Pterodactyl**: A game server management panel. I use it to spin up and manage game servers for myself and friends, all containerized and orchestrated by Kubernetes.
+- **Pterodactyl**: A game server management panel. I use it to spin up and manage game servers for myself and friends. The panel is on the cluster, while the actual game servers run on other servers via Docker. It would also be possible for me to give the docker access to the worker pod at home, but that's a bit too cursed (even for me).
 
 - **Stirling PDF**: A self-hosted PDF toolkit for converting, merging, splitting, and manipulating PDF files. It’s surprisingly useful for both personal and work-related document tasks.
 
