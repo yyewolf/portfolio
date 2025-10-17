@@ -1,0 +1,16 @@
+when:
+- event: push
+  branch: main
+
+steps:
+- name: publish
+  image: woodpeckerci/plugin-docker-buildx
+  settings:
+    platforms: linux/amd64
+    repo: registry.yewolf.fr/yyewolf/portfolio
+    registry: registry.yewolf.fr
+    auto_tag: true
+    username:
+      from_secret: REGISTRY_USERNAME
+    password:
+      from_secret: REGISTRY_PASSWORD
