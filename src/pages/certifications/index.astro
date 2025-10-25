@@ -1,0 +1,318 @@
+---
+import { getCollection } from "astro:content";
+import Container from "@components/Container.astro";
+import PageLayout from "@layouts/PageLayout.astro";
+import Link from "@components/Link.astro";
+import { CERTIFICATIONS } from "@consts";
+
+const allcertifications = (await getCollection("certifications"))
+  .filter(cert => !cert.data.draft)
+  .sort((a, b) => new Date(b.data.dateEarned).valueOf() - new Date(a.data.dateEarned).valueOf());
+
+const certifications = await Promise.all(
+  allcertifications.map(async (item) => {
+    const { Content } = await item.render();
+    return { ...item, Content };
+  })
+);
+
+const title = CERTIFICATIONS.TITLE;
+const description = CERTIFICATIONS.DESCRIPTION;
+
+// Find Kubestronaut cert for special display
+const kubestronautCert = certifications.find(cert => cert.data.title === "Kubestronaut");
+const otherCerts = certifications.filter(cert => cert.data.title !== "Kubestronaut");
+---
+
+<PageLayout title={title} description={description}>
+  <Container>
+    <div class="py-10">
+      <div class="mb-8">
+        <div class="flex items-center gap-4 mb-4">
+          <img src="/logo-1.png" alt="Yewolf Logo" class="h-10 w-auto" />
+          <h1 class="text-4xl font-bold text-black dark:text-white">
+            {title}
+          </h1>
+        </div>
+        <p class="text-gray-600 dark:text-gray-400">
+          {description}
+        </p>
+      </div>
+
+      {/* Kubestronaut Highlight */}
+      {kubestronautCert && (
+        <section class="mb-12">
+          <div class="relative overflow-hidden bg-gradient-to-br from-blue-50 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/30 rounded-2xl border border-gray-200 dark:border-gray-800 p-8">
+            <div class="absolute top-0 right-0 -mt-4 -mr-4 text-8xl opacity-10">🚀</div>
+            <div class="relative z-10">
+              <div class="flex flex-col md:flex-row items-start md:items-center gap-6 mb-6">
+                <img src={kubestronautCert.data.badgeURL} alt="Kubestronaut Badge" class="w-24 h-24 object-contain" />
+                <div class="flex-1">
+                  <h2 class="text-3xl font-bold text-black dark:text-white mb-2">
+                    🚀 Kubestronaut Achievement
+                  </h2>
+                  <p class="text-lg text-gray-700 dark:text-gray-300 mb-2">
+                    Recognized by the CNCF for achieving all five Kubernetes certifications
+                  </p>
+                  <div class="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                    Achieved: {new Date(kubestronautCert.data.dateEarned).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </div>
+                </div>
+              </div>
+              <article class="prose prose-lg dark:prose-invert max-w-none">
+                <kubestronautCert.Content />
+              </article>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* All Certifications Grid */}
+      <section>
+        <h2 class="text-2xl font-bold text-black dark:text-white mb-12">
+          All Certifications ({certifications.length})
+        </h2>
+        <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-2 xl:gap-12">
+          {certifications.map((cert, index) => (
+            <div class="group transform hover:-translate-y-2 transition-all duration-300">
+              <div class="h-full p-8 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm hover:shadow-xl hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300">
+                {/* Header with badge and title */}
+                <div class="flex items-start gap-6 mb-6">
+                  {cert.data.badgeURL && (
+                    <img src={cert.data.badgeURL} alt={`${cert.data.title} Badge`} class="w-20 h-20 object-contain flex-shrink-0" />
+                  )}
+                  <div class="flex-1 min-w-0">
+                    <h3 class="font-bold text-xl text-black dark:text-white mb-3 leading-tight">
+                      {cert.data.title}
+                    </h3>
+                    <p class="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                      {cert.data.issuer}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Date info */}
+                <div class="mb-6 space-y-2">
+                  <div class="flex justify-between items-center text-sm">
+                    <span class="text-gray-500 dark:text-gray-400">Earned:</span>
+                    <span class="text-gray-700 dark:text-gray-300 font-medium">
+                      {new Date(cert.data.dateEarned).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short'
+                      })}
+                    </span>
+                  </div>
+                  {cert.data.expirationDate && (
+                    <div class="flex justify-between items-center text-sm">
+                      <span class="text-gray-500 dark:text-gray-400">Expires:</span>
+                      <span class="text-gray-700 dark:text-gray-300">
+                        {new Date(cert.data.expirationDate).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short'
+                        })}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Skills preview - only show top 2 skills */}
+                {cert.data.skills && cert.data.skills.length > 0 && (
+                  <div class="mb-6">
+                    <div class="flex flex-wrap gap-2">
+                      {cert.data.skills.slice(0, 2).map((skill: string) => (
+                        <span class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-sm rounded-full">
+                          {skill}
+                        </span>
+                      ))}
+                      {cert.data.skills.length > 2 && (
+                        <span class="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-sm rounded-full">
+                          +{cert.data.skills.length - 2} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                <div class="flex gap-3 pt-6 border-t border-gray-100 dark:border-gray-800">
+                  {cert.data.credentialURL && (
+                    <a 
+                      href={cert.data.credentialURL} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      class="flex-1 text-center px-4 py-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      View Credential
+                    </a>
+                  )}
+                  <button 
+                    class="px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cert-details-btn" 
+                    data-cert-index={index}
+                  >
+                    Details
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Modal for certification details */}
+      <div id="cert-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-900 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div class="p-6">
+            <div class="flex justify-between items-start mb-4">
+              <h3 id="modal-title" class="text-2xl font-bold text-black dark:text-white"></h3>
+              <button id="close-modal" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            
+            <div class="flex items-center gap-4 mb-6">
+              <img id="modal-badge" src="" alt="" class="w-20 h-20 object-contain" />
+              <div>
+                <p id="modal-issuer" class="text-lg text-blue-600 dark:text-blue-400 font-medium mb-2"></p>
+                <div id="modal-dates" class="text-sm text-gray-600 dark:text-gray-400 space-y-1"></div>
+              </div>
+            </div>
+
+            <div id="modal-skills" class="mb-6"></div>
+            <div id="modal-content" class="prose dark:prose-invert max-w-none"></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Back to Home */}
+      <section class="mt-16 text-center">
+        <Link href="/" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m12 19-7-7 7-7"/>
+            <path d="M19 12H5"/>
+          </svg>
+          Back to Home
+        </Link>
+      </section>
+    </div>
+  </Container>
+</PageLayout>
+
+<style>
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>
+
+<script define:vars={{ certifications }}>
+  document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('cert-modal');
+    const closeModalBtn = document.getElementById('close-modal');
+    const detailBtns = document.querySelectorAll('.cert-details-btn');
+
+    // Open modal function
+    function openModal(certIndex) {
+      const cert = certifications[certIndex];
+      if (!cert) return;
+
+      // Populate modal content
+      document.getElementById('modal-title').textContent = cert.data.title;
+      document.getElementById('modal-issuer').textContent = cert.data.issuer;
+      
+      const modalBadge = document.getElementById('modal-badge');
+      if (cert.data.badgeURL) {
+        modalBadge.src = cert.data.badgeURL;
+        modalBadge.alt = `${cert.data.title} Badge`;
+        modalBadge.style.display = 'block';
+      } else {
+        modalBadge.style.display = 'none';
+      }
+
+      // Date information
+      const modalDates = document.getElementById('modal-dates');
+      let datesHTML = `<div>Earned: ${new Date(cert.data.dateEarned).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })}</div>`;
+      
+      if (cert.data.expirationDate) {
+        datesHTML += `<div>Expires: ${new Date(cert.data.expirationDate).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })}</div>`;
+      }
+      modalDates.innerHTML = datesHTML;
+
+      // Skills
+      const modalSkills = document.getElementById('modal-skills');
+      if (cert.data.skills && cert.data.skills.length > 0) {
+        modalSkills.innerHTML = `
+          <div class="mb-4">
+            <h4 class="text-lg font-semibold text-black dark:text-white mb-3">Key Skills & Technologies:</h4>
+            <div class="flex flex-wrap gap-2">
+              ${cert.data.skills.map(skill => 
+                `<span class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-sm rounded-full">${skill}</span>`
+              ).join('')}
+            </div>
+          </div>
+        `;
+      } else {
+        modalSkills.innerHTML = '';
+      }
+
+      // Content
+      const modalContent = document.getElementById('modal-content');
+      modalContent.innerHTML = `
+        <h4 class="text-lg font-semibold text-black dark:text-white mb-3">About this Certification:</h4>
+        <p class="text-gray-700 dark:text-gray-300 leading-relaxed">${cert.data.description}</p>
+      `;
+
+      // Show modal
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.body.style.overflow = 'hidden';
+    }
+
+    // Close modal function
+    function closeModal() {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      document.body.style.overflow = 'auto';
+    }
+
+    // Event listeners
+    detailBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const certIndex = parseInt(this.dataset.certIndex);
+        openModal(certIndex);
+      });
+    });
+
+    closeModalBtn.addEventListener('click', closeModal);
+
+    // Close modal when clicking outside
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+        closeModal();
+      }
+    });
+  });
+</script>

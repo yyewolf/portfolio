@@ -33,6 +33,11 @@ export const TALKS: Metadata = {
   DESCRIPTION: "Talks and presentations I've given at conferences and meetups.",
 };
 
+export const CERTIFICATIONS: Metadata = {
+  TITLE: "Certifications",
+  DESCRIPTION: "Professional certifications and achievements in cloud native technologies and Kubernetes.",
+};
+
 export const SOCIALS: Socials = [
   { 
     NAME: "github",
