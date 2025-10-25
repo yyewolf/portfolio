@@ -41,6 +41,17 @@ const education = await Promise.all(
   })
 );
 
+const allcertifications = (await getCollection("certifications"))
+  .filter(cert => !cert.data.draft)
+  .sort((a, b) => new Date(b.data.dateEarned).valueOf() - new Date(a.data.dateEarned).valueOf());
+
+const certifications = await Promise.all(
+  allcertifications.map(async (item) => {
+    const { Content } = await item.render();
+    return { ...item, Content };
+  })
+);
+
 ---
 
 <PageLayout title={HOME.TITLE} description={HOME.DESCRIPTION}>
@@ -67,10 +78,10 @@ const education = await Promise.all(
             infrastructure and services with a sustainable approach.
           </p>
           <p class="animate-fade-up opacity-85 leading-relaxed">
-            As a TELECOM Nancy graduate, I've developed expertise in containerization (Docker, Kubernetes),
-            risk analysis, and software development. I enjoy solving complex problems, optimizing performance,
-            and building reliable systems that scale effectively. This portfolio itself is built using a scale-to-zero architecture,
-            demonstrating efficient resource utilization and cost optimization in modern cloud deployments.
+            As a certified <strong>Kubestronaut</strong>,
+            I've developed deep expertise in containerization, Kubernetes administration, cloud native security, and distributed systems. 
+            I enjoy solving complex problems, optimizing performance, and building reliable systems that scale effectively. 
+            This portfolio itself is built using a scale-to-zero architecture, demonstrating efficient resource utilization and cost optimization in modern cloud deployments.
           </p>
           <p class="animate-fade-up opacity-85 leading-relaxed">
             At Infomaniak, I'm currently working on cloud infrastructure after successfully completing an internship 
@@ -154,6 +165,72 @@ const education = await Promise.all(
               <article class="prose prose-sm dark:prose-invert max-w-none text-gray-600 dark:text-gray-400">
                 <entry.Content />
               </article>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      
+
+      <section class="mb-16 animate-fade-up">
+        <div class="flex flex-wrap gap-y-2 items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-2 mb-6">
+          <h3 class="text-2xl font-bold text-black dark:text-white">
+            Certifications
+          </h3>
+          <Link href="/certifications" underline={false} class="px-4 py-1 rounded-full text-sm bg-gray-100 dark:bg-gray-800 hover:bg-blue-100 hover:dark:bg-blue-900 transition-colors">
+            See all certifications →
+          </Link>
+        </div>
+        
+        {/* Kubestronaut highlight */}
+        <div class="mb-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border border-gray-200 dark:border-gray-800">
+          <div class="flex items-center gap-4 mb-4">
+            <img src="https://images.credly.com/images/cd6c6449-6814-4613-a2d3-13cf4ac5be4f/image.png" alt="Kubestronaut Badge" class="w-16 h-16" />
+            <div>
+              <h4 class="text-xl font-bold text-black dark:text-white">🚀 Kubestronaut</h4>
+              <p class="text-sm text-gray-600 dark:text-gray-400">Achieved all 5 Kubernetes certifications (KCNA, KCSA, CKAD, CKA, CKS)</p>
+            </div>
+          </div>
+          <p class="text-gray-700 dark:text-gray-300">
+            Recognized by the CNCF as a Kubestronaut for demonstrating comprehensive mastery across the entire Kubernetes ecosystem. 
+            This exclusive achievement represents expertise in cloud native development, administration, and security.
+          </p>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-3 sm:grid-cols-2">
+          {certifications.slice(0, 6).map(cert => (
+            <div class="group transform hover:-translate-y-1 transition-all duration-300">
+              <div class="block h-full p-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300">
+                <div class="flex items-center gap-3 mb-3">
+                  {cert.data.badgeURL && (
+                    <img src={cert.data.badgeURL} alt={`${cert.data.title} Badge`} class="w-12 h-12 object-contain" />
+                  )}
+                  <div class="flex-1 min-w-0">
+                    <h4 class="font-semibold text-sm text-black dark:text-white truncate">
+                      {cert.data.title}
+                    </h4>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">
+                      {cert.data.issuer}
+                    </p>
+                  </div>
+                </div>
+                <p class="text-xs text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                  {cert.data.description}
+                </p>
+                <div class="flex justify-between items-center text-xs">
+                  <span class="text-blue-600 dark:text-blue-400 font-medium">
+                    {new Date(cert.data.dateEarned).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short'
+                    })}
+                  </span>
+                  {cert.data.skills && cert.data.skills.length > 0 && (
+                    <span class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs rounded-full">
+                      +{cert.data.skills.length} skills
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           ))}
         </div>

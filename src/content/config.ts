@@ -59,4 +59,19 @@ const talks = defineCollection({
   }),
 });
 
-export const collections = { blog, work, projects, education, talks };
+const certifications = defineCollection({
+  type: "content",
+  schema: z.object({
+    title: z.string(),
+    issuer: z.string(),
+    description: z.string(),
+    dateEarned: z.coerce.date(),
+    expirationDate: z.coerce.date().optional(),
+    credentialURL: z.string().optional(),
+    badgeURL: z.string().optional(),
+    skills: z.array(z.string()).optional(),
+    draft: z.boolean().optional(),
+  }),
+});
+
+export const collections = { blog, work, projects, education, talks, certifications };

@@ -1,6 +1,7 @@
 when:
 - event: push
   branch: main
+- event: tag
 
 steps:
 - name: publish
