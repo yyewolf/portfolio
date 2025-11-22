@@ -2,7 +2,7 @@
 title: "Multi-Operator Demo"
 event: "Silicon Chalet"
 description: "A demonstration of using multiple Kubernetes operators together to create a complete solution"
-date: 2023-06-15
+date: 2025-09-02
 repoURL: "https://github.com/yyewolf/multi-operator-demo"
 ---
 
