@@ -19,6 +19,7 @@ date: "Dec 12 2025"
 - [Door Detection with an Ultrasonic Sensor](#door-detection-with-an-ultrasonic-sensor)
 - [Security Camera in a Wall Charger](#security-camera-in-a-wall-charger)
 - [Voice Control with Local Speech Recognition](#voice-control-with-local-speech-recognition)
+- [The Total Cost](#the-total-cost)
 - [Conclusion](#conclusion)
 
 ## Introduction
@@ -187,21 +188,31 @@ No 3D printed case for this one either. It's just sitting on a USB charger plugg
 
 ## Security Camera in a Wall Charger
 
-I wanted a small security camera that wouldn't be too obvious. After some searching, I found a neat solution: hiding an ESP32-CAM inside a wall charger enclosure. The idea is that it looks like a regular phone charger plugged into the wall, but it's actually watching the room.
+I wanted a security camera with decent image quality, especially at night. After trying various ESP32-CAM setups and being disappointed with the low-light performance, I went a different route: a Raspberry Pi Zero 2 W with a proper camera module.
 
-The enclosure came from a Turkish website called Altinkaya, which makes all kinds of plastic enclosures for electronics projects. I bought [this model](https://www.altinkaya.com/tr/shop/ad-140-adaptor-kutusu-267?search=ad-#attr=725,706,24907,741,715,24909), which turned out to be the wrong socket type for France (it's designed for Type C plugs, not Type E). Nothing an adapter couldn't fix though. If you're in France and want the right plug from the start, [this one](https://www.altinkaya.com/tr/shop/ad-120-adaptor-kutusu-265?search=ad-#attr=743,27320,27321,719,24904) should work. I contacted the seller and they confirmed the dimensions are compatible.
+I scored the Pi Zero 2 W for 13€ off Leboncoin (basically French Craigslist), which was a nice find given how hard these can be to get at retail. For the camera, I got a [module with IR-cut from AliExpress](https://fr.aliexpress.com/item/1005006790000090.html) for about 15€. The IR-cut filter automatically switches between day and night mode, so you get proper colors during the day and infrared vision at night without that washed-out purple tint.
 
-![ESPCam in Wall Charger](/blog/building-a-self-hosted-(mostly)-disconnected-smart-home/espcam_wall.webp)
+For the enclosure, I designed and 3D printed my own. It's pretty janky looking if I'm being honest, but it gets the job done. I might release the files at some point once I clean up the design a bit. To power it from mains, I used an [HLK-20M05](https://fr.aliexpress.com/item/1005002663857379.html) (about 5€), which provides enough current for the Pi.
 
-The tricky part was powering the ESP32-CAM from mains voltage. For this, I used an HLK-PM01 module, which is a tiny AC-DC converter that takes 220V AC input and outputs 5V DC. These modules are commonly used in IoT projects where you need mains power in a small form factor. The output connects directly to the ESP32-CAM's 5V and GND pins.
+![Camera 3D Print](/blog/building-a-self-hosted-(mostly)-disconnected-smart-home/cam_3d_print.webp)
 
-A word of caution: working with mains voltage is dangerous. The HLK-PM01 has exposed contacts that carry 220V, so you need to make sure everything is properly insulated. I used heat shrink tubing and hot glue to secure all connections. If you're not comfortable with mains wiring, this project might not be for you.
+I 3D printed a mount to hold the camera at the right angle inside the enclosure. The fit is tight but it works. Here's what it looks like mounted on the wall:
 
-![ESPCam View](/blog/building-a-self-hosted-(mostly)-disconnected-smart-home/espcam_opened.webp)
+![Camera on Wall](/blog/building-a-self-hosted-(mostly)-disconnected-smart-home/cam_on_wall.webp)
 
-The ESP32-CAM runs ESPHome with the camera component. It streams video to Home Assistant, where I can view it on my dashboard or record clips when motion is detected. The camera also has a built-in LED flash that I can control remotely, which is useful for the occasional snapshot in the dark.
+On the software side, I installed Raspbian Trixie on the Pi and set up [go2rtc](https://github.com/AlexxIT/go2rtc) with a custom systemd service to start on boot. go2rtc is great because it exposes the camera as an RTSP stream with minimal latency and low CPU usage.
 
-I'll be honest though, I'm not super happy with the current setup. The OV2640 camera module that comes with most ESP32-CAM boards isn't great in low light, and the night vision with the LED flash is pretty harsh. I've ordered a replacement camera module with better low-light performance and IR LEDs for proper night vision. I'll update this post once that's set up properly.
+The RTSP stream feeds into [Frigate](https://frigate.video/), which runs on my home server. Frigate handles motion detection, object recognition (it can tell the difference between a person and my shadow), and recording. It connects to Home Assistant through MQTT, so I get notifications, can view live streams, and access recordings all from my dashboard.
+
+The difference in image quality compared to the ESP32-CAM is night and day (pun intended). Here's a daytime shot:
+
+![Camera Angle Day](/blog/building-a-self-hosted-(mostly)-disconnected-smart-home/cam_angle.webp)
+
+And here's what it looks like with the IR LEDs at night:
+
+![Camera Angle Night](/blog/building-a-self-hosted-(mostly)-disconnected-smart-home/cam_angle_night.webp)
+
+The infrared illumination is subtle enough that you don't notice it in a dark room, but it lights up the scene perfectly for the camera. Way better than the harsh white LED flash on the ESP32-CAM.
 
 ## Voice Control with Local Speech Recognition
 
@@ -218,6 +229,31 @@ The one part that isn't local is the LLM for understanding intent and calling to
 I went with Infomaniak's GPT-OSS for a few reasons: it supports tool calling (which you need for Home Assistant to actually execute commands), it's hosted in Switzerland (good for privacy compared to US-based alternatives), and it's the cheapest option that meets my requirements. The model understands French well and can handle natural language commands like "allume la lumière du salon" or more complex requests like "éteins tout dans une heure."
 
 Is it fully disconnected? No, the LLM part still needs internet. But the speech recognition and synthesis happen locally, which means your actual voice recordings never leave your network. The LLM only sees the transcribed text. It's a reasonable compromise between privacy and functionality, at least until local LLMs get good enough at tool calling to replace the cloud component.
+
+## The Total Cost
+
+One question people always ask about smart home setups is "how much did all this cost?" So here's a breakdown of everything:
+
+| Item | Price |
+|------|-------|
+| Shelly Duo GU10 bulbs (x2) | 24.08€ |
+| Shelly 1L relays (x2) | 40.68€ |
+| Lenovo Smart Clock | Already owned |
+| TeleInfo module | ~14€ ($15) |
+| ESP32 C3 MINI (x3) | 6€ |
+| BME680 sensor | 7.69€ |
+| HC-SR04 ultrasonic sensor | Already owned |
+| Raspberry Pi Zero 2 W | 13€ |
+| Camera module with IR-cut | 15€ |
+| HLK-20M05 power module | 5€ |
+| 3D printing filament | ~4€ |
+| **Total** | **~130€** |
+
+Not bad for a full smart home setup with lighting, environmental monitoring, electricity tracking, a security camera, and multi-room audio. The Lenovo Smart Clock and ultrasonic sensor were things I already had lying around, so those didn't add to the cost.
+
+The ESP32 C3 MINIs are ridiculously cheap at 2€ each, and they're the backbone of most of my sensors. If you're just starting out with home automation on a budget, I'd highly recommend picking up a few of these and some basic sensors to experiment with.
+
+This doesn't include the home server (which I use for other things anyway) or the Infomaniak infrastructure costs (covered in my other blog post). But for the actual smart home hardware, under 140€ is pretty reasonable.
 
 ## Conclusion
 
@@ -236,6 +272,8 @@ Looking back, the investment in local-first hardware (Shelly, ESPHome devices) h
 And yes, my router is starting to question my life choices:
 
 ![WiFi Devices](/blog/building-a-self-hosted-(mostly)-disconnected-smart-home/wifi.png)
+
+(FYI, I replaced the ESP Cam with the Raspberry Pi camera, hence the unexpected device in the screenshot.)
 
 What's next? I still need to install that second Shelly 1L in the living room, print some proper cases for the exposed ESP32 boards, and upgrade the camera module for better night vision. I'm also thinking about adding some presence detection using Bluetooth or mmWave sensors, and maybe a proper doorbell integration. The beauty of a self-hosted system is that you can always add more.
 
