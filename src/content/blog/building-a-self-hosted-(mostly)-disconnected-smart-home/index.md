@@ -198,7 +198,7 @@ For the enclosure, I designed and 3D printed my own. It's pretty janky looking i
 
 I 3D printed a mount to hold the camera at the right angle inside the enclosure. The fit is tight but it works. Here's what it looks like mounted on the wall:
 
-![Camera on Wall](/blog/building-a-self-hosted-(mostly)-disconnected-smart-home/cam_on_wall.webp)
+![Camera on Wall](/blog/building-a-self-hosted-(mostly)-disconnected-smart-home/cam_on_wall.png)
 
 On the software side, I installed Raspbian Trixie on the Pi and set up [go2rtc](https://github.com/AlexxIT/go2rtc) with a custom systemd service to start on boot. go2rtc is great because it exposes the camera as an RTSP stream with minimal latency and low CPU usage.
 
