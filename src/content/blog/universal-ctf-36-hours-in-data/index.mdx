@@ -1,6 +1,6 @@
 ---
-title: "Universal CTF: 32 hours in data"
-description: "Playing back our second CTF, Universal CTF: a 32-hour, 608-player event on our own Kubernetes cluster, told through a leaderboard race, 3,807 throwaway pods and the traffic between them."
+title: "Universal CTF: 36 hours in data"
+description: "Playing back our second CTF, Universal CTF: a 36-hour, 608-player event on our own Kubernetes cluster, told through a leaderboard race, 3,807 throwaway pods and the traffic between them."
 date: "Aug 2 2026"
 ---
 
@@ -17,7 +17,7 @@ import Charts from "@components/ctf/Charts.astro";
 import Provenance from "@components/ctf/Provenance.astro";
 import InfraHow from "@components/ctf/InfraHow.astro";
 
-On the weekend of the 1st of August 2026, we ran **Universal CTF**, a 32-hour jeopardy CTF on the [managed Kubernetes service provided by Infomaniak](https://www.infomaniak.com/en/hosting/public-cloud/kubernetes). This is our second one. Our first iteration at hosting a CTF happened here: [How (not) to host your CTF](/blog/how-not-to-build-a-ctf). Different challenges, different infrastructure, a fresh set of mistakes to learn from.
+On the weekend of the 1st of August 2026, we ran **Universal CTF**, a 36-hour jeopardy CTF on the [managed Kubernetes service provided by Infomaniak](https://www.infomaniak.com/en/hosting/public-cloud/kubernetes). This is our second one. Our first iteration at hosting a CTF happened here: [How (not) to host your CTF](/blog/how-not-to-build-a-ctf). Different challenges, different infrastructure, a fresh set of mistakes to learn from.
 
 It runs on [UCTF](https://uctf.io), the platform we built so anyone can host their own CTF: managed CTFd, per-team instanced challenges, storage and git sync included. The cluster underneath is sponsored by [Infomaniak](/blog/building-my-infra-on-infomaniak-kubernetes-managed), whose managed Kubernetes I also presented in a previous post. If you want to run a CTF without building all of this yourself, that is what UCTF is for.
 
@@ -63,7 +63,7 @@ The cluster itself is set up with two choices that shaped what we could build: v
 
 ## First blood
 
-The first team to solve each challenge, in the order it happened. {firstbloods.length} first bloods over the 32 hours, and two challenges nobody solved at all.
+The first team to solve each challenge, in the order it happened. {firstbloods.length} first bloods over the 36 hours, and two challenges nobody solved at all.
 
 <Ticker />
 
