@@ -20,3 +20,8 @@ pnpm-debug.log*
 
 # macOS-specific files
 .DS_Store
+
+kubeconfig
+
+# monitoring/db backups (contain user PII + large TSDB dumps)
+backup/data/

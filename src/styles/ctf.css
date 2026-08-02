@@ -1,0 +1,397 @@
+/* ---------------------------------------------------------------------------
+ * Universal CTF data-story visualisations.
+ * Every embedded component carries a `.ctf` root which scopes these rules and
+ * provides the CSS custom properties the canvas/SVG renderers read live via
+ * getComputedStyle (see src/scripts/ctf/util.ts). Palette follows the site
+ * theme (white / gray-950, blue accent) and flips with `html.dark`.
+ * ------------------------------------------------------------------------- */
+
+/* Variables live on :root (not .ctf) because the shared tooltip element is
+ * appended to <body>, outside any .ctf subtree; .ctf elements inherit them
+ * either way, and cssvar() in util.ts still resolves them from the .ctf root. */
+:root {
+  --ctf-surface: #ffffff;
+  --ctf-page: #f9fafb;
+  --ctf-ink: #111827;
+  --ctf-ink2: #4b5563;
+  --ctf-muted: #9ca3af;
+  --ctf-grid: #e5e7eb;
+  --ctf-axis: #d1d5db;
+  --ctf-c1: #2563eb;
+  --ctf-c2: #ea580c;
+  --ctf-aqua: #0d9488;
+  --ctf-gold: #d97706;
+  --ctf-good: #16a34a;
+  --ctf-crit: #dc2626;
+  --ctf-violet: #7c3aed;
+  --ctf-seq1: #93c5fd;
+  --ctf-seq2: #3b82f6;
+  --ctf-seq3: #2563eb;
+  --ctf-seq4: #1d4ed8;
+  --ctf-seq5: #1e3a8a;
+  --ctf-nodebg: #f3f4f6;
+  --ctf-flash: #ffffff;
+}
+
+.ctf {
+  color: var(--ctf-ink2);
+  font-variant-numeric: tabular-nums;
+}
+
+html.dark {
+  --ctf-surface: #111827;
+  --ctf-page: #030712;
+  --ctf-ink: #f9fafb;
+  --ctf-ink2: #d1d5db;
+  --ctf-muted: #6b7280;
+  --ctf-grid: #1f2937;
+  --ctf-axis: #374151;
+  --ctf-c1: #60a5fa;
+  --ctf-c2: #fb923c;
+  --ctf-aqua: #2dd4bf;
+  --ctf-gold: #fbbf24;
+  --ctf-good: #4ade80;
+  --ctf-crit: #f87171;
+  --ctf-violet: #a78bfa;
+  --ctf-seq1: #1e3a8a;
+  --ctf-seq2: #1d4ed8;
+  --ctf-seq3: #2563eb;
+  --ctf-seq4: #3b82f6;
+  --ctf-seq5: #60a5fa;
+  --ctf-nodebg: #0b1220;
+  --ctf-flash: #eafff6;
+}
+
+/* ---- headline stat band (hairline-divided cells) ------------------------ */
+.ctf-hero-nums {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--ctf-grid);
+  border: 1px solid var(--ctf-grid);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.ctf-hero-nums > div {
+  background: var(--ctf-surface);
+  padding: 1rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.ctf-hero-nums b {
+  font-size: clamp(1.45rem, 4vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--ctf-ink);
+}
+.ctf-hero-nums span {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ctf-muted);
+}
+@media (min-width: 640px) {
+  .ctf-hero-nums { grid-template-columns: repeat(4, 1fr); }
+  .ctf-hero-nums > div { padding: 1.2rem 1.35rem; }
+}
+
+/* ---- typography inside cards -------------------------------------------- */
+.ctf-h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ctf-ink);
+  margin: 0;
+}
+.ctf-cap { font-size: 0.8rem; color: var(--ctf-muted); margin: 0.3rem 0 0.9rem; }
+.ctf-sublabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ctf-muted);
+  margin: 1.5rem 0 0.7rem;
+}
+.ctf-sublabel:first-child { margin-top: 0; }
+
+/* ---- cards --------------------------------------------------------------- */
+.ctf-card {
+  background: var(--ctf-surface);
+  border: 1px solid var(--ctf-grid);
+  border-radius: 14px;
+  padding: 1.15rem 1.25rem 1.3rem;
+  margin-top: 1rem;
+}
+.ctf-two { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+@media (min-width: 720px) {
+  .ctf-two { grid-template-columns: 1fr 1fr; }
+}
+
+/* ---- stat tiles ---------------------------------------------------------- */
+.ctf-tilegrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+@media (min-width: 860px) { .ctf-tilegrid { grid-template-columns: repeat(4, 1fr); } }
+.ctf-tile {
+  background: var(--ctf-surface);
+  border: 1px solid var(--ctf-grid);
+  border-radius: 12px;
+  padding: 0.85rem 0.95rem;
+  transition: border-color 0.2s ease;
+}
+.ctf-tile:hover { border-color: var(--ctf-axis); }
+.ctf-tile-v {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ctf-ink);
+  line-height: 1.05;
+}
+.ctf-tile-l { font-size: 0.8rem; color: var(--ctf-ink2); margin-top: 0.3rem; font-weight: 500; }
+.ctf-tile-s { font-size: 0.72rem; color: var(--ctf-muted); margin-top: 0.15rem; }
+
+/* ---- horizontal bars (categories) --------------------------------------- */
+.ctf-bars { display: flex; flex-direction: column; gap: 0.55rem; }
+.ctf-bar-row { display: grid; grid-template-columns: 5.5rem 1fr 2.5rem; align-items: center; gap: 0.6rem; }
+.ctf-bar-name {
+  font-size: 0.8rem;
+  color: var(--ctf-ink2);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ctf-bar-track { background: var(--ctf-grid); border-radius: 999px; height: 12px; overflow: hidden; }
+.ctf-bar-fill { height: 100%; border-radius: 999px; transition: width 0.6s ease; }
+.ctf-bar-val { font-size: 0.8rem; font-weight: 600; color: var(--ctf-ink); }
+
+/* ---- funnel -------------------------------------------------------------- */
+.ctf-funnel { display: flex; flex-direction: column; gap: 0.55rem; }
+.ctf-funnel-row { display: flex; align-items: center; gap: 0.7rem; }
+.ctf-funnel-bar {
+  height: 30px;
+  border-radius: 8px;
+  min-width: 3rem;
+  display: flex;
+  align-items: center;
+  transition: width 0.6s ease;
+}
+.ctf-funnel-num { color: #fff; font-weight: 700; font-size: 0.85rem; padding-left: 0.6rem; }
+.ctf-funnel-lab { font-size: 0.82rem; color: var(--ctf-ink2); }
+
+/* ---- small multiples ------------------------------------------------------ */
+.ctf-smallmult { display: grid; grid-template-columns: 1fr; gap: 1.1rem 0.9rem; }
+@media (min-width: 640px) { .ctf-smallmult { grid-template-columns: 1fr 1fr; } }
+.ctf-sm-title { font-size: 0.78rem; color: var(--ctf-ink2); font-weight: 600; margin-bottom: 0.25rem; }
+
+/* ---- animation stages ----------------------------------------------------- */
+.ctf-stagewrap {
+  position: relative;
+  background: var(--ctf-surface);
+  border: 1px solid var(--ctf-grid);
+  border-radius: 14px;
+  padding: 1rem;
+}
+.ctf-canvas { width: 100%; height: 430px; display: block; }
+.ctf-canvas-grid { height: 480px; cursor: grab; touch-action: none; }
+.ctf-canvas-net { height: 300px; }
+@media (max-width: 640px) { .ctf-canvas { height: 360px; } }
+
+/* ---- transport (play / speed / scrubber) ---------------------------------- */
+.ctf-transport { display: flex; align-items: center; gap: 0.7rem; margin-top: 0.9rem; flex-wrap: wrap; }
+.ctf-tbtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--ctf-grid);
+  background: var(--ctf-page);
+  color: var(--ctf-ink);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s ease, color 0.15s ease;
+  position: relative;
+  top: 12px;
+}
+.ctf-tbtn svg { display: block; flex-shrink: 0; }
+.ctf-tbtn:hover { border-color: var(--ctf-c1); color: var(--ctf-c1); }
+.ctf-tspeeds {
+  display: inline-flex;
+  border: 1px solid var(--ctf-grid);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+  top: 12px;
+}
+.ctf-tsp {
+  height: 34px;
+  padding: 0 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: var(--ctf-page);
+  color: var(--ctf-muted);
+  border: 0;
+  border-left: 1px solid var(--ctf-grid);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.ctf-tsp:first-child { border-left: 0; }
+.ctf-tsp:hover { color: var(--ctf-ink); }
+.ctf-tsp.on { background: var(--ctf-c1); color: #fff; }
+.ctf-tbarwrap { flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 3px; position: relative; }
+.ctf-tmarks { position: relative; height: 14px; }
+.ctf-tmark { position: absolute; top: 0; transform: translateX(-50%); }
+.ctf-tmark::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 11px;
+  width: 1px;
+  height: 16px;
+  background: var(--ctf-axis);
+}
+.ctf-tmark-l {
+  font-size: 0.62rem;
+  color: var(--ctf-ink2);
+  white-space: nowrap;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  padding-bottom: 3px;
+}
+.ctf-theat { height: 5px; border-radius: 999px; background: var(--ctf-grid); }
+.ctf-tbar {
+  height: 8px;
+  background: var(--ctf-grid);
+  border-radius: 999px;
+  cursor: pointer;
+  position: relative;
+  touch-action: none;
+}
+.ctf-tfill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--ctf-c1);
+  border-radius: 999px;
+  width: 0;
+}
+.ctf-tcap { font-size: 0.78rem; color: var(--ctf-muted); width: 100%; text-align: right; }
+
+/* ---- category legend + node panel ---------------------------------------- */
+.ctf-catlegend { display: flex; flex-wrap: wrap; gap: 0.5rem 0.9rem; margin-top: 0.75rem; }
+.ctf-catchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.74rem;
+  color: var(--ctf-ink2);
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s ease;
+}
+.ctf-catchip:hover { opacity: 0.85; }
+.ctf-catchip.off { opacity: 0.3; }
+.ctf-catchip.off:hover { opacity: 0.6; }
+.ctf-catdot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.ctf-nodepanel {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: color-mix(in srgb, var(--ctf-page) 92%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--ctf-grid);
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
+  min-width: 12rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  z-index: 5;
+}
+.ctf-np-title { font-weight: 700; color: var(--ctf-ink); font-size: 0.85rem; word-break: break-all; }
+.ctf-np-sub { font-size: 0.74rem; color: var(--ctf-muted); margin-bottom: 0.4rem; }
+.ctf-np-row { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--ctf-ink2); padding: 0.1rem 0; }
+.ctf-np-row b { color: var(--ctf-ink); }
+.ctf-np-note { font-size: 0.68rem; color: var(--ctf-muted); margin-top: 0.45rem; font-style: italic; }
+
+/* ---- live stats above the canvases --------------------------------------- */
+.ctf-gridstats { display: flex; gap: 0.9rem 2rem; margin-bottom: 0.9rem; flex-wrap: wrap; }
+.ctf-gstat-v {
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ctf-ink);
+  line-height: 1;
+}
+.ctf-gstat-l {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ctf-muted);
+  margin-top: 0.3rem;
+}
+.ctf-gridlegend { font-size: 0.74rem; color: var(--ctf-muted); margin-top: 0.6rem; text-align: center; }
+
+/* ---- first-blood ticker --------------------------------------------------- */
+.ctf-tick-stage { border-bottom: 1px solid var(--ctf-grid); padding-bottom: 0.9rem; margin-bottom: 0.6rem; min-height: 5.4rem; }
+.ctf-tick-time { font-size: 0.78rem; color: var(--ctf-muted); }
+.ctf-tick-chal {
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ctf-ink);
+  line-height: 1.15;
+  margin: 0.2rem 0;
+}
+.ctf-tick-team { font-size: 0.88rem; color: var(--ctf-crit); font-weight: 600; }
+.ctf-tick-list { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; scrollbar-width: thin; }
+.ctf-tick-row {
+  display: grid;
+  grid-template-columns: 3.2rem 1fr auto auto;
+  gap: 0.6rem;
+  align-items: baseline;
+  padding: 0.28rem 0.35rem;
+  font-size: 0.82rem;
+  opacity: 0.38;
+  transition: opacity 0.3s ease, background 0.3s ease;
+  border-radius: 6px;
+}
+.ctf-tick-row.on { opacity: 1; }
+.ctf-tick-row.on:last-of-type { background: color-mix(in srgb, var(--ctf-crit) 10%, transparent); }
+.ctf-tick-rt { color: var(--ctf-muted); }
+.ctf-tick-rc { color: var(--ctf-ink); font-weight: 600; }
+.ctf-tick-rcat { color: var(--ctf-muted); font-size: 0.74rem; }
+.ctf-tick-rteam { color: var(--ctf-ink2); }
+
+/* ---- mermaid diagrams --------------------------------------------------- */
+.ctf-mermaid-wrap { overflow-x: auto; }
+.ctf-mermaid-wrap .mermaid { display: flex; justify-content: center; }
+.ctf-mermaid-wrap .mermaid svg { max-width: 100%; height: auto; }
+
+/* ---- provenance footnote -------------------------------------------------- */
+.ctf-provenance { font-size: 0.78rem; line-height: 1.55; color: var(--ctf-muted); max-width: 44rem; }
+
+/* ---- shared tooltip ------------------------------------------------------- */
+.ctf-tip {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  background: var(--ctf-ink);
+  color: var(--ctf-surface);
+  padding: 0.45rem 0.6rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  max-width: 15rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+.ctf-tip b { display: block; font-weight: 700; }
+.ctf-tip span { display: block; opacity: 0.8; margin-top: 0.1rem; }

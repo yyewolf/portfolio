@@ -1,0 +1,20 @@
+---
+// Headline numbers for the Universal CTF data story. This component also
+// pulls in the shared stylesheet and the bootstrap script that mounts every
+// visualisation on the page (it is always the first CTF block rendered).
+import "@styles/ctf.css";
+import summary from "@data/ctf/summary.json";
+---
+
+<div class="ctf not-prose my-8">
+  <div class="ctf-hero-nums">
+    <div><b>{summary.firstBlood.seconds}s</b><span>to first blood</span></div>
+    <div><b>{summary.correct.toLocaleString("en-US")}</b><span>flags captured</span></div>
+    <div><b>{summary.infra.peakConcurrentInstances}</b><span>peak live instances</span></div>
+    <div><b>{summary.infra.nodes}</b><span>cluster nodes</span></div>
+  </div>
+</div>
+
+<script>
+  import "@scripts/ctf/index";
+</script>

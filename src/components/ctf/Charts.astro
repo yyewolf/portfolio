@@ -1,0 +1,54 @@
+---
+// The static charts section: solve activity, difficulty map, category bars,
+// infrastructure small multiples, score distribution and engagement funnel.
+// All rendered client-side from static JSON by src/scripts/ctf/charts.ts.
+import summary from "@data/ctf/summary.json";
+---
+
+<div class="ctf not-prose my-8">
+  <div class="ctf-card">
+    <h3 class="ctf-h3">Solve activity over time</h3>
+    <p class="ctf-cap">
+      Correct flags per 15 minute window. A big spike at the open, a quiet night, another bump in the morning.
+    </p>
+    <div id="ctf-activity"></div>
+  </div>
+
+  <div class="ctf-two">
+    <div class="ctf-card">
+      <h3 class="ctf-h3">Difficulty map</h3>
+      <p class="ctf-cap">
+        Each dot is a challenge: solves against its point value, which drops as more teams solve it. Hover for names.
+      </p>
+      <div id="ctf-scatter"></div>
+    </div>
+    <div class="ctf-card">
+      <h3 class="ctf-h3">Solves by category</h3>
+      <p class="ctf-cap">Where the points went, across the ten categories.</p>
+      <div id="ctf-categories"></div>
+    </div>
+  </div>
+
+  <div class="ctf-card">
+    <h3 class="ctf-h3">Infrastructure through the event</h3>
+    <p class="ctf-cap">
+      Four measures on a shared time axis, each with its own scale: instances, CPU, memory and monitored targets.
+    </p>
+    <div id="ctf-infra"></div>
+  </div>
+
+  <div class="ctf-two">
+    <div class="ctf-card">
+      <h3 class="ctf-h3">Score distribution</h3>
+      <p class="ctf-cap">
+        Final score by rank. A steep top, then a long tail across all {summary.teamsScored} scoring teams.
+      </p>
+      <div id="ctf-scoretail"></div>
+    </div>
+    <div class="ctf-card">
+      <h3 class="ctf-h3">Engagement funnel</h3>
+      <p class="ctf-cap">From sign-up to the scoreboard.</p>
+      <div id="ctf-funnel"></div>
+    </div>
+  </div>
+</div>

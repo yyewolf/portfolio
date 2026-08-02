@@ -1,0 +1,64 @@
+---
+import Mermaid from "./Mermaid.astro";
+import summary from "@data/ctf/summary.json";
+
+const diagram = `flowchart TB
+  fnl["Fenouil<br/>workspace UI"] --> bas["Basilic<br/>API · auth · Stripe"]
+  bas --> gs["GitSync"]
+  bas --> saf["Safran"]
+  gs["GitSync<br/>GitHub repo → Flux CD"] --> can["Cannelle<br/>Kubernetes operator"]
+  can --> ctfd["CTFd platform"]
+  can --> pods["Challenge pods<br/>per-team · isolated"]
+  saf["Safran<br/>S3-compatible broker"] --> r2["Cloudflare R2"]
+  ctfd -.-> saf
+  pods -.-> saf`;
+---
+
+<div class="ctf not-prose">
+  <Mermaid definition={diagram} />
+
+  <p class="mt-6 mb-3">
+    <strong>GitSync</strong> Challenges are YAML files in a GitHub repo, not fields
+    in a form. You push a commit, Flux CD reconciles it into the cluster, and Cannelle
+    picks it up from there. No deploy button, no copy-paste. Every update is a commit
+    and every deploy is a push.
+  </p>
+
+  <p class="mb-3">
+    <strong>Safran</strong> An S3-compatible proxy between the cluster and the upstream
+    object store (Cloudflare R2, in our case). Each tenant gets a virtual bucket with
+    its own credentials, access rules, and storage quotas. CTFd and challenge pods
+    talk to it like it is plain S3. It barely matters that the underlying store is
+    R2.
+  </p>
+
+  <p class="mb-3">
+    <strong>Cannelle</strong> A Kubernetes operator that turns challenge definitions
+    into actual pods and services. For instanced challenges it spins up a per-team
+    pod with its own flag. For static challenges it creates a CTFd record and stops
+    there. It manages the network policy, TTL expiry, health probes, and the full
+    lifecycle of every challenge container. {
+      summary.infra.instancePodsTotal.toLocaleString("en-US")
+    }
+    pods came and went over the weekend, all handled by Cannelle. Nobody typed kubectl.
+  </p>
+
+  <p class="mb-3">
+    <strong>vcluster</strong> Each CTF event gets its own virtual Kubernetes cluster,
+    not a shared namespace on a single cluster. Every team pod, every CTFd deployment,
+    every Cannelle resource lives inside one of these vclusters with its own API server,
+    its own RBAC, and its own set of nodes. From the operator&rsquo;s perspective
+    it is just another Kubernetes. From ours it is one tenant among a few dozen on
+    the same host, completely isolated from the others.
+  </p>
+
+  <p class="mb-3">
+    <strong>Sysbox</strong> The cluster nodes run Sysbox as their OCI runtime instead
+    of runc. This makes nested containers work without privilege escalation. A challenge
+    pod can run Docker inside itself, or even a full K3s cluster. We used this to
+    build Kubernetes challenges that deployed a 3-pod cluster with real networking
+    between them plus an init pod that provisioned it. From the solver&rsquo;s perspective
+    it was just a K3s cluster they could kubectl into. The scheduler treated it as
+    a handful of pods on regular nodes.
+  </p>
+</div>

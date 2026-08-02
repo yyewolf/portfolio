@@ -1,0 +1,15 @@
+---
+// Client-side Mermaid diagram renderer. Renders a mermaid definition into an
+// inline SVG, re-initialising on astro:page-load for view-transition support.
+export interface Props {
+  definition: string;
+}
+const { definition } = Astro.props;
+---
+<div class="ctf not-prose ctf-mermaid-wrap">
+  <pre class="mermaid">{definition}</pre>
+</div>
+
+<script>
+  import "@scripts/ctf/mermaid";
+</script>

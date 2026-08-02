@@ -1,0 +1,76 @@
+---
+title: "Universal CTF: 32 hours in data"
+description: "Playing back our second CTF, Universal CTF: a 32-hour, 608-player event on our own Kubernetes cluster, told through a leaderboard race, 3,807 throwaway pods and the traffic between them."
+date: "Aug 2 2026"
+---
+
+import summary from "@data/ctf/summary.json";
+import network from "@data/ctf/network.json";
+import firstbloods from "@data/ctf/firstbloods.json";
+import StatBand from "@components/ctf/StatBand.astro";
+import Numbers from "@components/ctf/Numbers.astro";
+import Race from "@components/ctf/Race.astro";
+import Grid from "@components/ctf/Grid.astro";
+import NetFlow from "@components/ctf/Network.astro";
+import Ticker from "@components/ctf/Ticker.astro";
+import Charts from "@components/ctf/Charts.astro";
+import Provenance from "@components/ctf/Provenance.astro";
+import InfraHow from "@components/ctf/InfraHow.astro";
+
+On the weekend of the 1st of August 2026, we ran **Universal CTF**, a 32-hour jeopardy CTF on the [managed Kubernetes service provided by Infomaniak](https://www.infomaniak.com/en/hosting/public-cloud/kubernetes). This is our second one. Our first iteration at hosting a CTF happened here: [How (not) to host your CTF](/blog/how-not-to-build-a-ctf). Different challenges, different infrastructure, a fresh set of mistakes to learn from.
+
+It runs on [UCTF](https://uctf.io), the platform we built so anyone can host their own CTF: managed CTFd, per-team instanced challenges, storage and git sync included. The cluster underneath is sponsored by [Infomaniak](/blog/building-my-infra-on-infomaniak-kubernetes-managed), whose managed Kubernetes I also presented in a previous post. If you want to run a CTF without building all of this yourself, that is what UCTF is for.
+
+{summary.usersReg} players in {summary.teamsReg} teams worked through {summary.challenges} challenges across {summary.categories} categories. Teams that needed their own isolated environment got one on demand, so across the event the cluster scheduled {summary.infra.instancePodsTotal.toLocaleString("en-US")} short-lived pods.
+
+We recorded the whole thing as it happened: the CTFd database for the competition side, a Prometheus stack for the infrastructure side. What follows is that recording, played back. Press play and drag the timelines.
+
+<StatBand />
+
+## By the numbers
+
+A few headline figures. Fewer than half the registered teams made it onto the scoreboard, about one submission in four was a correct flag, and {summary.firstBlood.team} opened the board {summary.firstBlood.seconds} seconds after the start.
+
+<Numbers />
+
+## The leaderboard race
+
+Every solve, played back fast. Each bar is a team and the leader is gold. Change the speed or drag the timeline: you can watch the scramble in the first hour and the sprint at the finish, with a long quiet stretch overnight in between. The title came down to {summary.winnerGap} points, with {summary.winner.team} finishing on {summary.winner.score.toLocaleString("en-US")}.
+
+<Race />
+
+## Living infrastructure
+
+Each cube is one live pod on the cluster. Challenge instances are coloured by category, and the CTFd platform itself (the web replicas, MariaDB, Redis) sits in slate. A cube drops onto whichever node the scheduler picked, then disappears once the team is done with it. Floor tiles go from green to red as a node fills up. Drag to orbit the cluster, and hover or click a node to see what is running on it.
+
+At the busiest moment {summary.infra.peakConcurrentInstances} isolated environments were running at once, and the cluster barely noticed: {summary.infra.peakCpuCores} CPU cores and {summary.infra.peakMemGiB} GiB of memory across {summary.infra.nodes} nodes.
+
+<Grid />
+
+## Traffic flow
+
+Player traffic hitting the cluster. Particles run from the internet through the gateway to the challenge pods and back, and their density follows the real throughput at that point in time. It topped out at {network.peakRx} MB/s inbound, with {network.totalRxGB} GB received and {network.totalTxGB} GB sent across the weekend.
+
+<NetFlow />
+
+## How UCTF runs it
+
+Everything you just saw ran on [UCTF](https://uctf.io), the platform we built for hosting CTFs without wiring up your own infrastructure. A few Go services on the cluster do the heavy lifting, all of them shipped with UCTF. Monitoring is the one thing we ran ourselves, because the platform does not cover it yet.
+
+The cluster itself is set up with two choices that shaped what we could build: vcluster for tenant isolation and Sysbox as the container runtime. Together they made realistic Kubernetes challenges possible.
+
+<InfraHow />
+
+## First blood
+
+The first team to solve each challenge, in the order it happened. {firstbloods.length} first bloods over the 32 hours, and two challenges nobody solved at all.
+
+<Ticker />
+
+## Charts
+
+The same data as plain charts, if you would rather read it than watch it.
+
+<Charts />
+
+<Provenance />
