@@ -1,0 +1,89 @@
+---
+// Mount point for the lesson 1 operator game. The intro screen is rendered here
+// rather than in JavaScript so the lesson says something without it, and so the
+// opening copy exists in one place. Everything after the Start button is built
+// at runtime by src/scripts/courses/operator/game.ts, which replaces the whole
+// stage with its own shell. The wrapper structure here matches the one that
+// script builds, so the intro and the screens that follow it are padded alike.
+//
+// Anything passed as children is the lesson's closing prose. It stays hidden
+// until the game reaches its completion screen, because that prose names the
+// idea the game exists to make the reader work out on their own.
+import "@styles/operator.css";
+
+type Props = {
+  /** Where the completion screen sends the reader next. */
+  nextHref?: string;
+  nextTitle?: string;
+};
+
+const { nextHref = "", nextTitle = "the next lesson" } = Astro.props;
+---
+
+<div data-operator data-next-href={nextHref} data-next-title={nextTitle}>
+  <div class="op not-prose my-8">
+    <div data-op-stage>
+      <div class="op-shell">
+        <div class="op-body" data-mode="screen">
+          <div class="op-screen">
+            <p class="op-lede">
+              You are responsible for keeping a system running.
+            </p>
+            <p>
+              The system has a specification describing what it should look
+              like. Reality does not always cooperate. Something is going to go
+              wrong, and your job is to make reality match the specification
+              again.
+            </p>
+            <p>
+              There is nothing to install and nothing to type. You get a
+              specification, a list of what exists, a feed of events, and a
+              short list of things you are allowed to do.
+            </p>
+            <p>Three rules, and then you are on your own:</p>
+            <ul class="op-rules">
+              <li>
+                <b>You act one move at a time.</b> A bar above the board says whether
+                the game is waiting on you, working on your last move, or done.
+              </li>
+              <li>
+                <b>The list of what exists is whatever you last read.</b> It does not
+                refresh itself. Events will tell you that something happened, and
+                looking is on you.
+              </li>
+              <li>
+                <b>A level ends on a reading.</b> Take an action, read the state, and
+                when what is running matches the specification, that level is done.
+              </li>
+            </ul>
+            <div class="op-foot">
+              <button
+                type="button"
+                class="op-btn"
+                data-tone="primary"
+                data-go="start">Start</button
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <noscript>
+      <p class="op-hint mt-3">
+        The simulation needs JavaScript. Without it, the short version: a
+        specification says how many servers should be running, reality keeps
+        disagreeing with it, and the job is to read both and close the
+        difference rather than to answer each event as it arrives.
+      </p>
+    </noscript>
+  </div>
+
+  <div data-hold hidden>
+    <slot />
+  </div>
+</div>
+
+<script>
+  import "@scripts/courses/operator/game";
+</script>

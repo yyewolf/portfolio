@@ -110,43 +110,96 @@ const position = `${lesson.data.order} / ${lessons.length}`;
   </nav>
 
   <div slot="sidebar" class="animate space-y-6">
-    <GlossaryPanel terms={terms} currentOrder={lesson.data.order} totalTerms={totalTerms} />
-    <a
-      href={`/courses/${track.slug}/glossary`}
-      class="block text-sm text-gray-500 underline underline-offset-2 hover:text-black dark:hover:text-white">
-      Full glossary
-    </a>
+    {lesson.data.holdGlossary && (
+      <p
+        data-hold-note
+        class="rounded-lg border border-dashed border-gray-300 dark:border-gray-700 p-4 text-sm text-gray-500 dark:text-gray-400">
+        This lesson has a glossary. It stays shut until you finish, because the terms in it would
+        answer the question the lesson is asking.
+      </p>
+    )}
+    <div class="space-y-6" data-hold={lesson.data.holdGlossary ? "" : null} hidden={lesson.data.holdGlossary}>
+      <GlossaryPanel terms={terms} currentOrder={lesson.data.order} totalTerms={totalTerms} />
+      <a
+        href={`/courses/${track.slug}/glossary`}
+        class="block text-sm text-gray-500 underline underline-offset-2 hover:text-black dark:hover:text-white">
+        Full glossary
+      </a>
+    </div>
   </div>
 </CourseLayout>
 
 <script>
   import { markVisited, markCompleted, trackProgress } from "@scripts/courses/progress";
 
-  const root = document.querySelector<HTMLElement>("[data-lesson]");
-  const track = root?.dataset.track;
-  const order = Number(root?.dataset.order);
+  type Here = { root: HTMLElement; track: string; order: number };
 
-  if (root && track && Number.isFinite(order)) {
-    markVisited(track, order);
+  /**
+   * Every lesson page is this one component, so they all share this one script
+   * bundle, and under the ClientRouter a module is never executed twice. Walk
+   * from lesson one to lesson two and this file does not run again: the second
+   * page arrives with no wiring, and anything closed over on the first page now
+   * describes the wrong lesson. So nothing here holds on to a page. Each entry
+   * point reads the lesson out of the DOM at the moment it runs.
+   */
+  function here(): Here | null {
+    const root = document.querySelector<HTMLElement>("[data-lesson]");
+    const track = root?.dataset.track;
+    const order = Number(root?.dataset.order);
+    if (!root || !track || !Number.isFinite(order)) return null;
+    return { root, track, order };
+  }
 
-    const button = root.querySelector<HTMLButtonElement>("[data-complete]");
-    const label = root.querySelector<HTMLElement>("[data-complete-label]");
+  function paint(done: boolean): void {
+    const root = here()?.root;
+    const button = root?.querySelector<HTMLButtonElement>("[data-complete]");
+    const label = root?.querySelector<HTMLElement>("[data-complete-label]");
+    if (!button || !label) return;
+    button.setAttribute("aria-pressed", String(done));
+    label.textContent = done ? "Done" : "Mark as done";
+    button.classList.toggle("border-blue-500/60", done);
+    button.classList.toggle("text-blue-700", done);
+    button.classList.toggle("dark:text-blue-300", done);
+  }
 
-    const paint = (done: boolean) => {
-      if (!button || !label) return;
-      button.setAttribute("aria-pressed", String(done));
-      label.textContent = done ? "Done" : "Mark as done";
-      button.classList.toggle("border-blue-500/60", done);
-      button.classList.toggle("text-blue-700", done);
-      button.classList.toggle("dark:text-blue-300", done);
-    };
-
-    paint(trackProgress(track).completed.includes(order));
-
-    button?.addEventListener("click", () => {
-      const done = button.getAttribute("aria-pressed") !== "true";
-      markCompleted(track, order, done);
-      paint(done);
+  // Lessons that hold something back (see `holdGlossary`) open up once the
+  // reader has been all the way through, and stay open on the next visit.
+  function reveal(): void {
+    document.querySelectorAll<HTMLElement>("[data-hold]").forEach((el) => {
+      el.hidden = false;
+    });
+    document.querySelectorAll<HTMLElement>("[data-hold-note]").forEach((el) => {
+      el.hidden = true;
     });
   }
+
+  function setup(): void {
+    const page = here();
+    if (!page) return;
+    markVisited(page.track, page.order);
+
+    const done = trackProgress(page.track).completed.includes(page.order);
+    paint(done);
+    if (done) reveal();
+
+    const button = page.root.querySelector<HTMLButtonElement>("[data-complete]");
+    button?.addEventListener("click", () => {
+      const next = button.getAttribute("aria-pressed") !== "true";
+      markCompleted(page.track, page.order, next);
+      paint(next);
+    });
+  }
+
+  // The game says a lesson is finished; what finishing means for progress is
+  // the page's business. Registered once, and it looks the lesson up when it
+  // fires rather than when it was registered.
+  document.addEventListener("operator:done", () => {
+    const page = here();
+    if (!page) return;
+    markCompleted(page.track, page.order, true);
+    paint(true);
+    reveal();
+  });
+
+  document.addEventListener("astro:page-load", setup);
 </script>

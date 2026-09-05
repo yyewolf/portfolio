@@ -105,6 +105,10 @@ const lessons = defineCollection({
     // simulation engine: watch the system decide, drive it yourself, or open it
     // up and inspect the mechanics.
     modes: z.array(z.enum(["visualize", "operate", "inspect"])).default([]),
+    // Keeps the sidebar glossary out of sight until the reader finishes. Set it
+    // when the lesson is built around working an idea out, since the sidebar
+    // would otherwise name that idea before the lesson gets to it.
+    holdGlossary: z.boolean().default(false),
     draft: z.boolean().optional(),
   }),
 });

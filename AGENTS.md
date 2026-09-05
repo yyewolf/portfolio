@@ -62,6 +62,9 @@ a track in batches.
 | `src/components/courses/PhaseOutline.astro` | Track page outline: depth tiers, then phases, then lessons. |
 | `src/components/courses/CourseSearch.astro` | Pagefind-backed search box. |
 | `src/scripts/courses/progress.ts` | localStorage progress. |
+| `src/scripts/courses/operator/` | The lesson 1 game: `engine.ts` (world model), `scenarios.ts` (levels), `game.ts` (runner and view). |
+| `src/components/courses/OperatorGame.astro` | Mounts the game, holds the lesson's closing prose in its slot. |
+| `src/styles/operator.css` | Game styles, all under `.op`. |
 | `src/pages/courses/` | The four routes. |
 
 Routes: `/courses`, `/courses/<track>`, `/courses/<track>/glossary`,
@@ -83,6 +86,7 @@ Routes: `/courses`, `/courses/<track>`, `/courses/<track>/glossary`,
    minutes: 10            # explicit; reading time is NOT computed for lessons
    tags: [workloads]
    modes: [operate]       # planned interactives: visualize | operate | inspect
+   holdGlossary: false    # hide the sidebar glossary until the lesson is completed
    draft: false
    ---
    ```
@@ -198,6 +202,68 @@ lessons, so drafts neither trigger it nor create false order gaps.
 If a second track ever defines a term the first one also defines, `<Term>`
 resolves to whichever glob order returns first. Not yet a problem with one track.
 
+# Interactive lessons
+
+Lesson 1 is a game rather than an article. Its `index.mdx` is frontmatter, one
+import and one component: there is no prose around the game, because anything
+written there would say what the game already says on its intro and closing
+screens. If you find yourself adding a paragraph to that file, check it is not
+already on a screen.
+
+The split inside the game is worth copying.
+
+`engine.ts` is the world: a specification, machines, servers, and the rules for
+the five moves. It has no DOM and no Kubernetes in it. `scenarios.ts` is the six
+levels as data, with a function only where a level has to be unfair on a timer
+(a machine dying, a server recovering at the worst moment). `game.ts` mounts a
+level, plays its timed beats, turns a click into a move, and paints the result.
+Adding a level means adding an entry to `scenarios.ts`.
+
+**The player never sees the world.** They see a `Reading`, which is a copy of it
+taken the last time they asked. Events arrive on their own and say that something
+happened; they never refresh the panel. Only the Read action does, and a level
+can only be solved by a read that comes back matching the specification. This
+looks like a stale-UI bug and is the entire point: it is what makes "an event is
+not an instruction" and "look again after you act" mechanics rather than
+paragraphs. Staleness is counted as feed entries arriving after the reading, so
+every world change has to emit an event or the panel will lie without saying so.
+
+**Numbers come out of the model, never out of intent.** The tally reads the
+reading, the finale reads the world, and neither reads what a move was supposed
+to do. That is what makes a wrong action show its real consequence instead of a
+canned "wrong".
+
+**The frame is built once.** `mountShell()` puts up the shell, the progress rail
+and the headline, and after that only `[data-op-body]` is ever replaced. Levels,
+debriefs and the closing screens all swap that one element, which is what stops
+nine screens from feeling like nine screens. The debrief is appended to the board
+the player just solved rather than replacing it.
+
+**Every level must stay recoverable.** Levels expose only the actions they need,
+so a player who over-creates in level 1 has no Delete button to undo it. The
+board therefore always carries a "Start this level over" link. Check it still
+exists before trimming an action list.
+
+## Holding content back
+
+Lesson 1 makes the reader work out reconciliation, so naming it early ruins it.
+Anything withheld sits in a `[data-hold]` wrapper until the game reaches its
+completion screen:
+
+- The sidebar glossary, gated by `holdGlossary: true` in frontmatter. This is
+  the only thing lesson 1 holds today.
+- Anything passed as children to `<OperatorGame>`, which lands in a `[data-hold]`
+  wrapper of its own. Lesson 1 passes nothing, but the slot is kept because a
+  later lesson wanting held prose should not have to rebuild the mechanism.
+
+`game.ts` unhides every `[data-hold]` on the page and fires an `operator:done`
+event. The lesson page listens, marks the lesson complete, and reveals again on
+later visits from localStorage, so finishing once is enough.
+
+This hides, it does not gate. The held text is in the HTML and in the search
+index, same trade as the glossary page. If it ever has to be strict, the prose
+has to move out of the page and be fetched on completion.
+
 ## Search
 
 Pagefind indexes the **built HTML** post-build (`pagefind --site dist` is in the
@@ -251,7 +317,7 @@ for f in dist/courses/kubernetes/*/index.html; do
   case "$f" in *glossary*) continue ;; esac    # glossary page has no sidebar panel
   echo "$(basename $(dirname $f)) $(grep -o 'data-term="' $f | wc -l)"
 done
-# expected today: 4 9 14 19 22 26
+# expected today: 5 8 11 15 across the four published lessons
 ```
 
 ---
@@ -269,8 +335,10 @@ done
 >   that is what git is for.
 > - Keep claims verifiable. If you did not run it, do not assert it passes.
 
-**Last verified:** 2026-09-05 — `pnpm build` clean, 7 pages indexed, lint at
-baseline 79.
+**Last verified:** 2026-09-06 — `pnpm build` clean, 5 pages indexed (4 published
+lessons plus the glossary; five more lessons are `draft: true`), no `[courses]`
+warnings, lint at baseline 79. Every level verified solvable by replaying the
+engine outside the browser.
 
 ### Done
 
@@ -282,14 +350,18 @@ baseline 79.
 - `<Term>` tooltip + `validateTermRefs` forward-reference warnings.
 - Pagefind wired into `build`, scoped by `track` filter, dev fallback message.
 - localStorage progress: resume button, completion ticks, reset.
-- Kubernetes track: 26 glossary terms, official CNCF logo.
+- Kubernetes track: 34 glossary terms, official CNCF logo.
+- Lesson 1 built as a game: six levels, the reconciliation reveal, the
+  terminology mapping, a controller that repairs the system on its own, and a
+  closing screen on eventual consistency.
+- `holdGlossary` frontmatter flag plus the `[data-hold]` reveal mechanism.
 
 ### In progress
 
-- **Lesson prose is placeholder.** All six Kubernetes lessons are stubs carrying
-  correct frontmatter and `<Term>` wiring, ending in a "Placeholder body" note.
-  The user is writing the real curriculum. Do not treat existing bodies as
-  reference material, and do not expand them unasked.
+- **Lesson prose is placeholder, lesson 1 excepted.** Lesson 1 is finished.
+  The other published lessons are stubs carrying correct frontmatter and
+  `<Term>` wiring. The user is writing the real curriculum. Do not treat those
+  bodies as reference material, and do not expand them unasked.
 
 ### Not built
 
@@ -297,7 +369,12 @@ baseline 79.
   `/courses` with several cards) are untested against real data.
 - No site-wide search — Pagefind covers courses only, see above.
 - No RSS or sitemap-specific handling for courses beyond Astro's defaults.
-- No quizzes, exercises, or code playgrounds.
+- No quizzes, exercises, or code playgrounds outside lesson 1's game.
+- The game is not covered by tests. Levels were checked by bundling
+  `engine.ts` + `scenarios.ts` with esbuild and replaying moves in node. That
+  harness covers the engine, not the reading/staleness layer in `game.ts`.
+- Lesson 7 of the roadmap's level design (dependencies, ordering) is not built.
+  Six levels plus the automatic finale ship.
 - No per-lesson "last updated" date; the schema has no date field at all.
 
 ### Gotchas learned
@@ -313,11 +390,41 @@ Each of these cost a real debugging cycle. Full explanations are inline above.
 4. TS narrowing does not reach **hoisted `function` declarations**; a
    `const x = document.querySelector(...)` narrowed by an `if` is still
    `possibly null` inside one. Use arrow-function consts in inline scripts.
-5. Statically importing `/pagefind/pagefind.js` fails `astro check` — the file
+5. Astro's `<Content components={{ Term }} />` injection reaches MDX passed as
+   a component's children, so the held prose inside `<OperatorGame>` still gets
+   working `<Term>` tooltips without importing anything.
+6. `.op` markup is built at runtime, so Astro scoped styles cannot reach it.
+   `operator.css` is global and namespaced by hand instead.
+7. `global.css` styles the bare `header`, `footer`, `main` and `article`
+   element selectors for the site chrome, and `header` there is
+   `position: fixed; top: 0`. A `<header>` rendered inside the game gets pulled
+   out of the shell and pinned behind the site nav, so the game's rail and
+   title simply vanish. The game builds its own chrome out of divs. Nothing in
+   `astro check`, lint or the build catches this, because the markup is a
+   runtime string; `operator.css` carries a defensive reset for it. The same
+   fixed header is why `frameIntoView()` measures its height and subtracts it
+   before scrolling a new level into view: aligning the shell to the top of the
+   viewport would park the rail behind it.
+8. Statically importing `/pagefind/pagefind.js` fails `astro check` — the file
    only exists after a build. Keep the path in a variable.
 
 ### Log
 
+- **2026-09-06** — Fixed the game's shell head being hoisted to the top of the
+  viewport: it was a `<header>`, which `global.css` styles as the fixed site
+  chrome. Now a div, with a reset in `operator.css` to stop it recurring.
+- **2026-09-05** — Lesson 1 prose removed entirely; the file is now just the
+  game component, since every paragraph in it repeated a screen. Added an
+  eventual-consistency screen between the automatic finale and the completion
+  screen, plus the matching glossary term.
+- **2026-09-05** — Lesson 1 reworked: the state panel became a reading the
+  player has to refresh, events stopped updating it, and reading became the move
+  that ends a level. Frame rebuilt as a persistent shell with a progress rail so
+  levels and explanations swap inside it.
+- **2026-09-05** — Lesson 1 built as an interactive game (engine, scenarios,
+  runner, styles) replacing its placeholder body. Added `holdGlossary` to the
+  lesson schema and the `[data-hold]` / `operator:done` reveal so the closing
+  prose and the sidebar glossary stay shut until the reader finishes.
 - **2026-09-05** — Courses subsystem scaffolded: collections, routes, glossary
   gating, `<Term>` + validator, Pagefind, localStorage progress. Six placeholder
   Kubernetes lessons. Emoji track icon replaced with the official CNCF logo.

@@ -322,5 +322,17 @@
       "Node",
       "Pod"
     ]
+  },
+  {
+    "term": "Eventual consistency",
+    "introducedIn": 1,
+    "short": "The system is not always correct, but something is always working on it.",
+    "long": "A reconciler moves a system toward its desired state rather than putting it there. Between the moment reality diverges and the moment it matches again there is a window where the system is wrong and converging at the same time. Asking whether the gap is closing is usually more useful than asking whether it is closed.",
+    "related": [
+      "Reconciliation",
+      "Control loop",
+      "Desired state",
+      "Actual state"
+    ]
   }
 ]

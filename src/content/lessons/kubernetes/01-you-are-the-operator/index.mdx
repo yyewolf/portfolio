@@ -2,43 +2,18 @@
 track: kubernetes
 order: 1
 phase: 1
-title: You are the operator
+title: You are the devops
 description: A system is drifting away from its specification and you are the only thing that can fix it. No Kubernetes vocabulary required.
 minutes: 10
 tags: [fundamentals, interactive]
 modes: [operate]
+holdGlossary: true
 draft: false
 ---
 
-You are responsible for keeping a system running. Something has changed. Your
-job is to make the system match its specification.
+import OperatorGame from "@components/courses/OperatorGame.astro";
 
-That is the whole brief. There is no Kubernetes in this lesson, no YAML, and
-nothing to install. You get three things: a statement of what the system is
-supposed to look like, a view of what it currently looks like, and a stream of
-events telling you that things happened.
-
-> **Interactive.** Seven levels of the operator game mount here. The engine and
-> the UI are not written yet, so see the roadmap for the level design.
-
-The levels get harder in a specific way. The first one is a server that
-disappeared, and the fix is obvious. Then there is one server too many. Then an
-event fires and the right move is to do nothing at all, because the system is
-already correct. Then several events at once, all of them noise. Then the world
-changes while you are still acting on it.
-
-Somewhere in there, most people stop reading the events and start counting the
-servers. That is what the lesson is for.
-
-## What you just worked out
-
-Reacting to events does not work, because an event tells you that something
-happened rather than what the system needs. What works is a loop: look at the
-<Term>desired state</Term>, look at the <Term>actual state</Term>, act on the
-difference, then look again.
-
-That loop is called <Term>reconciliation</Term>, and a thing that runs it is a
-<Term>control loop</Term>. You have just spent ten minutes being one by hand.
-
-Kubernetes is a large collection of these loops. Every lesson after this one is
-either a loop, the state a loop reads, or the machinery that lets a loop act.
+<OperatorGame
+  nextHref="/courses/kubernetes/02-why-not-just-containers"
+  nextTitle="Why not just run containers?"
+/>
