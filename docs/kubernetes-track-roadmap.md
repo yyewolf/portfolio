@@ -39,7 +39,7 @@ Phase 1, what problem are we solving?
 
 | # | Lesson | Modes |
 |---|---|---|
-| 1 | You are the operator | operate |
+| 1 | You are the devops | operate |
 | 2 | Why not just run containers? | operate |
 | 3 | Introducing Kubernetes | visualize |
 
