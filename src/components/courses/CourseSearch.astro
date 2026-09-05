@@ -68,7 +68,7 @@ const { track, placeholder = "Search lessons and glossary" } = Astro.props;
         return pagefind;
       } catch {
         loadFailed = true;
-        say("Search index unavailable. It is generated at build time — run a production build to try it locally.");
+        say("Search index unavailable. It is generated at build time, so run a production build to try it locally.");
         return null;
       }
     };

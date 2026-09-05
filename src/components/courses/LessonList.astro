@@ -53,10 +53,12 @@ const { track, lessons, currentOrder } = Astro.props;
 <script>
   import { trackProgress } from "@scripts/courses/progress";
 
-  const list = document.querySelector<HTMLElement>("[data-lesson-list]");
-  const track = list?.dataset.track;
+  // A page renders one of these per phase, and this module runs once for all of
+  // them, so every list has to be walked.
+  for (const list of document.querySelectorAll<HTMLElement>("[data-lesson-list]")) {
+    const track = list.dataset.track;
+    if (!track) continue;
 
-  if (list && track) {
     const { completed } = trackProgress(track);
     for (const order of completed) {
       const link = list.querySelector<HTMLElement>(`[data-order="${order}"]`);

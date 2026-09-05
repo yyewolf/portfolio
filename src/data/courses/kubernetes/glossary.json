@@ -1,172 +1,326 @@
 [
   {
-    "term": "Cluster",
+    "term": "Actual state",
     "introducedIn": 1,
-    "short": "A set of machines that Kubernetes manages as one pool of compute.",
-    "long": "A cluster is a control plane plus the nodes it schedules work onto. You talk to the cluster, not to individual machines.",
-    "related": ["Control plane", "Node"]
+    "short": "What the system currently looks like, as observed rather than assumed.",
+    "long": "Reported by the components doing the work rather than assumed by whoever asked for it. The gap between this and desired state is the only thing a control loop acts on.",
+    "related": [
+      "Desired state",
+      "Reconciliation"
+    ]
   },
   {
-    "term": "Control plane",
+    "term": "Control loop",
     "introducedIn": 1,
-    "short": "The components that decide what should run and where.",
-    "long": "The API server, scheduler, and controller manager. It holds desired state and continuously drives the cluster toward it.",
-    "related": ["Cluster", "Reconciliation", "Scheduler"]
+    "short": "Something that repeatedly observes state, compares it to what is wanted, and acts.",
+    "long": "Kubernetes is a collection of these rather than one program working through a plan. They run independently, and none of them assumes it was the last thing to change anything.",
+    "related": [
+      "Reconciliation",
+      "Controller",
+      "Desired state"
+    ]
   },
   {
-    "term": "Declarative",
+    "term": "Desired state",
     "introducedIn": 1,
-    "short": "You describe the end state you want, not the steps to reach it.",
-    "long": "You submit an object saying \"three replicas of this image\". Kubernetes works out the difference from reality and closes the gap.",
-    "related": ["Reconciliation", "Manifest"]
+    "short": "What the system is supposed to look like.",
+    "long": "You write it down and it stays written down. Nothing about it changes when reality drifts away from it.",
+    "related": [
+      "Actual state",
+      "Reconciliation",
+      "Declarative"
+    ]
   },
   {
-    "term": "Manifest",
+    "term": "Reconciliation",
     "introducedIn": 1,
-    "short": "A YAML or JSON file describing a Kubernetes object.",
-    "related": ["Declarative"]
-  },
-  {
-    "term": "Node",
-    "introducedIn": 2,
-    "short": "A single machine, virtual or physical, that runs workloads.",
-    "long": "Each node runs a kubelet and a container runtime. The control plane places pods onto nodes; the node is responsible for actually running them.",
-    "related": ["Cluster", "Kubelet", "Pod"]
-  },
-  {
-    "term": "Pod",
-    "introducedIn": 2,
-    "short": "The smallest deployable unit: one or more containers that share a network namespace and storage.",
-    "long": "Containers in a pod share an IP address and can talk over localhost. Pods are disposable by design, and you rarely create them by hand.",
-    "related": ["Container", "Node", "Deployment"]
+    "short": "Look at what is wanted, look at what exists, act on the difference, then look again.",
+    "long": "The loop the whole system is built from. It reads the current state rather than a stream of instructions, so an event that arrives twice or never arrives at all changes nothing.",
+    "related": [
+      "Desired state",
+      "Actual state",
+      "Control loop",
+      "Controller"
+    ]
   },
   {
     "term": "Container",
     "introducedIn": 2,
     "short": "An isolated process running from an image.",
-    "related": ["Pod"]
+    "related": [
+      "Pod"
+    ]
   },
   {
-    "term": "Kubelet",
+    "term": "Container image",
     "introducedIn": 2,
-    "short": "The agent on each node that starts and supervises the node's pods.",
-    "related": ["Node", "Pod"]
+    "short": "A packaged filesystem and start command that a container is created from.",
+    "long": "The image is immutable and is identified by a tag or a digest. Anything that has to differ between environments should stay out of it.",
+    "related": [
+      "Container",
+      "ConfigMap"
+    ]
   },
   {
-    "term": "Scheduler",
+    "term": "Replica",
     "introducedIn": 2,
-    "short": "The control plane component that picks which node a new pod should run on.",
-    "long": "It filters nodes that cannot fit the pod, then scores the rest on resource fit, spread, and affinity rules.",
-    "related": ["Control plane", "Node", "Pod"]
+    "short": "One interchangeable copy of a workload.",
+    "long": "Interchangeable is the important word. If any copy is as good as any other, the system is free to delete one and start another somewhere else.",
+    "related": [
+      "ReplicaSet",
+      "Deployment",
+      "Pod"
+    ]
   },
   {
-    "term": "Deployment",
+    "term": "Cluster",
     "introducedIn": 3,
-    "short": "An object that keeps a stated number of identical pods running, and updates them safely.",
-    "long": "A deployment owns replicasets. Changing the pod template creates a new replicaset and shifts pods over gradually, which is what makes a rollout a rollout.",
-    "related": ["ReplicaSet", "Pod", "Rollout"]
+    "short": "A set of machines that Kubernetes manages as one pool of compute.",
+    "long": "A cluster is a control plane plus the nodes it schedules work onto. You talk to the cluster, not to individual machines.",
+    "related": [
+      "Control plane",
+      "Node"
+    ]
   },
   {
-    "term": "ReplicaSet",
+    "term": "Control plane",
     "introducedIn": 3,
-    "short": "Keeps a fixed number of identical pods alive.",
-    "related": ["Deployment", "Pod"]
+    "short": "The components that decide what should run and where.",
+    "long": "The API server, scheduler, and controller manager. It holds desired state and continuously drives the cluster toward it.",
+    "related": [
+      "Cluster",
+      "Reconciliation",
+      "Scheduler"
+    ]
   },
   {
-    "term": "Reconciliation",
+    "term": "Node",
     "introducedIn": 3,
-    "short": "The loop that repeatedly compares desired state to actual state and acts on the difference.",
-    "long": "It is the central idea of Kubernetes. Controllers never assume an action succeeded; they observe reality again and correct it.",
-    "related": ["Control plane", "Declarative", "Controller"]
+    "short": "A single machine, virtual or physical, that runs workloads.",
+    "long": "Each node runs a kubelet and a container runtime. The control plane places pods onto nodes; the node is responsible for actually running them.",
+    "related": [
+      "Cluster",
+      "Kubelet",
+      "Pod"
+    ]
+  },
+  {
+    "term": "Declarative",
+    "introducedIn": 4,
+    "short": "You describe the end state you want, not the steps to reach it.",
+    "long": "You submit an object saying \"three replicas of this image\". Kubernetes works out the difference from reality and closes the gap.",
+    "related": [
+      "Reconciliation",
+      "Manifest"
+    ]
+  },
+  {
+    "term": "Manifest",
+    "introducedIn": 4,
+    "short": "A YAML or JSON file describing a Kubernetes object.",
+    "related": [
+      "Declarative"
+    ]
+  },
+  {
+    "term": "Namespace",
+    "introducedIn": 4,
+    "short": "A scope for object names within a cluster.",
+    "long": "Two namespaces can each hold a Deployment named web. Namespaces scope most objects, but not cluster-wide ones such as nodes.",
+    "related": [
+      "Object",
+      "Cluster"
+    ]
+  },
+  {
+    "term": "Object",
+    "introducedIn": 4,
+    "short": "A record in the Kubernetes API describing a piece of desired state.",
+    "long": "It has a kind, a name, a spec saying what you want, and later a status saying what is. Creating one changes nothing by itself, and a controller acting on it is what changes something.",
+    "related": [
+      "Manifest",
+      "Declarative",
+      "Namespace",
+      "Desired state"
+    ]
   },
   {
     "term": "Controller",
-    "introducedIn": 3,
+    "introducedIn": 7,
     "short": "A process running one reconciliation loop for one kind of object.",
-    "related": ["Reconciliation"]
+    "related": [
+      "Reconciliation"
+    ]
+  },
+  {
+    "term": "Pod",
+    "introducedIn": 9,
+    "short": "The smallest deployable unit: one or more containers that share a network namespace and storage.",
+    "long": "Containers in a pod share an IP address and can talk over localhost. Pods are disposable by design, and you rarely create them by hand.",
+    "related": [
+      "Container",
+      "Node",
+      "Deployment"
+    ]
+  },
+  {
+    "term": "Deployment",
+    "introducedIn": 10,
+    "short": "An object that keeps a stated number of identical pods running, and updates them safely.",
+    "long": "A deployment owns replicasets. Changing the pod template creates a new replicaset and shifts pods over gradually, which is what makes a rollout a rollout.",
+    "related": [
+      "ReplicaSet",
+      "Pod",
+      "Rollout"
+    ]
   },
   {
     "term": "Rollout",
-    "introducedIn": 3,
+    "introducedIn": 10,
     "short": "Replacing pods with a new version incrementally, so the service stays up.",
-    "related": ["Deployment"]
+    "related": [
+      "Deployment"
+    ]
   },
   {
-    "term": "Service",
-    "introducedIn": 4,
-    "short": "A stable name and address for a changing set of pods.",
-    "long": "Pods come and go with new IPs. A service gives them one virtual IP and DNS name, and load balances across whichever pods currently match its selector.",
-    "related": ["ClusterIP", "Selector", "Pod"]
-  },
-  {
-    "term": "Selector",
-    "introducedIn": 4,
-    "short": "A label query that decides which pods an object applies to.",
-    "related": ["Service", "Label"]
-  },
-  {
-    "term": "Label",
-    "introducedIn": 4,
-    "short": "A key/value tag attached to an object, used for grouping and selection.",
-    "related": ["Selector"]
-  },
-  {
-    "term": "ClusterIP",
-    "introducedIn": 4,
-    "short": "The default service type: reachable only from inside the cluster.",
-    "related": ["Service", "Ingress"]
-  },
-  {
-    "term": "Ingress",
-    "introducedIn": 4,
-    "short": "Rules for routing external HTTP traffic to services inside the cluster.",
-    "long": "An ingress object is inert on its own. An ingress controller watches those objects and configures a real proxy to match.",
-    "related": ["Service", "Controller"]
-  },
-  {
-    "term": "ConfigMap",
-    "introducedIn": 5,
-    "short": "Non-secret configuration data, kept outside the container image.",
-    "long": "Mount it as files or inject it as environment variables. The same image can then run in staging and production unchanged.",
-    "related": ["Secret", "Volume"]
-  },
-  {
-    "term": "Secret",
-    "introducedIn": 5,
-    "short": "Like a ConfigMap, but for sensitive values and handled more carefully.",
-    "long": "Base64 encoding is not encryption. Secrets are only as private as the cluster's RBAC and encryption-at-rest settings make them.",
-    "related": ["ConfigMap"]
-  },
-  {
-    "term": "Volume",
-    "introducedIn": 5,
-    "short": "A directory made available to a pod's containers.",
-    "related": ["ConfigMap", "PersistentVolume"]
-  },
-  {
-    "term": "PersistentVolume",
-    "introducedIn": 6,
-    "short": "A piece of storage in the cluster, with a lifetime independent of any pod.",
-    "related": ["PersistentVolumeClaim", "StorageClass"]
-  },
-  {
-    "term": "PersistentVolumeClaim",
-    "introducedIn": 6,
-    "short": "A pod's request for storage of a given size and access mode.",
-    "long": "The claim is what a workload references. Kubernetes binds it to a matching volume, provisioning one on demand if a StorageClass says how.",
-    "related": ["PersistentVolume", "StorageClass"]
-  },
-  {
-    "term": "StorageClass",
-    "introducedIn": 6,
-    "short": "A named recipe for provisioning storage automatically.",
-    "related": ["PersistentVolumeClaim"]
+    "term": "ReplicaSet",
+    "introducedIn": 11,
+    "short": "Keeps a fixed number of identical pods alive.",
+    "related": [
+      "Deployment",
+      "Pod"
+    ]
   },
   {
     "term": "StatefulSet",
-    "introducedIn": 6,
+    "introducedIn": 13,
     "short": "Like a deployment, but each pod keeps a stable identity and its own storage.",
     "long": "Pods are numbered and started in order, and each one gets its own persistent volume claim that survives a restart.",
-    "related": ["Deployment", "PersistentVolumeClaim"]
+    "related": [
+      "Deployment",
+      "PersistentVolumeClaim"
+    ]
+  },
+  {
+    "term": "ClusterIP",
+    "introducedIn": 15,
+    "short": "The default service type: reachable only from inside the cluster.",
+    "related": [
+      "Service",
+      "Ingress"
+    ]
+  },
+  {
+    "term": "Label",
+    "introducedIn": 15,
+    "short": "A key/value tag attached to an object, used for grouping and selection.",
+    "related": [
+      "Selector"
+    ]
+  },
+  {
+    "term": "Selector",
+    "introducedIn": 15,
+    "short": "A label query that decides which pods an object applies to.",
+    "related": [
+      "Service",
+      "Label"
+    ]
+  },
+  {
+    "term": "Service",
+    "introducedIn": 15,
+    "short": "A stable name and address for a changing set of pods.",
+    "long": "Pods come and go with new IPs. A service gives them one virtual IP and DNS name, and load balances across whichever pods currently match its selector.",
+    "related": [
+      "ClusterIP",
+      "Selector",
+      "Pod"
+    ]
+  },
+  {
+    "term": "Ingress",
+    "introducedIn": 17,
+    "short": "Rules for routing external HTTP traffic to services inside the cluster.",
+    "long": "An ingress object is inert on its own. An ingress controller watches those objects and configures a real proxy to match.",
+    "related": [
+      "Service",
+      "Controller"
+    ]
+  },
+  {
+    "term": "ConfigMap",
+    "introducedIn": 19,
+    "short": "Non-secret configuration data, kept outside the container image.",
+    "long": "Mount it as files or inject it as environment variables. The same image can then run in staging and production unchanged.",
+    "related": [
+      "Secret",
+      "Volume"
+    ]
+  },
+  {
+    "term": "Secret",
+    "introducedIn": 19,
+    "short": "Like a ConfigMap, but for sensitive values and handled more carefully.",
+    "long": "Base64 encoding is not encryption. Secrets are only as private as the cluster's RBAC and encryption-at-rest settings make them.",
+    "related": [
+      "ConfigMap"
+    ]
+  },
+  {
+    "term": "Volume",
+    "introducedIn": 21,
+    "short": "A directory made available to a pod's containers.",
+    "related": [
+      "ConfigMap",
+      "PersistentVolume"
+    ]
+  },
+  {
+    "term": "PersistentVolume",
+    "introducedIn": 22,
+    "short": "A piece of storage in the cluster, with a lifetime independent of any pod.",
+    "related": [
+      "PersistentVolumeClaim",
+      "StorageClass"
+    ]
+  },
+  {
+    "term": "PersistentVolumeClaim",
+    "introducedIn": 22,
+    "short": "A pod's request for storage of a given size and access mode.",
+    "long": "The claim is what a workload references. Kubernetes binds it to a matching volume, provisioning one on demand if a StorageClass says how.",
+    "related": [
+      "PersistentVolume",
+      "StorageClass"
+    ]
+  },
+  {
+    "term": "StorageClass",
+    "introducedIn": 22,
+    "short": "A named recipe for provisioning storage automatically.",
+    "related": [
+      "PersistentVolumeClaim"
+    ]
+  },
+  {
+    "term": "Scheduler",
+    "introducedIn": 23,
+    "short": "The control plane component that picks which node a new pod should run on.",
+    "long": "It filters nodes that cannot fit the pod, then scores the rest on resource fit, spread, and affinity rules.",
+    "related": [
+      "Control plane",
+      "Node",
+      "Pod"
+    ]
+  },
+  {
+    "term": "Kubelet",
+    "introducedIn": 40,
+    "short": "The agent on each node that starts and supervises the node's pods.",
+    "related": [
+      "Node",
+      "Pod"
+    ]
   }
 ]

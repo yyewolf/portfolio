@@ -92,10 +92,19 @@ const lessons = defineCollection({
   schema: z.object({
     track: z.string(),
     order: z.number(),
+    // Which phase of the track this belongs to. The depth tier (core /
+    // practical / deep) is a property of the phase, not the lesson, so it lives
+    // in the track's phases.json and is derived from this number. Storing it
+    // twice would let the two drift.
+    phase: z.number(),
     title: z.string(),
     description: z.string(),
     minutes: z.number(),
     tags: z.array(z.string()).default([]),
+    // Interactive modes this lesson is planned to offer, all backed by the same
+    // simulation engine: watch the system decide, drive it yourself, or open it
+    // up and inspect the mechanics.
+    modes: z.array(z.enum(["visualize", "operate", "inspect"])).default([]),
     draft: z.boolean().optional(),
   }),
 });

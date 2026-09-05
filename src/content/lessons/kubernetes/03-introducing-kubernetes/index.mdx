@@ -1,0 +1,48 @@
+---
+track: kubernetes
+order: 3
+phase: 1
+title: Introducing Kubernetes
+description: The thing you were playing in lesson one, with its real name and a first look at how it is split up.
+minutes: 10
+tags: [fundamentals, architecture]
+modes: [visualize]
+draft: false
+---
+
+The game in lesson one had a specification, a view of reality, and a loop that
+closed the gap between them. Lesson two listed five problems that each need
+that same loop, plus somewhere to run things.
+
+Put the two together and you have Kubernetes. That is the actual shape of the
+system, not a simplified version of it that gets corrected later.
+
+A <Term>cluster</Term> is a set of machines managed as one pool of compute. You
+stop addressing individual servers and start addressing the pool. It splits in
+two:
+
+```text
+              Kubernetes
+                   │
+       ┌───────────┴───────────┐
+       │                       │
+ Control plane             Worker nodes
+ (decides)                 (run things)
+```
+
+The <Term>control plane</Term> holds the desired state and runs the loops that
+drive reality toward it. It makes decisions, and it does not run your workloads.
+
+A <Term>node</Term> is a machine that does run them. It takes instructions about
+what should be running locally, makes that true, and reports back what is
+actually happening.
+
+> **Interactive.** A cluster diagram that stays on screen for the rest of the
+> track, filling in each component as its lesson introduces it. Not built yet.
+
+That split explains a fair amount of Kubernetes behaviour before you meet it. If
+the control plane goes down, your running workloads keep running, because
+nothing is deciding anything new but the nodes carry on regardless. If a node
+goes down, the desired state survives, because it was never stored there.
+
+The rest of this phase is all control plane. Workloads come back in phase three.

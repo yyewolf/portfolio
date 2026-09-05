@@ -1,0 +1,65 @@
+---
+import LessonList from "@components/courses/LessonList.astro";
+import type { DepthGroup } from "@lib/courses";
+
+type Props = {
+  track: string;
+  groups: DepthGroup[];
+  currentOrder?: number;
+};
+
+const { track, groups, currentOrder } = Astro.props;
+
+// Accents come from phases.json as bare colour names. Tailwind only sees class
+// strings that appear literally in source, so the mapping has to live here
+// rather than being built from the JSON value.
+const ACCENTS: Record<string, string> = {
+  emerald: "border-emerald-500/60 text-emerald-700 dark:text-emerald-300",
+  sky: "border-sky-500/60 text-sky-700 dark:text-sky-300",
+  amber: "border-amber-500/60 text-amber-700 dark:text-amber-300",
+  orange: "border-orange-500/60 text-orange-700 dark:text-orange-300",
+  purple: "border-purple-500/60 text-purple-700 dark:text-purple-300",
+  red: "border-red-500/60 text-red-700 dark:text-red-300",
+  stone: "border-stone-500/60 text-stone-700 dark:text-stone-300",
+  slate: "border-slate-500/60 text-slate-700 dark:text-slate-300",
+  teal: "border-teal-500/60 text-teal-700 dark:text-teal-300",
+  lime: "border-lime-500/60 text-lime-700 dark:text-lime-300",
+  indigo: "border-indigo-500/60 text-indigo-700 dark:text-indigo-300",
+  pink: "border-pink-500/60 text-pink-700 dark:text-pink-300",
+  blue: "border-blue-500/60 text-blue-700 dark:text-blue-300",
+};
+
+const accentFor = (name: string) => ACCENTS[name] ?? ACCENTS.slate;
+---
+
+<div class="space-y-12">
+  {groups.map((group) => (
+    <section class="space-y-6">
+      <div class="space-y-1 border-b border-gray-200 dark:border-gray-800 pb-3">
+        <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h2 class="text-lg font-semibold text-black dark:text-white">{group.label}</h2>
+          <span class="text-sm text-gray-500 dark:text-gray-400">
+            {group.lessonCount} {group.lessonCount === 1 ? "lesson" : "lessons"} · ~{group.minutes} min
+          </span>
+        </div>
+        <p class="text-sm text-gray-600 dark:text-gray-400">{group.blurb}</p>
+      </div>
+
+      {group.phases.map(({ phase, lessons, minutes }) => (
+        <div class="space-y-3">
+          <div class:list={["border-l-2 pl-4", accentFor(phase.accent)]}>
+            <h3 class="font-semibold">
+              <span class="text-xs uppercase tracking-wide opacity-70">Phase {phase.number}</span>
+              <span class="ml-2 text-black dark:text-white">{phase.title}</span>
+            </h3>
+            {phase.summary && (
+              <p class="mt-0.5 text-sm text-gray-600 dark:text-gray-400">{phase.summary}</p>
+            )}
+            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">~{minutes} min</p>
+          </div>
+          <LessonList track={track} lessons={lessons} currentOrder={currentOrder} />
+        </div>
+      ))}
+    </section>
+  ))}
+</div>

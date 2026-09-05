@@ -60,7 +60,7 @@ const lessonTitles = new Map(lessons.map((lesson) => [lesson.data.order, lesson.
         <div class="flex flex-wrap items-baseline justify-between gap-2">
           <h2 class="font-semibold text-black dark:text-white">{term.term}</h2>
           <span class="text-xs text-gray-500 dark:text-gray-400">
-            Lesson {term.introducedIn} · {lessonTitles.get(term.introducedIn) ?? "—"}
+            Lesson {term.introducedIn} · {lessonTitles.get(term.introducedIn) ?? "not yet published"}
           </span>
         </div>
         <p class="mt-1 text-gray-600 dark:text-gray-400">{term.short}</p>

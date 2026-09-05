@@ -2,13 +2,15 @@
 import type { GetStaticPaths } from "astro";
 import CourseLayout from "@layouts/CourseLayout.astro";
 import BackToPrev from "@components/BackToPrev.astro";
-import LessonList from "@components/courses/LessonList.astro";
+import PhaseOutline from "@components/courses/PhaseOutline.astro";
 import CourseSearch from "@components/courses/CourseSearch.astro";
 import {
   getTracks,
   getLessons,
   trackStats,
+  outline,
   validateTermRefs,
+  validateStructure,
   lessonHref,
   type Track,
   type Lesson,
@@ -28,11 +30,13 @@ type Props = { track: Track; lessons: Lesson[] };
 
 const { track, lessons } = Astro.props;
 const stats = trackStats(track.slug, lessons);
+const groups = outline(track.slug, lessons);
 const { Content } = await track.render();
 
 // Author-time check: warns on <Term> uses that reference a term the reader
 // cannot have met yet. Deliberately non-fatal.
 validateTermRefs(track.slug, lessons);
+validateStructure(track.slug, lessons);
 
 const first = lessons[0];
 ---
@@ -57,6 +61,7 @@ const first = lessons[0];
     </div>
     <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
       <span>{stats.lessonCount} lessons</span>
+      <span>{stats.phaseCount} phases</span>
       <span>~{stats.totalMinutes} min total</span>
       <span class="capitalize">{track.data.level}</span>
     </div>
@@ -84,9 +89,8 @@ const first = lessons[0];
     </div>
   )}
 
-  <div class="animate mt-12 space-y-4">
-    <h2 class="font-semibold text-black dark:text-white">Lessons</h2>
-    <LessonList track={track.slug} lessons={lessons} />
+  <div class="animate mt-12">
+    <PhaseOutline track={track.slug} groups={groups} />
   </div>
 
   <div slot="sidebar" class="animate space-y-6">

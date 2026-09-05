@@ -37,6 +37,14 @@ A course is a **track** (e.g. Kubernetes) made of ordered **lessons** of about
 ten minutes each, with a **glossary** that only ever shows terms the reader has
 already met.
 
+Lessons are grouped into **phases**, and phases into three **depth tiers** (core,
+practical, deep). A lesson declares its `phase` in frontmatter; the depth is a
+property of the phase, held in `phases.json`, and is derived rather than stored on
+the lesson so the two cannot disagree. `outline()` builds the nested shape the
+track page renders and drops phases that have no published lessons, so a phase
+can be declared long before it is written. That is what makes it safe to publish
+a track in batches.
+
 ## File map
 
 | Path | What it is |
@@ -44,11 +52,14 @@ already met.
 | `src/content/courses/<track>.md` | Track metadata + intro prose. Filename is the track slug. |
 | `src/content/lessons/<track>/<slug>/index.mdx` | One lesson. Folder allows colocated images. |
 | `src/data/courses/<track>/glossary.json` | Every term for the track. |
+| `src/data/courses/<track>/phases.json` | Phase titles, depth tier, accent colour, optional summary. |
+| `docs/kubernetes-track-roadmap.md` | The 51-lesson plan for the Kubernetes track, and the game designs. |
 | `src/lib/courses.ts` | All queries, gating, and the `<Term>` validator. |
 | `src/layouts/CourseLayout.astro` | Two-column shell: content + sticky sidebar. |
 | `src/components/courses/Term.astro` | Inline term with hover/focus tooltip. |
 | `src/components/courses/GlossaryPanel.astro` | Gated sidebar glossary. |
 | `src/components/courses/LessonList.astro` | Lesson list with progress ticks. |
+| `src/components/courses/PhaseOutline.astro` | Track page outline: depth tiers, then phases, then lessons. |
 | `src/components/courses/CourseSearch.astro` | Pagefind-backed search box. |
 | `src/scripts/courses/progress.ts` | localStorage progress. |
 | `src/pages/courses/` | The four routes. |
@@ -66,10 +77,12 @@ Routes: `/courses`, `/courses/<track>`, `/courses/<track>/glossary`,
    ---
    track: kubernetes      # must equal the track slug exactly
    order: 7               # unique within the track; drives nav, "7 / 8", gating
+   phase: 2               # must exist in the track's phases.json
    title: Probes and health
    description: One sentence, shown on cards and in search results.
    minutes: 10            # explicit; reading time is NOT computed for lessons
    tags: [workloads]
+   modes: [operate]       # planned interactives: visualize | operate | inspect
    draft: false
    ---
    ```
@@ -101,8 +114,19 @@ There is no migration helper; grep the glossary.
    ---
    ```
 
-2. Create `src/data/courses/<slug>/glossary.json` — at minimum `[]`. The glob in
-   `courses.ts` only matches that exact path shape.
+2. Create `src/data/courses/<slug>/glossary.json` and
+   `src/data/courses/<slug>/phases.json`, at minimum `[]` each. The globs in
+   `courses.ts` only match those exact path shapes. Every phase needs a `depth`
+   of `core`, `practical` or `deep`, and an `accent` that `PhaseOutline.astro`
+   has a class string for; unknown accents fall back to slate.
+
+   `summary` is optional, and most phases are better without one. It renders
+   directly above the phase's lesson list, so a summary that describes the
+   phase's contents just repeats the lesson titles sitting under it. Write one
+   only to make a claim the reader cannot get from those titles: phase 7 says
+   Kubernetes will not make an application highly available, phase 4 says a
+   pod's IP address will not last. Of the thirteen Kubernetes phases, five have
+   one.
 3. Create `src/content/lessons/<slug>/` and add lessons.
 4. Logos are real project marks, not emoji. Fetch the official SVG (for CNCF
    projects, `github.com/cncf/artwork`) into `public/logos/`.
@@ -164,6 +188,12 @@ blocked. Nobody sees the warning unless they read build output — check it:
 ```bash
 pnpm build 2>&1 | grep '\[courses\]'    # expect no output
 ```
+
+`validateStructure()` runs from the same page under the same warn-only contract,
+and catches what stops being obvious once a track has dozens of lessons: a
+duplicated or skipped `order`, a `phase` missing from `phases.json`, or phases
+that interleave instead of running in contiguous blocks. It only sees published
+lessons, so drafts neither trigger it nor create false order gaps.
 
 If a second track ever defines a term the first one also defines, `<Term>`
 resolves to whichever glob order returns first. Not yet a problem with one track.

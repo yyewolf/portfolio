@@ -1,0 +1,56 @@
+---
+track: kubernetes
+order: 4
+phase: 2
+title: Everything is an object
+description: Kubernetes has almost no verbs. You write down the state you want, and loops make it true.
+minutes: 10
+tags: [fundamentals, api]
+modes: [operate, inspect]
+draft: false
+---
+
+There is no Kubernetes command for "deploy my app". Underneath, there is not
+really one for scaling up, restarting, or rolling back either. There is one
+operation, which is writing down what you want.
+
+The unit you write down is an <Term>object</Term>. It has a kind, a name, and a
+spec describing the state you are asking for:
+
+```yaml
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 3
+```
+
+That object does not run anything. It is a record, and the record says three.
+Something else, a loop of the kind you were being in lesson one, reads it, counts
+what exists, and closes the gap.
+
+This is what <Term>declarative</Term> means in practice, and it is why the same
+file works whether you are creating the thing or changing it. A file describing
+an object is a <Term>manifest</Term>.
+
+## The kinds you will meet
+
+You do not need these yet. They are here so the names are familiar when their
+lessons arrive:
+
+| Kind | The state it asks for |
+|---|---|
+| Pod | These containers, running together |
+| Deployment | This many identical pods, updated safely |
+| Service | One stable address for a changing set of pods |
+| ConfigMap | This configuration, available to pods |
+| Secret | The same, for values that should not be in an image |
+
+> **Interactive.** Given a described system, assemble the objects it needs. The
+> wrong answers are the interesting part. Not built yet.
+
+Objects live in a <Term>namespace</Term>, which scopes names. Two namespaces can
+each hold a Deployment called `web` without colliding.
+
+The next two lessons cover where these objects go when you submit them, and what
+remembers them afterwards.

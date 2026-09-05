@@ -1,0 +1,85 @@
+[
+  {
+    "number": 1,
+    "title": "What problem are we solving?",
+    "depth": "core",
+    "accent": "emerald"
+  },
+  {
+    "number": 2,
+    "title": "The fundamental mental model",
+    "depth": "core",
+    "accent": "sky"
+  },
+  {
+    "number": 3,
+    "title": "Workloads",
+    "depth": "core",
+    "accent": "amber"
+  },
+  {
+    "number": 4,
+    "title": "Networking",
+    "summary": "Every pod gets an IP address, and the rest of this phase exists because that address will not last.",
+    "depth": "core",
+    "accent": "orange"
+  },
+  {
+    "number": 5,
+    "title": "Storage and configuration",
+    "depth": "practical",
+    "accent": "purple"
+  },
+  {
+    "number": 6,
+    "title": "Scheduling and resources",
+    "summary": "How a pod ends up on one node rather than another, and what happens when you lie about what it needs.",
+    "depth": "practical",
+    "accent": "red"
+  },
+  {
+    "number": 7,
+    "title": "Reliability",
+    "summary": "Kubernetes recovers from a lot of things. It does not make your application highly available for you.",
+    "depth": "practical",
+    "accent": "stone"
+  },
+  {
+    "number": 8,
+    "title": "Security",
+    "depth": "practical",
+    "accent": "slate"
+  },
+  {
+    "number": 9,
+    "title": "Operating Kubernetes",
+    "summary": "Something is broken and nothing tells you what it is.",
+    "depth": "practical",
+    "accent": "teal"
+  },
+  {
+    "number": 10,
+    "title": "What's actually underneath?",
+    "depth": "deep",
+    "accent": "lime"
+  },
+  {
+    "number": 11,
+    "title": "Kubernetes isn't magic",
+    "summary": "You already understand reconciliation, so this is where you extend the system with your own objects and your own loop.",
+    "depth": "deep",
+    "accent": "indigo"
+  },
+  {
+    "number": 12,
+    "title": "Architecture and tradeoffs",
+    "depth": "deep",
+    "accent": "pink"
+  },
+  {
+    "number": 13,
+    "title": "The whole thing",
+    "depth": "deep",
+    "accent": "blue"
+  }
+]
