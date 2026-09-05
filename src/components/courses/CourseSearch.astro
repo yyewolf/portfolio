@@ -1,0 +1,127 @@
+---
+type Props = {
+  /** Restrict results to one track. Omit to search every course. */
+  track?: string;
+  placeholder?: string;
+};
+
+const { track, placeholder = "Search lessons and glossary" } = Astro.props;
+---
+
+<div class="course-search" data-track={track}>
+  <label class="sr-only" for="course-search-input">Search courses</label>
+  <input
+    id="course-search-input"
+    type="search"
+    autocomplete="off"
+    placeholder={placeholder}
+    class="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-transparent px-4 py-2.5 outline-none transition-colors focus:border-blue-500 dark:focus:border-blue-400"
+  />
+  <p data-search-status class="mt-2 text-sm text-gray-500 dark:text-gray-400" hidden></p>
+  <ul data-search-results class="mt-4 space-y-3"></ul>
+</div>
+
+<script>
+  type PagefindResult = {
+    data: () => Promise<{
+      url: string;
+      excerpt: string;
+      meta: Record<string, string>;
+    }>;
+  };
+  type Pagefind = {
+    options: (opts: Record<string, unknown>) => Promise<void>;
+    search: (
+      query: string,
+      opts?: Record<string, unknown>
+    ) => Promise<{ results: PagefindResult[] }>;
+  };
+
+  const root = document.querySelector<HTMLElement>(".course-search");
+  const input = document.getElementById("course-search-input") as HTMLInputElement | null;
+  const resultsEl = root?.querySelector<HTMLElement>("[data-search-results]");
+  const statusEl = root?.querySelector<HTMLElement>("[data-search-status]");
+
+  if (root && input && resultsEl && statusEl) {
+    const results = resultsEl;
+    const status = statusEl;
+    const track = root.dataset.track;
+    let pagefind: Pagefind | null = null;
+    let loadFailed = false;
+    let sequence = 0;
+
+    const say = (message: string) => {
+      status.textContent = message;
+      status.hidden = !message;
+    };
+
+    // Pagefind only exists after `astro build && pagefind`, so `astro dev` has
+    // no index. Fail into an explanation rather than a dead input.
+    const load = async (): Promise<Pagefind | null> => {
+      if (pagefind || loadFailed) return pagefind;
+      try {
+        // Held in a variable so the bundler leaves it alone: the file only
+        // exists in dist, after pagefind has run.
+        const indexUrl = "/pagefind/pagefind.js";
+        pagefind = (await import(/* @vite-ignore */ indexUrl)) as Pagefind;
+        await pagefind.options({ excerptLength: 25 });
+        return pagefind;
+      } catch {
+        loadFailed = true;
+        say("Search index unavailable. It is generated at build time — run a production build to try it locally.");
+        return null;
+      }
+    };
+
+    const run = async (query: string) => {
+      const call = ++sequence;
+      if (query.trim().length < 2) {
+        results.innerHTML = "";
+        say("");
+        return;
+      }
+
+      const engine = await load();
+      if (!engine || call !== sequence) return;
+
+      say("Searching…");
+      const filters = track ? { filters: { track } } : {};
+      const search = await engine.search(query, filters);
+      if (call !== sequence) return;
+
+      const top = await Promise.all(search.results.slice(0, 8).map((r) => r.data()));
+      if (call !== sequence) return;
+
+      if (top.length === 0) {
+        results.innerHTML = "";
+        say(`No result for “${query}”.`);
+        return;
+      }
+
+      say("");
+      results.innerHTML = top
+        .map((item) => {
+          const kind = item.meta.kind ? `<span class="shrink-0 rounded bg-black/5 dark:bg-white/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide">${item.meta.kind}</span>` : "";
+          return `<li>
+            <a href="${item.url}" class="block rounded-lg border border-black/15 dark:border-white/20 px-4 py-3 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+              <span class="flex items-center gap-2">
+                <span class="font-semibold text-black dark:text-white">${item.meta.title ?? "Untitled"}</span>
+                ${kind}
+              </span>
+              <span class="mt-1 block text-sm text-gray-600 dark:text-gray-400">${item.excerpt}</span>
+            </a>
+          </li>`;
+        })
+        .join("");
+    };
+
+    let debounce: number | undefined;
+    input.addEventListener("input", () => {
+      window.clearTimeout(debounce);
+      const value = input.value;
+      debounce = window.setTimeout(() => void run(value), 150);
+    });
+    // Warm the ~50KB bundle on intent, so the first keystroke is not the wait.
+    input.addEventListener("focus", () => void load(), { once: true });
+  }
+</script>

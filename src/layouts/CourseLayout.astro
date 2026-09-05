@@ -1,0 +1,23 @@
+---
+import PageLayout from "@layouts/PageLayout.astro";
+
+type Props = {
+  title: string;
+  description: string;
+};
+
+const { title, description } = Astro.props;
+---
+
+<PageLayout title={title} description={description}>
+  <div class="mx-auto max-w-6xl px-5">
+    <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start lg:gap-12">
+      <div class="min-w-0">
+        <slot />
+      </div>
+      <aside class="mt-12 lg:sticky lg:top-24 lg:mt-0">
+        <slot name="sidebar" />
+      </aside>
+    </div>
+  </div>
+</PageLayout>

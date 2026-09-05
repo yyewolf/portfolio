@@ -1,0 +1,133 @@
+---
+import type { GetStaticPaths } from "astro";
+import CourseLayout from "@layouts/CourseLayout.astro";
+import BackToPrev from "@components/BackToPrev.astro";
+import LessonList from "@components/courses/LessonList.astro";
+import CourseSearch from "@components/courses/CourseSearch.astro";
+import {
+  getTracks,
+  getLessons,
+  trackStats,
+  validateTermRefs,
+  lessonHref,
+  type Track,
+  type Lesson,
+} from "@lib/courses";
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  const tracks = await getTracks();
+  return Promise.all(
+    tracks.map(async (track) => ({
+      params: { track: track.slug },
+      props: { track, lessons: await getLessons(track.slug) },
+    }))
+  );
+};
+
+type Props = { track: Track; lessons: Lesson[] };
+
+const { track, lessons } = Astro.props;
+const stats = trackStats(track.slug, lessons);
+const { Content } = await track.render();
+
+// Author-time check: warns on <Term> uses that reference a term the reader
+// cannot have met yet. Deliberately non-fatal.
+validateTermRefs(track.slug, lessons);
+
+const first = lessons[0];
+---
+
+<CourseLayout title={track.data.title} description={track.data.description}>
+  <div class="animate">
+    <BackToPrev href="/courses">Back to courses</BackToPrev>
+  </div>
+
+  <div class="animate my-10 space-y-3">
+    <div class="flex items-center gap-3">
+      {track.data.logo && (
+        <img
+          src={track.data.logo}
+          alt={track.data.logoAlt ?? ""}
+          width="40"
+          height="40"
+          class="size-10 shrink-0"
+        />
+      )}
+      <h1 class="text-2xl font-semibold text-black dark:text-white">{track.data.title}</h1>
+    </div>
+    <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
+      <span>{stats.lessonCount} lessons</span>
+      <span>~{stats.totalMinutes} min total</span>
+      <span class="capitalize">{track.data.level}</span>
+    </div>
+  </div>
+
+  <article class="animate">
+    <Content />
+  </article>
+
+  {first && (
+    <div class="animate mt-8" data-resume data-track={track.slug}>
+      <a
+        href={lessonHref(first)}
+        data-resume-link
+        class="inline-block rounded-lg border border-blue-500/60 bg-blue-50/60 dark:bg-blue-950/30 px-4 py-2 font-medium text-blue-700 dark:text-blue-300 transition-colors hover:bg-blue-100/60 dark:hover:bg-blue-900/40">
+        <span data-resume-label>Start lesson 1</span>
+      </a>
+      <button
+        type="button"
+        data-reset
+        hidden
+        class="ml-3 text-sm text-gray-500 underline underline-offset-2 hover:text-black dark:hover:text-white">
+        Reset progress
+      </button>
+    </div>
+  )}
+
+  <div class="animate mt-12 space-y-4">
+    <h2 class="font-semibold text-black dark:text-white">Lessons</h2>
+    <LessonList track={track.slug} lessons={lessons} />
+  </div>
+
+  <div slot="sidebar" class="animate space-y-6">
+    <CourseSearch track={track.slug} placeholder={`Search ${track.data.title}`} />
+    <a
+      href={`/courses/${track.slug}/glossary`}
+      class="block rounded-lg border border-gray-200 dark:border-gray-800 px-4 py-3 transition-colors hover:bg-black/5 dark:hover:bg-white/5">
+      <span class="block font-semibold text-black dark:text-white">Glossary</span>
+      <span class="mt-0.5 block text-sm text-gray-600 dark:text-gray-400">
+        {stats.termCount} terms, revealed as you go
+      </span>
+    </a>
+  </div>
+</CourseLayout>
+
+<script>
+  import { trackProgress, resetTrack } from "@scripts/courses/progress";
+
+  const root = document.querySelector<HTMLElement>("[data-resume]");
+  const track = root?.dataset.track;
+
+  if (root && track) {
+    const label = root.querySelector<HTMLElement>("[data-resume-label]");
+    const link = root.querySelector<HTMLAnchorElement>("[data-resume-link]");
+    const reset = root.querySelector<HTMLButtonElement>("[data-reset]");
+    const { furthest } = trackProgress(track);
+
+    if (furthest > 0 && label && link) {
+      const target = document.querySelector<HTMLAnchorElement>(
+        `[data-lesson-list] [data-order="${furthest}"]`
+      );
+      if (target) {
+        link.href = target.href;
+        label.textContent = `Resume at lesson ${furthest}`;
+      }
+      if (reset) reset.hidden = false;
+    }
+
+    reset?.addEventListener("click", () => {
+      resetTrack(track);
+      window.location.reload();
+    });
+  }
+</script>

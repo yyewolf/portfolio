@@ -74,4 +74,30 @@ const certifications = defineCollection({
   }),
 });
 
-export const collections = { blog, work, projects, education, talks, certifications };
+const courses = defineCollection({
+  type: "content",
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    level: z.enum(["beginner", "intermediate", "advanced"]),
+    order: z.number(),
+    logo: z.string().optional(),
+    logoAlt: z.string().optional(),
+    draft: z.boolean().optional(),
+  }),
+});
+
+const lessons = defineCollection({
+  type: "content",
+  schema: z.object({
+    track: z.string(),
+    order: z.number(),
+    title: z.string(),
+    description: z.string(),
+    minutes: z.number(),
+    tags: z.array(z.string()).default([]),
+    draft: z.boolean().optional(),
+  }),
+});
+
+export const collections = { blog, work, projects, education, talks, certifications, courses, lessons };

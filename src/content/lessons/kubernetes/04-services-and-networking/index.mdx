@@ -1,0 +1,21 @@
+---
+track: kubernetes
+order: 4
+title: Services and networking
+description: How traffic finds a pod whose IP address changed thirty seconds ago.
+minutes: 10
+tags: [networking]
+draft: false
+---
+
+Pods get new IP addresses every time they are replaced, which makes them
+useless to point a client at. A <Term>Service</Term> solves that: one stable
+name and address in front of a changing set of pods.
+
+Which pods it covers is decided by a <Term>selector</Term> matching their
+<Term term="Label">labels</Term> rather than by naming them.
+
+The default service type is <Term>ClusterIP</Term>, reachable only from inside
+the cluster. To let outside HTTP traffic in, you add an <Term>Ingress</Term>.
+
+> Placeholder body.

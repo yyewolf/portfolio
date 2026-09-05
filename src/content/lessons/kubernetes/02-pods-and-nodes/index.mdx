@@ -1,0 +1,21 @@
+---
+track: kubernetes
+order: 2
+title: Pods and nodes
+description: The smallest thing you can deploy, and the machines that end up running it.
+minutes: 10
+tags: [workloads, scheduling]
+draft: false
+---
+
+A <Term>node</Term> is a single machine in the cluster. On it runs a
+<Term>kubelet</Term>, the agent responsible for actually starting work.
+
+The unit of work is the <Term>pod</Term>: one or more
+<Term term="Container">containers</Term> that share a network namespace and
+storage. Containers inside a pod reach each other over localhost.
+
+Deciding which node a pod lands on is the <Term>scheduler</Term>'s job. It
+filters out nodes that cannot fit the pod, then ranks what is left.
+
+> Placeholder body.

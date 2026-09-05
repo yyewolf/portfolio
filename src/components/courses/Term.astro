@@ -1,0 +1,33 @@
+---
+import { findTermAnywhere } from "@lib/courses";
+
+type Props = {
+  /** Overrides the slot text when the prose reads better than the term name. */
+  term?: string;
+};
+
+const { term } = Astro.props;
+const label = await Astro.slots.render("default");
+const plainLabel = label.replace(/<[^>]+>/g, "").trim();
+const entry = findTermAnywhere(term ?? plainLabel);
+---
+
+{entry ? (
+  <span class="course-term group relative inline-block" tabindex="0">
+    <span class="border-b border-dotted border-blue-500/70 dark:border-blue-400/70 cursor-help">
+      <slot />
+    </span>
+    <span
+      role="tooltip"
+      class="pointer-events-none invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus:visible group-focus:opacity-100 absolute left-1/2 bottom-full z-40 mb-2 w-72 -translate-x-1/2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 text-left shadow-lg transition-opacity duration-200">
+      <span class="block font-sans text-sm font-semibold text-black dark:text-white">
+        {entry.term}
+      </span>
+      <span class="mt-1 block font-sans text-xs leading-relaxed text-gray-600 dark:text-gray-400">
+        {entry.short}
+      </span>
+    </span>
+  </span>
+) : (
+  <slot />
+)}

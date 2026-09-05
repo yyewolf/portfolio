@@ -1,0 +1,21 @@
+---
+track: kubernetes
+order: 6
+title: Storage and stateful workloads
+description: Where the data lives when the pod holding it is deleted.
+minutes: 10
+tags: [storage, state]
+draft: false
+---
+
+Everything so far assumed workloads were interchangeable. Databases are not.
+
+A <Term>PersistentVolume</Term> is storage whose lifetime is independent of any
+pod. Workloads do not reference it directly; they make a
+<Term>PersistentVolumeClaim</Term> describing what they need, and a
+<Term>StorageClass</Term> explains how to provision it on demand.
+
+For workloads where each replica is distinct, a <Term>StatefulSet</Term> gives
+every pod a stable identity and its own claim.
+
+> Placeholder body.

@@ -1,0 +1,21 @@
+---
+track: kubernetes
+order: 5
+title: Config and secrets
+description: Keeping configuration out of the image so one build runs everywhere.
+minutes: 10
+tags: [configuration]
+draft: false
+---
+
+An image that hardcodes its database URL has to be rebuilt per environment.
+A <Term>ConfigMap</Term> pulls that data out of the image and into the cluster.
+
+For sensitive values there is <Term term="Secret">Secrets</Term>, which look
+similar but are handled with more care. Worth being blunt early: base64 is not
+encryption.
+
+Either can be injected as environment variables or mounted as a
+<Term>volume</Term>.
+
+> Placeholder body.

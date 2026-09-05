@@ -33,6 +33,11 @@ export const TALKS: Metadata = {
   DESCRIPTION: "Talks and presentations I've given at conferences and meetups.",
 };
 
+export const COURSES: Metadata = {
+  TITLE: "Courses",
+  DESCRIPTION: "Short, focused courses on Kubernetes and cloud native infrastructure.",
+};
+
 export const CERTIFICATIONS: Metadata = {
   TITLE: "Certifications",
   DESCRIPTION: "Professional certifications and achievements in cloud native technologies and Kubernetes.",

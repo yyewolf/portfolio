@@ -1,0 +1,109 @@
+---
+import type { GlossaryTerm } from "@lib/courses";
+
+type Props = {
+  terms: GlossaryTerm[];
+  /** Terms introduced in this lesson get flagged as new. */
+  currentOrder?: number;
+  totalTerms?: number;
+  heading?: string;
+};
+
+const { terms, currentOrder, totalTerms, heading = "Glossary" } = Astro.props;
+const unlockedNames = new Set(terms.map((term) => term.term.toLowerCase()));
+---
+
+<details id="glossary-panel" class="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/50">
+  <summary class="cursor-pointer list-none px-4 py-3 lg:cursor-default">
+    <span class="flex items-center justify-between gap-2">
+      <span class="font-semibold text-black dark:text-white">{heading}</span>
+      <span class="text-xs text-gray-500 dark:text-gray-400">
+        {totalTerms ? `${terms.length} / ${totalTerms}` : terms.length}
+      </span>
+    </span>
+    <span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">
+      Only the terms introduced so far.
+    </span>
+  </summary>
+
+  <div class="border-t border-gray-200 dark:border-gray-800 p-4">
+    {terms.length > 6 && (
+      <input
+        type="search"
+        id="glossary-filter"
+        placeholder="Filter terms"
+        aria-label="Filter glossary terms"
+        class="mb-3 w-full rounded border border-gray-200 dark:border-gray-700 bg-transparent px-2 py-1.5 text-sm outline-none focus:border-blue-500 dark:focus:border-blue-400"
+      />
+    )}
+
+    {terms.length === 0 ? (
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        Nothing yet. Terms appear here as the lessons introduce them.
+      </p>
+    ) : (
+      <ul class="space-y-3 lg:max-h-[60vh] lg:overflow-y-auto lg:pr-1" data-glossary-list>
+        {terms.map((term) => (
+          <li data-term={term.term.toLowerCase()} class="text-sm">
+            <div class="flex items-baseline gap-2">
+              <span class="font-semibold text-black dark:text-white">{term.term}</span>
+              {currentOrder !== undefined && term.introducedIn === currentOrder && (
+                <span class="rounded bg-blue-100 dark:bg-blue-900/50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-blue-700 dark:text-blue-300">
+                  new
+                </span>
+              )}
+            </div>
+            <p class="mt-0.5 text-gray-600 dark:text-gray-400">{term.short}</p>
+            {term.related && term.related.some((r) => unlockedNames.has(r.toLowerCase())) && (
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-500">
+                See also{" "}
+                {term.related
+                  .filter((r) => unlockedNames.has(r.toLowerCase()))
+                  .join(", ")}
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
+    )}
+    <p class="mt-4 hidden text-sm text-gray-500 dark:text-gray-400" data-glossary-empty>
+      No term matches that.
+    </p>
+  </div>
+</details>
+
+<script>
+  const panel = document.getElementById("glossary-panel") as HTMLDetailsElement | null;
+
+  if (panel) {
+    // One DOM for both layouts: a disclosure on small screens, always open on
+    // desktop. Duplicating the markup instead would double it in the search index.
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const sync = () => {
+      if (desktop.matches) panel.open = true;
+    };
+    sync();
+    desktop.addEventListener("change", sync);
+
+    const filter = document.getElementById("glossary-filter") as HTMLInputElement | null;
+    const empty = panel.querySelector("[data-glossary-empty]") as HTMLElement | null;
+
+    filter?.addEventListener("input", () => {
+      const query = filter.value.trim().toLowerCase();
+      let visible = 0;
+      panel.querySelectorAll<HTMLElement>("[data-term]").forEach((item) => {
+        const match = !query || (item.dataset.term ?? "").includes(query) ||
+          (item.textContent ?? "").toLowerCase().includes(query);
+        item.hidden = !match;
+        if (match) visible++;
+      });
+      if (empty) empty.classList.toggle("hidden", visible > 0);
+    });
+  }
+</script>
+
+<style>
+  #glossary-panel > summary::-webkit-details-marker {
+    display: none;
+  }
+</style>

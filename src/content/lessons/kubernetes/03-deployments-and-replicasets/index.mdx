@@ -1,0 +1,22 @@
+---
+track: kubernetes
+order: 3
+title: Deployments and ReplicaSets
+description: Desired state, self-healing, and why a rolling update is not a restart.
+minutes: 10
+tags: [workloads, rollouts]
+draft: false
+---
+
+Pods are disposable, so you rarely create one directly. You create a
+<Term>Deployment</Term>, which owns a <Term>ReplicaSet</Term>, which keeps a
+stated number of pods alive.
+
+The mechanism underneath is <Term>reconciliation</Term>: a
+<Term>controller</Term> compares what you asked for against what exists and
+closes the gap, over and over. Nothing is assumed to have worked.
+
+Changing the pod template starts a <Term>rollout</Term>, shifting traffic to new
+pods gradually instead of restarting everything at once.
+
+> Placeholder body.

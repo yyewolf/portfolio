@@ -1,0 +1,152 @@
+---
+import type { GetStaticPaths } from "astro";
+import CourseLayout from "@layouts/CourseLayout.astro";
+import BackToPrev from "@components/BackToPrev.astro";
+import GlossaryPanel from "@components/courses/GlossaryPanel.astro";
+import Term from "@components/courses/Term.astro";
+import {
+  getTracks,
+  getLessons,
+  getGlossary,
+  unlockedTerms,
+  neighbours,
+  lessonSlug,
+  lessonHref,
+  type Track,
+  type Lesson,
+} from "@lib/courses";
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  const tracks = await getTracks();
+  const paths = [];
+
+  for (const track of tracks) {
+    const lessons = await getLessons(track.slug);
+    for (const lesson of lessons) {
+      paths.push({
+        params: { track: track.slug, lesson: lessonSlug(lesson) },
+        props: { track, lesson, lessons },
+      });
+    }
+  }
+  return paths;
+};
+
+type Props = { track: Track; lesson: Lesson; lessons: Lesson[] };
+
+const { track, lesson, lessons } = Astro.props;
+const { Content } = await lesson.render();
+const { prev, next } = neighbours(lessons, lesson);
+
+// Gating happens here, at build time: a lesson page never ships the definitions
+// of terms it has not introduced yet.
+const terms = unlockedTerms(track.slug, lesson.data.order);
+const totalTerms = getGlossary(track.slug).length;
+const position = `${lesson.data.order} / ${lessons.length}`;
+---
+
+<CourseLayout title={lesson.data.title} description={lesson.data.description}>
+  <div class="animate">
+    <BackToPrev href={`/courses/${track.slug}`}>{track.data.title}</BackToPrev>
+  </div>
+
+  <div class="animate my-10 space-y-2">
+    <div class="flex flex-wrap items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+      <span>Lesson {position}</span>
+      &bull;
+      <span>{lesson.data.minutes} min</span>
+      {lesson.data.tags.length > 0 && (
+        <>
+          &bull;
+          <span>{lesson.data.tags.join(", ")}</span>
+        </>
+      )}
+    </div>
+    <h1 class="text-2xl font-semibold text-black dark:text-white">{lesson.data.title}</h1>
+    <p class="text-gray-600 dark:text-gray-400">{lesson.data.description}</p>
+  </div>
+
+  <article
+    class="animate"
+    data-pagefind-body
+    data-pagefind-filter={`track:${track.slug}`}
+    data-pagefind-meta={`title:${lesson.data.title}, kind:lesson`}>
+    <Content components={{ Term }} />
+  </article>
+
+  <div
+    class="animate mt-12 flex flex-wrap items-center gap-3 border-t border-gray-200 dark:border-gray-800 pt-6"
+    data-lesson
+    data-track={track.slug}
+    data-order={lesson.data.order}>
+    <button
+      type="button"
+      data-complete
+      aria-pressed="false"
+      class="rounded-lg border border-black/15 dark:border-white/20 px-4 py-2 text-sm font-medium transition-colors hover:bg-black/5 dark:hover:bg-white/5">
+      <span data-complete-label>Mark as done</span>
+    </button>
+  </div>
+
+  <nav class="animate mt-6 grid gap-3 sm:grid-cols-2">
+    {prev ? (
+      <a
+        href={lessonHref(prev)}
+        class="rounded-lg border border-black/15 dark:border-white/20 px-4 py-3 transition-colors hover:bg-black/5 dark:hover:bg-white/5">
+        <span class="block text-xs text-gray-500 dark:text-gray-400">Previous</span>
+        <span class="block font-medium text-black dark:text-white">{prev.data.title}</span>
+      </a>
+    ) : (
+      <span />
+    )}
+    {next && (
+      <a
+        href={lessonHref(next)}
+        class="rounded-lg border border-black/15 dark:border-white/20 px-4 py-3 text-right transition-colors hover:bg-black/5 dark:hover:bg-white/5 sm:col-start-2">
+        <span class="block text-xs text-gray-500 dark:text-gray-400">Next</span>
+        <span class="block font-medium text-black dark:text-white">{next.data.title}</span>
+      </a>
+    )}
+  </nav>
+
+  <div slot="sidebar" class="animate space-y-6">
+    <GlossaryPanel terms={terms} currentOrder={lesson.data.order} totalTerms={totalTerms} />
+    <a
+      href={`/courses/${track.slug}/glossary`}
+      class="block text-sm text-gray-500 underline underline-offset-2 hover:text-black dark:hover:text-white">
+      Full glossary
+    </a>
+  </div>
+</CourseLayout>
+
+<script>
+  import { markVisited, markCompleted, trackProgress } from "@scripts/courses/progress";
+
+  const root = document.querySelector<HTMLElement>("[data-lesson]");
+  const track = root?.dataset.track;
+  const order = Number(root?.dataset.order);
+
+  if (root && track && Number.isFinite(order)) {
+    markVisited(track, order);
+
+    const button = root.querySelector<HTMLButtonElement>("[data-complete]");
+    const label = root.querySelector<HTMLElement>("[data-complete-label]");
+
+    const paint = (done: boolean) => {
+      if (!button || !label) return;
+      button.setAttribute("aria-pressed", String(done));
+      label.textContent = done ? "Done" : "Mark as done";
+      button.classList.toggle("border-blue-500/60", done);
+      button.classList.toggle("text-blue-700", done);
+      button.classList.toggle("dark:text-blue-300", done);
+    };
+
+    paint(trackProgress(track).completed.includes(order));
+
+    button?.addEventListener("click", () => {
+      const done = button.getAttribute("aria-pressed") !== "true";
+      markCompleted(track, order, done);
+      paint(done);
+    });
+  }
+</script>
