@@ -23,27 +23,30 @@ const { Content } = await post.render();
 
 <PageLayout title={post.data.title} description={post.data.description}>
   <Container>
-    <div class="animate">
-      <BackToPrev href="/blog">
-        Back to blog
-      </BackToPrev>
-    </div>
-    <div class="space-y-1 my-10">
-      <div class="animate flex items-center gap-1.5">
-        <div class="font-base text-sm">
-          <FormattedDate date={post.data.date} />
+    <!-- Narrower than the site container: keeps body lines near 70-75 characters. -->
+    <div class="mx-auto max-w-2xl">
+      <div class="animate">
+        <BackToPrev href="/blog">
+          Back to blog
+        </BackToPrev>
+      </div>
+      <div class="space-y-1 my-10">
+        <div class="animate flex items-center gap-1.5">
+          <div class="font-base text-sm">
+            <FormattedDate date={post.data.date} />
+          </div>
+          &bull;
+          <div class="font-base text-sm">
+            {readingTime(post.body)}
+          </div>
         </div>
-        &bull;
-        <div class="font-base text-sm">
-          {readingTime(post.body)}
+        <div class="animate text-2xl font-semibold text-black dark:text-white">
+          {post.data.title}
         </div>
       </div>
-      <div class="animate text-2xl font-semibold text-black dark:text-white">
-        {post.data.title}
-      </div>
+      <article class="animate prose-lg">
+        <Content />
+      </article>
     </div>
-    <article class="animate">
-      <Content />
-    </article>
   </Container>
 </PageLayout>
