@@ -238,7 +238,6 @@ class Walk {
   private summary(): void {
     this.paintRail();
     this.announceDone();
-    const live = this.cards.filter((c) => !c.dead);
     this.body.innerHTML = `
       <div class="ow-stage">
         <p class="ow-kicker">Five outages later</p>

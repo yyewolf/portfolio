@@ -1,0 +1,261 @@
+---
+// The cluster map for lesson 3, and the diagram the roadmap wants carried
+// through the rest of the track.
+//
+// Unlike the two phase 1 interactives, this one is **server-rendered**. The
+// outage walk and the operator game build their markup at runtime because they
+// are simulations with state; this is a labelled diagram, so the parts and
+// their descriptions are real HTML. That buys three things the others cannot
+// have: it works with JavaScript off, Pagefind indexes every description, and
+// the whole thing is keyboard-navigable because the parts are real buttons.
+//
+// The script only *collapses* the description list into a single-select panel.
+// With no JavaScript the reader gets the map plus every description in a list
+// underneath, which is a worse experience and a complete one.
+//
+// `upTo` is what makes it reusable later: a part introduced after the current
+// lesson is drawn faintly and tagged with the lesson that covers it, so the
+// same component in lesson 7 shows more filled in than it does here.
+import { getLessons } from "@lib/courses";
+import "@styles/cluster.css";
+
+type Part = {
+  id: string;
+  name: string;
+  role: string;
+  side: "control" | "node";
+  /**
+   * Lesson `order` by which the reader has *met* this, which is what decides
+   * whether it is drawn as known. Usually the same as `covered`, but not
+   * always: lesson 2 makes the reader be a controller for ten minutes, so
+   * controllers are familiar long before lesson 7 explains them.
+   */
+  metBy: number;
+  /** Lesson `order` that gives this part its own treatment. */
+  covered: number;
+  /** What it does, in the terms this lesson has already established. */
+  detail: string;
+};
+
+type Props = {
+  /** Parts introduced at or before this lesson read as known. */
+  upTo?: number;
+  track?: string;
+};
+
+const { upTo = 3, track = "kubernetes" } = Astro.props;
+
+// The track publishes in batches, so most of the lessons named below do not
+// exist yet. Pointing a reader at "lesson 40" when there is no lesson 40 to go
+// to is worse than saying nothing, so a number is only shown once its lesson
+// is actually published. `getLessons` already drops drafts.
+const published = new Set((await getLessons(track)).map((l) => l.data.order));
+
+const parts: Part[] = [
+  {
+    id: "api",
+    name: "API server",
+    role: "the way in",
+    side: "control",
+    metBy: 5,
+    covered: 5,
+    detail:
+      "The only door. Every read and every change goes through it, whether it comes from you, from a controller, or from a node. Nothing in the cluster talks to the store directly.",
+  },
+  {
+    id: "etcd",
+    name: "etcd",
+    role: "the memory",
+    side: "control",
+    metBy: 6,
+    covered: 6,
+    detail:
+      "Holds what you asked for, and it is the only thing that does. Lose every other part of the cluster and you can rebuild; lose this and the cluster has forgotten what it was supposed to be.",
+  },
+  {
+    id: "controllers",
+    name: "Controllers",
+    role: "the loops",
+    side: "control",
+    metBy: 2,
+    covered: 7,
+    detail:
+      "The job you did by hand. Each one watches one kind of thing, compares what was asked for against what exists, and changes what it has to. There are many of them and they do not coordinate.",
+  },
+  {
+    id: "scheduler",
+    name: "Scheduler",
+    role: "placement",
+    side: "control",
+    metBy: 23,
+    covered: 23,
+    detail:
+      "Decides which node a new copy goes on, by looking at what room is left and what the copy said it needs. It only decides. Something on the node does the starting.",
+  },
+  {
+    id: "kubelet",
+    name: "kubelet",
+    role: "the agent on each machine",
+    side: "node",
+    metBy: 40,
+    covered: 40,
+    detail:
+      "The thing on every node that takes the list of what should be running here, makes it true, and reports back what is actually happening. It is the other half of every loop in the control plane.",
+  },
+  {
+    id: "runtime",
+    name: "Container runtime",
+    role: "actually runs things",
+    side: "node",
+    metBy: 41,
+    covered: 41,
+    detail:
+      "Starts and stops the containers, pulls the images. This is the part that was already there in lesson one, doing what `docker run` did.",
+  },
+  {
+    id: "network",
+    name: "Networking",
+    role: "addresses and names",
+    side: "node",
+    metBy: 14,
+    covered: 14,
+    detail:
+      "Gives every copy an address, and makes one stable name resolve to whichever copies are alive right now. Decided centrally, made real on every node, which is why it takes a phase of its own.",
+  },
+];
+
+const sides = [
+  {
+    key: "control" as const,
+    title: "Control plane",
+    role: "decides what should happen",
+  },
+  {
+    key: "node" as const,
+    title: "Nodes",
+    role: "run the containers",
+  },
+];
+
+const known = (p: Part): boolean => p.metBy <= upTo;
+
+/** "lesson 6" once that lesson exists, "a future lesson" until then. */
+const coveredIn = (p: Part): string =>
+  published.has(p.covered) ? `lesson ${p.covered}` : "a future lesson";
+
+/**
+ * The short tag on the part itself, where the long phrase will not fit. It is
+ * shown whenever `covered` is still ahead, which is deliberately *not* the same
+ * test as `known`. Controllers are met in lesson 2 but explained in lesson 7, so
+ * they draw as known and still carry a tag; without that split the one part the
+ * reader already recognises was the one part with nothing on its right.
+ */
+const coveredTag = (p: Part): string =>
+  published.has(p.covered) ? `lesson ${p.covered}` : "later";
+---
+
+<div class="cm not-prose my-8" data-cluster-map>
+  <div class="cm-frame">
+    <p class="cm-frame-label">Cluster</p>
+    <div class="cm-sides">
+      {
+        sides.map((side) => (
+          <section class="cm-side">
+            <div class="cm-side-head">
+              <h3 class="cm-side-title">{side.title}</h3>
+              <p class="cm-side-role">{side.role}</p>
+            </div>
+            <ul class="cm-parts">
+              {parts
+                .filter((p) => p.side === side.key)
+                .map((p) => (
+                  <li>
+                    <button
+                      type="button"
+                      class="cm-part"
+                      data-part={p.id}
+                      data-known={known(p) ? "yes" : "no"}
+                      aria-pressed="false"
+                    >
+                      <span class="cm-part-name">{p.name}</span>
+                      <span class="cm-part-role">{p.role}</span>
+                      {p.covered > upTo && (
+                        <span class="cm-part-when">{coveredTag(p)}</span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+            </ul>
+          </section>
+        ))
+      }
+    </div>
+  </div>
+
+  <p class="cm-hint" data-cm-hint hidden>
+    Pick any part of the cluster to see what it does.
+  </p>
+
+  <ul class="cm-details" data-cm-details>
+    {
+      parts.map((p) => (
+        <li class="cm-detail" data-detail={p.id}>
+          <h4 class="cm-detail-name">
+            {p.name}
+            <span class="cm-detail-side">
+              {p.side === "control" ? "control plane" : "on every node"}
+            </span>
+          </h4>
+          <p class="cm-detail-text">{p.detail}</p>
+          <p class="cm-detail-when">Covered properly in {coveredIn(p)}.</p>
+        </li>
+      ))
+    }
+  </ul>
+</div>
+
+<script>
+  // Progressive enhancement only. The markup above is complete without this:
+  // every description is already on the page, which is what a reader with no
+  // JavaScript, and Pagefind, both get. All this does is collapse that list to
+  // one at a time and wire the map buttons to it.
+  //
+  // Arrow-function consts rather than `function` declarations, because TS
+  // narrowing does not reach hoisted declarations (AGENTS.md gotcha 4).
+  const setup = (): void => {
+    const root = document.querySelector<HTMLElement>("[data-cluster-map]");
+    if (!root) return;
+
+    const hint = root.querySelector<HTMLElement>("[data-cm-hint]");
+    const details = Array.from(
+      root.querySelectorAll<HTMLElement>("[data-detail]"),
+    );
+    const buttons = Array.from(
+      root.querySelectorAll<HTMLButtonElement>("[data-part]"),
+    );
+    if (details.length === 0 || buttons.length === 0) return;
+
+    // Only now that the script is running does hiding things become safe.
+    root.dataset.enhanced = "yes";
+    if (hint) hint.hidden = false;
+
+    const show = (id: string | null): void => {
+      for (const d of details) d.hidden = d.dataset.detail !== id;
+      for (const b of buttons)
+        b.setAttribute("aria-pressed", String(b.dataset.part === id));
+      if (hint) hint.hidden = id !== null;
+    };
+
+    for (const b of buttons) {
+      b.addEventListener("click", () => {
+        // Clicking the open part closes it, so the map can return to rest.
+        const open = b.getAttribute("aria-pressed") === "true";
+        show(open ? null : (b.dataset.part ?? null));
+      });
+    }
+
+    show(null);
+  };
+
+  document.addEventListener("astro:page-load", setup);
+</script>

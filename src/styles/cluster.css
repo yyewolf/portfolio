@@ -1,0 +1,250 @@
+/* ---------------------------------------------------------------------------
+ * The lesson 3 cluster map. Scoped under `.cm`, inside a `not-prose` wrapper so
+ * the article's typography plugin keeps its hands off it.
+ *
+ * Unlike operator.css and outages.css this markup is server-rendered, so Astro
+ * scoped styles would have reached it. It is a global stylesheet anyway for the
+ * same reason those two are: the three course interactives are then all styled
+ * the same way, and this one is meant to be reused by later lessons rather than
+ * living in one page's scope.
+ * ------------------------------------------------------------------------ */
+
+.cm {
+  --cm-line: #e5e7eb;
+  --cm-surface: #ffffff;
+  --cm-sunk: #f9fafb;
+  --cm-ink: #111827;
+  --cm-ink2: #4b5563;
+  --cm-muted: #9ca3af;
+  --cm-accent: #2563eb;
+  --cm-accent-bg: #eff6ff;
+
+  font-family: inherit;
+  color: var(--cm-ink2);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+html.dark .cm {
+  --cm-line: #1f2937;
+  --cm-surface: #030712;
+  --cm-sunk: #0b1120;
+  --cm-ink: #f9fafb;
+  --cm-ink2: #9ca3af;
+  --cm-muted: #6b7280;
+  --cm-accent: #60a5fa;
+  --cm-accent-bg: #0b1a2e;
+}
+
+.cm *,
+.cm *::before,
+.cm *::after {
+  box-sizing: border-box;
+}
+
+/* global.css styles the bare `header` element as fixed site chrome; the same
+ * guard the other two course stylesheets carry, in case this grows one. */
+.cm header {
+  position: static;
+  inset: auto;
+}
+
+/* --- the frame ----------------------------------------------------------- */
+
+.cm-frame {
+  position: relative;
+  border: 1.5px dashed var(--cm-line);
+  border-radius: 0.9rem;
+  padding: 1.5rem 0.85rem 0.9rem;
+}
+
+.cm-frame-label {
+  position: absolute;
+  top: -0.62rem;
+  left: 0.9rem;
+  margin: 0;
+  padding: 0 0.4rem;
+  background: var(--cm-surface);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cm-muted);
+}
+
+.cm-sides {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 40rem) {
+  .cm-sides {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.cm-side {
+  border: 1px solid var(--cm-line);
+  border-radius: 0.7rem;
+  background: var(--cm-sunk);
+  padding: 0.7rem 0.7rem 0.75rem;
+}
+
+.cm-side-head {
+  margin-bottom: 0.6rem;
+}
+
+.cm-side-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: var(--cm-ink);
+}
+
+.cm-side-role {
+  margin: 0.05rem 0 0;
+  font-size: 0.78rem;
+  color: var(--cm-muted);
+}
+
+/* --- the parts ----------------------------------------------------------- */
+
+.cm-parts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cm-part {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.45rem;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--cm-line);
+  border-radius: 0.5rem;
+  background: var(--cm-surface);
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.cm-part:hover {
+  border-color: var(--cm-accent);
+}
+
+.cm-part:focus-visible {
+  outline: 2px solid var(--cm-accent);
+  outline-offset: 2px;
+}
+
+.cm-part-name {
+  font-weight: 620;
+  color: var(--cm-ink);
+}
+
+.cm-part-role {
+  font-size: 0.78rem;
+  color: var(--cm-muted);
+}
+
+/* A part whose own lesson has not arrived yet. Legible, clearly not yet due. */
+.cm-part[data-known="no"] {
+  border-style: dashed;
+}
+
+.cm-part[data-known="no"] .cm-part-name {
+  color: var(--cm-ink2);
+  font-weight: 560;
+}
+
+.cm-part-when {
+  margin-left: auto;
+  font-size: 0.68rem;
+  color: var(--cm-muted);
+  white-space: nowrap;
+}
+
+.cm-part[aria-pressed="true"] {
+  border-color: var(--cm-accent);
+  border-style: solid;
+  background: var(--cm-accent-bg);
+}
+
+.cm-part[aria-pressed="true"] .cm-part-name {
+  color: var(--cm-accent);
+}
+
+/* --- the descriptions ---------------------------------------------------- */
+
+.cm-hint {
+  margin: 0.75rem 0 0;
+  font-size: 0.82rem;
+  color: var(--cm-muted);
+}
+
+.cm-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* With the script running only one of these is ever shown, so the gap above
+ * would double up on the hint. Without it, the list is the content. */
+.cm[data-enhanced="yes"] .cm-details {
+  gap: 0;
+}
+
+.cm-detail {
+  border: 1px solid var(--cm-line);
+  border-left: 3px solid var(--cm-accent);
+  border-radius: 0.5rem;
+  background: var(--cm-sunk);
+  padding: 0.6rem 0.75rem 0.65rem;
+}
+
+.cm-detail-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0 0 0.25rem;
+  font-size: 0.9rem;
+  font-weight: 650;
+  color: var(--cm-ink);
+}
+
+.cm-detail-side {
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cm-muted);
+}
+
+.cm-detail-text {
+  margin: 0;
+}
+
+.cm-detail-when {
+  margin: 0.3rem 0 0;
+  font-size: 0.78rem;
+  color: var(--cm-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cm-part {
+    transition: none;
+  }
+}

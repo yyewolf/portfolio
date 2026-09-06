@@ -1,0 +1,79 @@
+---
+// The control plane / nodes split, for lesson 3.
+//
+// Static SVG rather than the runtime-built markup the two interactives use, so
+// Astro's scoped styles would work here. It still uses Tailwind utilities
+// instead, because `darkMode: ["class"]` means `dark:` variants already handle
+// both themes and the rest of the courses components are written that way.
+//
+// Arrowheads are drawn as paths rather than `<marker>` elements: a marker does
+// not inherit the referencing element's colour in every browser, so a themed
+// line would end in a black head in one of the two themes.
+//
+// The viewBox is kept narrow (560 wide) and the type generous so the whole
+// thing stays legible when it scales down on a phone. The wrapper scrolls
+// rather than letting the article itself scroll sideways.
+---
+
+<figure class="not-prose my-8 overflow-x-auto">
+  <svg
+    viewBox="0 0 560 300"
+    role="img"
+    aria-labelledby="cluster-split-title cluster-split-desc"
+    class="mx-auto block h-auto w-full min-w-[340px] max-w-[560px]">
+    <title id="cluster-split-title">A cluster, split into a control plane and nodes</title>
+    <desc id="cluster-split-desc">
+      One cluster contains two parts. The control plane decides what should happen. The nodes run
+      the containers. The control plane tells the nodes what should be running, and the nodes
+      report back what is actually running.
+    </desc>
+
+    <text x="22" y="26" class="fill-gray-500 dark:fill-gray-400" font-size="15" font-weight="600">
+      Cluster
+    </text>
+    <rect
+      x="12"
+      y="38"
+      width="536"
+      height="246"
+      rx="14"
+      fill="none"
+      stroke-dasharray="6 5"
+      class="stroke-gray-300 dark:stroke-gray-700"
+      stroke-width="1.5"
+    />
+
+    <g class="fill-gray-50 stroke-gray-300 dark:fill-gray-900 dark:stroke-gray-700" stroke-width="1.5">
+      <rect x="32" y="76" width="190" height="150" rx="10" />
+      <rect x="338" y="76" width="190" height="150" rx="10" />
+    </g>
+
+    <g text-anchor="middle">
+      <text x="127" y="130" class="fill-gray-900 dark:fill-gray-100" font-size="19" font-weight="600">
+        Control plane
+      </text>
+      <text x="127" y="160" class="fill-gray-500 dark:fill-gray-400" font-size="14">decides what</text>
+      <text x="127" y="180" class="fill-gray-500 dark:fill-gray-400" font-size="14">should happen</text>
+
+      <text x="433" y="130" class="fill-gray-900 dark:fill-gray-100" font-size="19" font-weight="600">
+        Nodes
+      </text>
+      <text x="433" y="160" class="fill-gray-500 dark:fill-gray-400" font-size="14">run the</text>
+      <text x="433" y="180" class="fill-gray-500 dark:fill-gray-400" font-size="14">containers</text>
+    </g>
+
+    <g class="stroke-gray-400 dark:stroke-gray-500" stroke-width="1.5">
+      <line x1="230" y1="124" x2="320" y2="124" />
+      <line x1="330" y1="178" x2="240" y2="178" />
+    </g>
+    <g class="fill-gray-400 dark:fill-gray-500">
+      <path d="M320 119 L332 124 L320 129 Z" />
+      <path d="M240 173 L228 178 L240 183 Z" />
+    </g>
+
+    <g text-anchor="middle" class="fill-gray-500 dark:fill-gray-400" font-size="13">
+      <text x="280" y="110">should be running</text>
+      <text x="280" y="202">actually running</text>
+    </g>
+  </svg>
+</figure>

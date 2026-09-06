@@ -10,41 +10,81 @@ modes: [visualize]
 draft: false
 ---
 
-Lesson one ended with a list of five things you would have to build to run
-containers seriously. Lesson two handed you the second item on it and made you
-do the job by hand: a written specification, a look at what is actually there,
-and a change to close the gap.
+import ClusterSplit from "@components/courses/ClusterSplit.astro";
+import ClusterMap from "@components/courses/ClusterMap.astro";
 
-Make that loop run on its own, give it the other three items and somewhere to
-run things, and you have Kubernetes. That is the actual shape of the
-system, not a simplified version of it that gets corrected later.
+Lesson one ended with a list of five things you would have to build to run
+containers seriously. Lesson two handed you the second item on that list and
+made you do it by hand.
+
+The thing that does all five already exists, and it is called Kubernetes. The
+loop you just ran by hand sits in the middle of it.
+
+## One pool, split in two
 
 A <Term>cluster</Term> is a set of machines managed as one pool of compute. You
-stop addressing individual servers and start addressing the pool. It splits in
-two:
+stop addressing individual servers and start addressing the pool: you ask for
+ten copies, and you do not say where they go.
 
-```text
-              Kubernetes
-                   │
-       ┌───────────┴───────────┐
-       │                       │
- Control plane             Worker nodes
- (decides)                 (run things)
-```
+The pool splits in two, and the split is the first thing worth knowing about it.
 
-The <Term>control plane</Term> holds the desired state and runs the loops that
-drive reality toward it. It makes decisions, and it does not run your workloads.
+<ClusterSplit />
 
-A <Term>node</Term> is a machine that does run them. It takes instructions about
-what should be running locally, makes that true, and reports back what is
-actually happening.
+The <Term>control plane</Term> is where decisions happen. It holds what you
+asked for, runs the loops that compare that against what exists, and works out
+what should change. It does not run your containers.
 
-> **Interactive.** A cluster diagram that stays on screen for the rest of the
-> track, filling in each component as its lesson introduces it. Not built yet.
+A <Term>node</Term> is a machine that does. Something on every node takes
+instructions about what should be running locally, makes that true, and reports
+back what is actually happening.
 
-That split explains a fair amount of Kubernetes behaviour before you meet it. If
-the control plane goes down, your running workloads keep running, because
-nothing is deciding anything new but the nodes carry on regardless. If a node
-goes down, the desired state survives, because it was never stored there.
+Deciding on one side, doing on the other. Almost everything else in this track
+sits on one side of that line or the other.
 
-The rest of this phase is all control plane. Workloads come back in phase three.
+## Where your five things went
+
+You do not need these names yet. They are here so that the list you built in
+lesson one has somewhere to land:
+
+| What you would have had to build | What does it here |
+|---|---|
+| a note of what should be running | etcd, on the control plane |
+| something that checks the note and fixes gaps | a controller |
+| a scheduler that places copies on machines with room | the scheduler |
+| a rollout that goes gradually and can stop | another controller |
+| a name that resolves to live copies | a Service, plus work on every node |
+
+A controller here is simply loop reading things, just like you did. 
+
+The last row is the odd one out here. Deciding which copies are alive is a loop like the
+others, but it actually require a bit more stuff to be handled and will be tackled
+later on.
+
+Here is the whole thing on one map. You are not expected to remember any of
+these names yet. The point is that every one of them sits on one side of the
+line or the other, and that most of them are a loop you have already run.
+
+<ClusterMap upTo={3} />
+
+## What the split explains
+
+The division between deciding and doing is by design. It basically defines
+how the system handles failures.
+
+If the control plane goes down, your containers keep running. Nothing is
+deciding anything new, nothing new can be asked for, and nothing is repairing
+anything, but the nodes carry on with the existing processes. A cluster
+with a broken control plane is not the same thing as a cluster with a broken
+application.
+
+If a node goes down, what you asked for survives, because it was never kept
+there. The different loops will see a gap between expectation and reality, 
+and place the missing copies somewhere appropriate.
+
+And the coolest part about it, is that it's merely a consequence of the design.
+
+## Where this goes next
+
+The next phase will talk about the control plane: what you write down, where it goes,
+what remembers it, the loops that read it, and why an event is still not an instruction. 
+The things that actually run your containers come back in phase three.
