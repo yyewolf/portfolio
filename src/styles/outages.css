@@ -1,0 +1,424 @@
+/* ---------------------------------------------------------------------------
+ * The lesson 1 outage walk. Scoped under `.ow`, inside a `not-prose` wrapper so
+ * the article's typography plugin leaves the panels alone. The markup is built
+ * at runtime by src/scripts/courses/outages/walk.ts, so Astro scoped styles
+ * cannot reach it and these rules are global on purpose. Mirrors the structure
+ * of operator.css without sharing tokens, so either lesson can be restyled
+ * without disturbing the other.
+ * ------------------------------------------------------------------------ */
+
+.ow {
+  --ow-line: #e5e7eb;
+  --ow-surface: #ffffff;
+  --ow-sunk: #f9fafb;
+  --ow-ink: #111827;
+  --ow-ink2: #4b5563;
+  --ow-muted: #9ca3af;
+  --ow-accent: #2563eb;
+  --ow-good: #047857;
+  --ow-good-bg: #ecfdf5;
+  --ow-bad: #be123c;
+  --ow-bad-bg: #fff1f2;
+  --ow-warn: #b45309;
+  --ow-warn-bg: #fffbeb;
+
+  font-family: inherit;
+  color: var(--ow-ink2);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+html.dark .ow {
+  --ow-line: #1f2937;
+  --ow-surface: #030712;
+  --ow-sunk: #0b1120;
+  --ow-ink: #f9fafb;
+  --ow-ink2: #9ca3af;
+  --ow-muted: #6b7280;
+  --ow-accent: #60a5fa;
+  --ow-good: #6ee7b7;
+  --ow-good-bg: #04241c;
+  --ow-bad: #fda4af;
+  --ow-bad-bg: #2b0a12;
+  --ow-warn: #fcd34d;
+  --ow-warn-bg: #291a04;
+}
+
+.ow *,
+.ow *::before,
+.ow *::after {
+  box-sizing: border-box;
+}
+
+/* global.css styles the bare `header` element as fixed site chrome. Nothing in
+ * here renders one, but reset it anyway so a future edit cannot reintroduce
+ * the bug silently. Same guard operator.css carries. */
+.ow header {
+  position: static;
+  inset: auto;
+}
+
+.ow-shell {
+  border: 1px solid var(--ow-line);
+  border-radius: 0.9rem;
+  background: var(--ow-surface);
+  overflow: hidden;
+}
+
+.ow-head {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--ow-line);
+  background: var(--ow-sunk);
+}
+
+.ow-rail {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ow-rail li {
+  flex: 1;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--ow-line);
+  transition: background 0.25s ease;
+}
+
+.ow-rail li span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.ow-rail li[data-state="done"] { background: var(--ow-good); }
+.ow-rail li[data-state="current"] { background: var(--ow-accent); }
+
+.ow-body { padding: 1.1rem 1rem 1.2rem; }
+
+.ow-kicker {
+  margin: 0 0 0.15rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ow-muted);
+}
+
+.ow-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--ow-ink);
+}
+
+.ow-setup { margin: 0 0 0.9rem; }
+
+/* --- the world ----------------------------------------------------------- */
+
+.ow-boxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.6rem;
+}
+
+.ow-box {
+  border: 1px solid var(--ow-line);
+  border-radius: 0.6rem;
+  background: var(--ow-sunk);
+  padding: 0.55rem 0.6rem 0.6rem;
+  transition: opacity 0.3s ease, border-color 0.3s ease;
+}
+
+.ow-box[data-state="down"] {
+  border-color: var(--ow-bad);
+  background: var(--ow-bad-bg);
+  opacity: 0.72;
+}
+
+.ow-box-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.ow-box-name {
+  font-weight: 600;
+  color: var(--ow-ink);
+  font-size: 0.8rem;
+}
+
+.ow-box-state {
+  font-size: 0.68rem;
+  color: var(--ow-muted);
+}
+
+.ow-box[data-state="down"] .ow-box-state { color: var(--ow-bad); }
+
+.ow-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ow-chip {
+  border: 1px solid var(--ow-line);
+  border-radius: 0.35rem;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.7rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--ow-surface);
+  color: var(--ow-ink2);
+}
+
+.ow-chip[data-state="ok"],
+.ow-chip[data-state="new"] {
+  border-color: var(--ow-good);
+  background: var(--ow-good-bg);
+  color: var(--ow-good);
+}
+
+.ow-chip[data-state="old"] { color: var(--ow-muted); }
+
+.ow-chip[data-state="gone"] {
+  border-color: var(--ow-bad);
+  background: var(--ow-bad-bg);
+  color: var(--ow-bad);
+  text-decoration: line-through;
+}
+
+.ow-chip[data-state="bad"] {
+  border-color: var(--ow-warn);
+  background: var(--ow-warn-bg);
+  color: var(--ow-warn);
+}
+
+.ow-chip[data-state="empty"] {
+  border-style: dashed;
+  color: var(--ow-muted);
+}
+
+/* Ten copies will not fit as labels. Past four, chips become marks. */
+.ow-world[data-dense="yes"] .ow-chip {
+  padding: 0.15rem 0;
+  width: 1.15rem;
+  text-align: center;
+}
+
+.ow-world[data-dense="yes"] .ow-chip span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.ow-world[data-dense="yes"] .ow-chip::after { content: "\25CF"; font-size: 0.55rem; }
+.ow-world[data-dense="yes"] .ow-chip[data-state="empty"]::after { content: "\2013"; }
+
+.ow-caller {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.6rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px dashed var(--ow-line);
+  border-radius: 0.6rem;
+}
+
+.ow-caller[data-state="lost"] {
+  border-color: var(--ow-bad);
+  border-style: solid;
+  background: var(--ow-bad-bg);
+}
+
+.ow-caller-name { font-weight: 600; color: var(--ow-ink); }
+.ow-caller-arrow { color: var(--ow-muted); }
+.ow-caller-note { font-size: 0.72rem; color: var(--ow-muted); }
+.ow-caller[data-state="lost"] .ow-caller-note { color: var(--ow-bad); }
+
+.ow-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8em;
+  background: var(--ow-sunk);
+  border: 1px solid var(--ow-line);
+  border-radius: 0.25rem;
+  padding: 0.05rem 0.3rem;
+}
+
+/* --- the outage ---------------------------------------------------------- */
+
+.ow-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: 0.8rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--ow-bad);
+  border-radius: 0.6rem;
+  background: var(--ow-bad-bg);
+}
+
+.ow-alert b { color: var(--ow-bad); font-weight: 650; }
+.ow-alert span { color: var(--ow-ink2); }
+
+.ow-ask {
+  margin: 1rem 0 0.5rem;
+  font-weight: 650;
+  color: var(--ow-ink);
+}
+
+.ow-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ow-option {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--ow-line);
+  border-radius: 0.55rem;
+  background: var(--ow-surface);
+  color: var(--ow-ink2);
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.ow-option:hover:not(:disabled) {
+  border-color: var(--ow-accent);
+  background: var(--ow-sunk);
+}
+
+.ow-option:focus-visible {
+  outline: 2px solid var(--ow-accent);
+  outline-offset: 2px;
+}
+
+.ow-option:disabled { cursor: default; opacity: 0.85; }
+.ow-option[data-picked="right"] { border-color: var(--ow-good); background: var(--ow-good-bg); color: var(--ow-good); opacity: 1; }
+.ow-option[data-picked="wrong"] { border-color: var(--ow-warn); text-decoration: line-through; }
+
+.ow-reply {
+  margin: 0.35rem 0 0.1rem;
+  padding-left: 0.7rem;
+  border-left: 2px solid var(--ow-line);
+  font-size: 0.82rem;
+}
+
+.ow-reply[data-tone="right"] { border-left-color: var(--ow-good); }
+.ow-reply[data-tone="wrong"] { border-left-color: var(--ow-warn); }
+
+/* --- the tally ----------------------------------------------------------- */
+
+.ow-tally {
+  margin-top: 1.1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--ow-line);
+}
+
+.ow-tally-head {
+  margin: 0 0 0.5rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ow-muted);
+}
+
+.ow-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ow-card {
+  border: 1px solid var(--ow-line);
+  border-left: 3px solid var(--ow-good);
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  background: var(--ow-sunk);
+}
+
+.ow-card b { display: block; color: var(--ow-ink); font-weight: 620; }
+.ow-card > span { display: block; font-size: 0.8rem; }
+
+.ow-card[data-dead="yes"] {
+  border-left-color: var(--ow-bad);
+  opacity: 0.65;
+}
+
+.ow-card[data-dead="yes"] b,
+.ow-card[data-dead="yes"] > span { text-decoration: line-through; }
+
+.ow-card-dead {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  font-style: normal;
+  color: var(--ow-bad);
+}
+
+.ow-close {
+  margin: 1rem 0 0;
+  color: var(--ow-ink);
+}
+
+/* --- controls ------------------------------------------------------------ */
+
+.ow-foot { margin-top: 0.9rem; }
+
+.ow-btn {
+  border: 1px solid var(--ow-line);
+  border-radius: 0.5rem;
+  background: var(--ow-surface);
+  color: var(--ow-ink);
+  padding: 0.45rem 0.9rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ow-btn:hover:not(:disabled) { border-color: var(--ow-accent); }
+
+.ow-btn:focus-visible {
+  outline: 2px solid var(--ow-accent);
+  outline-offset: 2px;
+}
+
+.ow-btn[data-tone="primary"] {
+  border-color: var(--ow-accent);
+  background: var(--ow-accent);
+  color: #fff;
+}
+
+html.dark .ow-btn[data-tone="primary"] { color: #04121f; }
+
+.ow-hint { color: var(--ow-muted); font-size: 0.82rem; }
+
+.ow-screen p { margin: 0 0 0.6rem; }
+.ow-screen > :last-child { margin-bottom: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ow-box,
+  .ow-rail li,
+  .ow-option { transition: none; }
+}

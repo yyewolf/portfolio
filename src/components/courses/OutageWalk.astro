@@ -1,0 +1,51 @@
+---
+// Mount point for the lesson 1 outage walk. The intro screen is rendered here
+// rather than in JavaScript so the lesson still says something without it, and
+// so the opening copy lives in one place. Everything after the Start button is
+// built at runtime by src/scripts/courses/outages/walk.ts, which replaces the
+// whole stage with its own shell.
+//
+// Unlike the lesson 2 game this holds nothing back and fires no completion
+// event: the reader is choosing what to build, not working out a technique, so
+// there is nothing here that later prose would spoil.
+import "@styles/outages.css";
+---
+
+<div data-outages>
+  <div class="ow not-prose my-8">
+    <div data-ow-stage>
+      <div class="ow-shell">
+        <div class="ow-body">
+          <div class="ow-screen">
+            <p>
+              Five outages, in the order they tend to arrive. Each one breaks
+              the fix you chose for the one before it.
+            </p>
+            <p>
+              You are not running the system, you are deciding what to build
+              next. Pick whatever you would actually do; the wrong answers are
+              all things people really try, and each one shows you what happens
+              rather than telling you it was wrong.
+            </p>
+            <div class="ow-foot">
+              <button type="button" class="ow-btn" data-tone="primary" data-go="start"
+                >Start</button
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <noscript>
+      <p class="ow-hint mt-3">
+        This walkthrough needs JavaScript. The five sections below cover the same
+        ground in the same order.
+      </p>
+    </noscript>
+  </div>
+</div>
+
+<script>
+  import "@scripts/courses/outages/walk";
+</script>

@@ -102,6 +102,7 @@ const position = `${lesson.data.order} / ${lessons.length}`;
     {next && (
       <a
         href={lessonHref(next)}
+        data-next-lesson
         class="rounded-lg border border-black/15 dark:border-white/20 px-4 py-3 text-right transition-colors hover:bg-black/5 dark:hover:bg-white/5 sm:col-start-2">
         <span class="block text-xs text-gray-500 dark:text-gray-400">Next</span>
         <span class="block font-medium text-black dark:text-white">{next.data.title}</span>
@@ -188,16 +189,32 @@ const position = `${lesson.data.order} / ${lessons.length}`;
       markCompleted(page.track, page.order, next);
       paint(next);
     });
+
+    // Moving on is the honest signal that a lesson is finished, so the Next
+    // link marks it rather than making the reader also find the button. The
+    // write is synchronous, so it lands before the navigation it precedes,
+    // client-side or not. Not on Previous: going back is not finishing.
+    // Queried off the document, not `page.root`: the nav is a sibling of the
+    // [data-lesson] element rather than a child of it.
+    const onward = document.querySelector<HTMLAnchorElement>("[data-next-lesson]");
+    onward?.addEventListener("click", () => {
+      markCompleted(page.track, page.order, true);
+    });
   }
 
-  // The game says a lesson is finished; what finishing means for progress is
-  // the page's business. Registered once, and it looks the lesson up when it
-  // fires rather than when it was registered.
-  document.addEventListener("operator:done", () => {
+  // An interactive says it reached its end; what that means for the lesson is
+  // the page's business. `complete` separates the two cases: lesson 2's game is
+  // the whole lesson, so finishing it finishes the lesson, while lesson 1's
+  // walk is one part of a longer read and only earns the held section.
+  // Registered once, and it looks the lesson up when it fires rather than when
+  // it was registered.
+  document.addEventListener("lesson:reveal", (event) => {
     const page = here();
     if (!page) return;
-    markCompleted(page.track, page.order, true);
-    paint(true);
+    if ((event as CustomEvent<{ complete?: boolean }>).detail?.complete) {
+      markCompleted(page.track, page.order, true);
+      paint(true);
+    }
     reveal();
   });
 

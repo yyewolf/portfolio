@@ -1,0 +1,72 @@
+---
+track: kubernetes
+order: 1
+phase: 1
+title: Why not just run containers?
+description: One command runs your application anywhere.
+minutes: 10
+tags: [fundamentals, motivation]
+modes: [operate]
+draft: false
+---
+
+import OutageWalk from "@components/courses/OutageWalk.astro";
+import Held from "@components/courses/Held.astro";
+
+Start with something that works:
+
+```bash
+docker run -d nginx
+```
+
+That is a whole web server, running, on any machine with Docker installed. No
+dependencies to install, no configuration, nothing about the machine to get
+right first.
+
+## What that command actually did
+
+`nginx` names a <Term term="Container image">container image</Term>: a
+filesystem plus the command to run inside it, built once and strictly
+identical wherever it lands. It's basically a template and does nothing on its own.
+
+Running it produces a <Term>container</Term>: an ordinary process on the machine,
+started from that image, with its own view of the filesystem, its own network
+interface and its own process table. Not a virtual machine, and not emulating
+anything. Just a process with a restricted world-view.
+
+That's the entire appeal. The image is the same in development and in production, 
+so the class of failure where software works on one machine and not another 
+mostly stops happening.
+
+For a personal project, this is where the story can end. Nothing so far needs a
+complex system, and plenty of things never will.
+
+So this lesson does not argue that you should replace that command. It breaks it
+five times, and each time asks the same question: what would you have to build
+to survive this? Keep a running list. The list is the point, not any one item on
+it.
+
+<OutageWalk />
+
+<Held>
+
+## What you just built
+
+Five outages, five reasonable responses, and this is what you are now running:
+
+- a note of what should be running, kept off any single machine
+- something that checks that note against what is really there, and fixes gaps
+- a scheduler that places copies on machines with room
+- a rollout that replaces them gradually, checks, and can stop
+- a name that resolves to whichever copies are currently alive
+
+Not one of those is exotic. Each is the obvious thing to do after the outage
+that motivated it. But together they are a distributed system, you are the only
+person maintaining it, and none of it is the application you set out to ship.
+
+Something already exists that does all five. Something that keeps checking what
+should be running against what is, and bridges the gap.
+
+The next lesson gives you that job. You will have to do it by hand.
+
+</Held>

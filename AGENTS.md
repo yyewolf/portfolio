@@ -62,7 +62,11 @@ a track in batches.
 | `src/components/courses/PhaseOutline.astro` | Track page outline: depth tiers, then phases, then lessons. |
 | `src/components/courses/CourseSearch.astro` | Pagefind-backed search box. |
 | `src/scripts/courses/progress.ts` | localStorage progress. |
-| `src/scripts/courses/operator/` | The lesson 1 game: `engine.ts` (world model), `scenarios.ts` (levels), `game.ts` (runner and view). |
+| `src/scripts/courses/outages/` | The lesson 1 outage walk: `stages.ts` (the five outages as data), `walk.ts` (runner and view). |
+| `src/components/courses/OutageWalk.astro` | Mounts the outage walk. |
+| `src/components/courses/Held.astro` | A `[data-hold]` block a lesson can place anywhere, opened by `lesson:reveal`. |
+| `src/styles/outages.css` | Outage-walk styles, all under `.ow`. |
+| `src/scripts/courses/operator/` | The lesson 2 game: `engine.ts` (world model), `scenarios.ts` (levels), `game.ts` (runner and view). |
 | `src/components/courses/OperatorGame.astro` | Mounts the game, holds the lesson's closing prose in its slot. |
 | `src/styles/operator.css` | Game styles, all under `.op`. |
 | `src/pages/courses/` | The four routes. |
@@ -204,7 +208,7 @@ resolves to whichever glob order returns first. Not yet a problem with one track
 
 # Interactive lessons
 
-Lesson 1 is a game rather than an article. Its `index.mdx` is frontmatter, one
+Lesson 2 is a game rather than an article. Its `index.mdx` is frontmatter, one
 import and one component: there is no prose around the game, because anything
 written there would say what the game already says on its intro and closing
 screens. If you find yourself adding a paragraph to that file, check it is not
@@ -270,21 +274,114 @@ so a player who over-creates in level 1 has no Delete button to undo it. The
 board therefore always carries a "Start this level over" link. Check it still
 exists before trimming an action list.
 
+## Phase 1 withholds the answer on purpose
+
+Lessons 1 to 3 are a single three-beat arc and the order is load-bearing:
+
+1. **Lesson 1, why not just run containers?** grounds containers and `docker
+   run`, then breaks that command five times. It closes on a tally of five
+   pieces of infrastructure the reader has accidentally built, and hands the
+   second item (watch, compare, fix) to lesson 2 as a job to do by hand.
+2. **Lesson 2, you are the devops** is the game. The player *is* that loop. No
+   Kubernetes vocabulary, no naming of what they are doing, glossary held.
+3. **Lesson 3** delivers the name and the shape.
+
+Two things must stay true, and neither is enforced by the build:
+
+**The word "Kubernetes" must not appear in lesson 1 or 2's prose.** It is the
+payoff of lesson 3 and of lesson 2's in-game reveal.
+
+**Lesson 1 must name the job without naming the method.** It may say you need
+something that checks what should be running against what is. It must not
+describe observe-compare-act-then-look-again, and must not use *reconciliation*,
+*control loop*, *desired state* or *actual state* — those are glossary terms
+gated to lesson 2 precisely because the game makes the player derive them. A
+forward `<Term>` would be caught by `validateTermRefs`; the same idea in plain
+prose would not.
+
+```bash
+# both should print nothing but URL/slug hits, never prose
+grep -o -i '[^>]\{40\}kubernetes[^<]\{0,40\}' \
+  dist/courses/kubernetes/01-why-not-just-containers/index.html
+grep -c -i 'reconciliation\|desired state\|control loop' \
+  dist/courses/kubernetes/01-why-not-just-containers/index.html   # expect 0
+```
+
+## The lesson 1 outage walk
+
+Five outages as data (`stages.ts`) plus a runner (`walk.ts`). It deliberately
+**does not reuse the lesson 2 engine**, and that is not laziness. There the
+player operates a live world they cannot see without asking, and the whole
+lesson is in that gap. Here the world is always visible and the player is not
+operating anything: they choose what to build after each outage. Three fixed
+snapshots per stage (`calm`, `broken`, `fixed`) is the entire model, so there is
+no simulation that can disagree with the prose.
+
+Three invariants, none enforced by the build:
+
+**Wrong answers show a consequence, never a verdict.** Every wrong option is
+something a reasonable person would actually try, so each carries a `reply`
+describing what really happens. Wrong answers are spent, not fatal; the stage
+stays open until the player picks the fix.
+
+**Stage 2 must destroy stage 1's card.** `Built.scope` marks a fix as
+machine-scoped, and stage 2 lists it in `defeats`, which strikes it through in
+the running tally. That is the "each fix holding until the next problem breaks
+it" promise made visible, and it is why the walk ends with five live cards
+after six were built.
+
+**The surviving cards must equal the prose tally.** The summary counts them
+(`live.length`), and the "What you just built" section lists the same five. Edit
+one and you have to edit the other. Replay it outside the browser:
+
+```bash
+pnpm exec esbuild src/scripts/courses/outages/stages.ts --bundle --format=esm \
+  --outfile=/tmp/stages.mjs
+# then assert: one right answer per stage, unique card ids, every `defeats` id
+# was built earlier, 5 alive at the end, exactly 1 destroyed
+```
+
+**Its copy is subject to the phase 1 vocabulary rules above**, and the greps in
+that section will not catch it: stage text ships inside the JS bundle, not the
+lesson HTML. Check the bundle instead.
+
+```bash
+J=$(ls dist/_astro/OutageWalk.astro_astro_type_script*.js)
+for w in kubernetes cluster reconcil "desired state" "control loop"; do
+  echo "$w $(grep -o -i "$w" "$J" | wc -l)"      # expect 0 for each
+done
+```
+
 ## Holding content back
 
-Lesson 1 makes the reader work out reconciliation, so naming it early ruins it.
-Anything withheld sits in a `[data-hold]` wrapper until the game reaches its
-completion screen:
+Both phase 1 interactives are the answer to something the prose gives away, so
+the prose waits. Anything withheld sits in a `[data-hold]` wrapper:
 
-- The sidebar glossary, gated by `holdGlossary: true` in frontmatter. This is
-  the only thing lesson 1 holds today.
+- The sidebar glossary, gated by `holdGlossary: true` in frontmatter. Lesson 2
+  uses it; lesson 1 does not.
 - Anything passed as children to `<OperatorGame>`, which lands in a `[data-hold]`
-  wrapper of its own. Lesson 1 passes nothing, but the slot is kept because a
+  wrapper of its own. Lesson 2 passes nothing, but the slot is kept because a
   later lesson wanting held prose should not have to rebuild the mechanism.
+- `<Held>`, which is that wrapper on its own so a lesson can put it anywhere.
+  Lesson 1 needs this: its walk sits near the top and the section it holds
+  belongs at the bottom, so the hold cannot be children of the interactive.
+  `<Held>` also renders a `[data-hold-note]` in place of the content, which the
+  reveal hides.
 
-`game.ts` unhides every `[data-hold]` on the page and fires an `operator:done`
-event. The lesson page listens, marks the lesson complete, and reveals again on
-later visits from localStorage, so finishing once is enough.
+Both interactives dispatch **`lesson:reveal`**, and the page listens once. Its
+`detail.complete` separates two different claims:
+
+| Fires | `complete` | Because |
+|---|---|---|
+| `game.ts` | `true` | The game *is* lesson 2, so finishing it finishes the lesson. |
+| `walk.ts` | `false` | The walk is the first part of lesson 1. It earns the held section, not the lesson. |
+
+The page reveals on either, and marks the lesson completed only on `true`. It
+also reveals on load when the lesson is already completed, so finishing once is
+enough. The consequence of `false` is real and intended: a reader who plays the
+walk, leaves without reaching the end of the lesson, and comes back sees the
+section held again. Clicking **Next** marks the lesson done, which is the
+ordinary way it gets completed and reopens the section on return.
 
 This hides, it does not gate. The held text is in the HTML and in the search
 index, same trade as the glossary page. If it ever has to be strict, the prose
@@ -343,7 +440,7 @@ for f in dist/courses/kubernetes/*/index.html; do
   case "$f" in *glossary*) continue ;; esac    # glossary page has no sidebar panel
   echo "$(basename $(dirname $f)) $(grep -o 'data-term="' $f | wc -l)"
 done
-# expected today: 5 8 11 15 across the four published lessons
+# expected today: 3 8 11 15 across the four published lessons
 ```
 
 ---
@@ -363,8 +460,8 @@ done
 
 **Last verified:** 2026-09-06 — `pnpm build` clean, 5 pages indexed (4 published
 lessons plus the glossary; five more lessons are `draft: true`), no `[courses]`
-warnings, lint at baseline 79. Every level verified solvable by replaying the
-engine outside the browser.
+warnings, sidebar term counts 3 / 8 / 11 / 15, lint at baseline 79. Every level
+verified solvable by replaying the engine outside the browser.
 
 ### Done
 
@@ -377,17 +474,18 @@ engine outside the browser.
 - Pagefind wired into `build`, scoped by `track` filter, dev fallback message.
 - localStorage progress: resume button, completion ticks, reset.
 - Kubernetes track: 34 glossary terms, official CNCF logo.
-- Lesson 1 built as a game: six levels, the reconciliation reveal, the
+- Lesson 2 built as a game: six levels, the reconciliation reveal, the
   terminology mapping, a controller that repairs the system on its own, and a
   closing screen on eventual consistency.
 - `holdGlossary` frontmatter flag plus the `[data-hold]` reveal mechanism.
 
 ### In progress
 
-- **Lesson prose is placeholder, lesson 1 excepted.** Lesson 1 is finished.
-  The other published lessons are stubs carrying correct frontmatter and
-  `<Term>` wiring. The user is writing the real curriculum. Do not treat those
-  bodies as reference material, and do not expand them unasked.
+- **Lesson prose is placeholder, lessons 1 and 2 excepted.** Both are finished:
+  lesson 2 is the game, lesson 1 is prose plus the outage walk. Lessons 3 and 4
+  are stubs carrying correct frontmatter and `<Term>` wiring. The user is
+  writing the real curriculum. Do not treat those bodies as reference material,
+  and do not expand them unasked.
 
 ### Not built
 
@@ -395,7 +493,11 @@ engine outside the browser.
   `/courses` with several cards) are untested against real data.
 - No site-wide search — Pagefind covers courses only, see above.
 - No RSS or sitemap-specific handling for courses beyond Astro's defaults.
-- No quizzes, exercises, or code playgrounds outside lesson 1's game.
+- No quizzes, exercises, or code playgrounds outside lesson 1's outage walk
+  and lesson 2's game.
+- Neither interactive is covered by tests. The outage walk's `stages.ts` is
+  checked by the esbuild replay above, which covers the data invariants but not
+  `walk.ts`'s rendering.
 - The game is not covered by tests. Levels were checked by bundling
   `engine.ts` + `scenarios.ts` with esbuild and replaying moves in node. That
   harness covers the engine, not the reading/staleness layer in `game.ts`.
@@ -436,6 +538,27 @@ Each of these cost a real debugging cycle. Full explanations are inline above.
 
 ### Log
 
+- **2026-09-06** — Lesson 1's interactive built: a five-stage outage walk where
+  the reader picks what to build after each failure and each new outage defeats
+  the previous fix. Separate from the lesson 2 engine on purpose (choosing, not
+  operating). Six cards are built and one is destroyed, so the closing tally is
+  the same five items the prose lists.
+- **2026-09-06** — **Phase 1 reordered: containers first, game second.** The
+  track now opens on `01-why-not-just-containers` and the operator game moved to
+  `02-you-are-the-devops`. The containers lesson gained a section grounding
+  images and containers, since it is the entry point and can assume nothing, and
+  its closing now hands the reader into the game rather than into lesson 3.
+  Glossary `introducedIn` swapped between 1 and 2, so the container vocabulary
+  unlocks first and the reconciliation vocabulary stays gated behind the game.
+  Lessons 3 and 4 cross-references flipped, and the game's `nextHref` now points
+  at lesson 3. Lesson 1's interactive is still unbuilt.
+- **2026-09-06** — Lesson 1 prose rewritten to withhold its answer: five
+  numbered breakages, each fix undone by the next problem, closing on a tally
+  of the five pieces of infrastructure the reader has accidentally built. The
+  word Kubernetes was removed from it and the handoff moved to lesson 3, whose
+  opening was rewritten to pick the tally up. Phase 1's three-beat arc is now
+  documented above so the ordering is not re-litigated. Lesson 2's interactive
+  is still unbuilt.
 - **2026-09-06** — Lesson 1 game, second pass. Level five's recovery now fires on
   the player's replacement rather than on a server count, so deleting the failed
   server first no longer skips the race the debrief describes. Levels three and
@@ -443,8 +566,8 @@ Each of these cost a real debugging cycle. Full explanations are inline above.
   scorecard counts needless and unread-event changes at the moment they are
   taken, replacing a tally that missed restarts and blamed the player for
   scripted failures. Level six gained a question. Lesson renamed to
-  `01-you-are-the-devops` so the URL matches its title, with a 301 in
-  `nginx/nginx.conf` for the published link.
+  `01-you-are-the-devops` (now `02-`) so the URL matches its title. No redirect
+  was added and none is needed; the track is not published yet.
 - **2026-09-06** — Fixed the game's shell head being hoisted to the top of the
   viewport: it was a `<header>`, which `global.css` styles as the fixed site
   chrome. Now a div, with a reset in `operator.css` to stop it recurring.

@@ -1,4 +1,4 @@
-// The world model behind lesson 1. It knows nothing about the DOM and nothing
+// The world model behind lesson 2. It knows nothing about the DOM and nothing
 // about Kubernetes: it holds a specification, a set of machines, a set of
 // servers, and the rules for the five things a player can do to them.
 //

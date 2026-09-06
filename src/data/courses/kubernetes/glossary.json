@@ -1,7 +1,7 @@
 [
   {
     "term": "Actual state",
-    "introducedIn": 1,
+    "introducedIn": 2,
     "short": "What the system currently looks like, as observed rather than assumed.",
     "long": "Reported by the components doing the work rather than assumed by whoever asked for it. The gap between this and desired state is the only thing a control loop acts on.",
     "related": [
@@ -11,7 +11,7 @@
   },
   {
     "term": "Control loop",
-    "introducedIn": 1,
+    "introducedIn": 2,
     "short": "Something that repeatedly observes state, compares it to what is wanted, and acts.",
     "long": "Kubernetes is a collection of these rather than one program working through a plan. They run independently, and none of them assumes it was the last thing to change anything.",
     "related": [
@@ -22,7 +22,7 @@
   },
   {
     "term": "Desired state",
-    "introducedIn": 1,
+    "introducedIn": 2,
     "short": "What the system is supposed to look like.",
     "long": "You write it down and it stays written down. Nothing about it changes when reality drifts away from it.",
     "related": [
@@ -33,7 +33,7 @@
   },
   {
     "term": "Reconciliation",
-    "introducedIn": 1,
+    "introducedIn": 2,
     "short": "Look at what is wanted, look at what exists, act on the difference, then look again.",
     "long": "The loop the whole system is built from. It reads the current state rather than a stream of instructions, so an event that arrives twice or never arrives at all changes nothing.",
     "related": [
@@ -45,7 +45,7 @@
   },
   {
     "term": "Container",
-    "introducedIn": 2,
+    "introducedIn": 1,
     "short": "An isolated process running from an image.",
     "related": [
       "Pod"
@@ -53,7 +53,7 @@
   },
   {
     "term": "Container image",
-    "introducedIn": 2,
+    "introducedIn": 1,
     "short": "A packaged filesystem and start command that a container is created from.",
     "long": "The image is immutable and is identified by a tag or a digest. Anything that has to differ between environments should stay out of it.",
     "related": [
@@ -63,7 +63,7 @@
   },
   {
     "term": "Replica",
-    "introducedIn": 2,
+    "introducedIn": 1,
     "short": "One interchangeable copy of a workload.",
     "long": "Interchangeable is the important word. If any copy is as good as any other, the system is free to delete one and start another somewhere else.",
     "related": [
@@ -325,7 +325,7 @@
   },
   {
     "term": "Eventual consistency",
-    "introducedIn": 1,
+    "introducedIn": 2,
     "short": "The system is not always correct, but something is always working on it.",
     "long": "A reconciler moves a system toward its desired state rather than putting it there. Between the moment reality diverges and the moment it matches again there is a window where the system is wrong and converging at the same time. Asking whether the gap is closing is usually more useful than asking whether it is closed.",
     "related": [

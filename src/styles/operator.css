@@ -1,5 +1,5 @@
 /* ---------------------------------------------------------------------------
- * The lesson 1 operator game. Everything is scoped under `.op`, which sits
+ * The lesson 2 operator game. Everything is scoped under `.op`, which sits
  * inside a `not-prose` wrapper so the article's typography plugin keeps its
  * hands off the panels. The markup is built at runtime by
  * src/scripts/courses/operator/game.ts, so Astro's scoped styles cannot reach

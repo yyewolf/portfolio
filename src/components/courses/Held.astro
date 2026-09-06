@@ -1,0 +1,32 @@
+---
+// A block the lesson holds back until its interactive has been through.
+//
+// The lesson 2 game holds its closing prose by taking it as children, which
+// works because the game *is* the whole lesson and the held prose follows it.
+// Lesson 1 cannot do that: its walk sits near the top and the held section
+// belongs at the bottom, so the hold has to be placeable independently of the
+// thing that opens it. Hence a wrapper the lesson drops wherever the content
+// actually goes.
+//
+// Revealing is not this component's job. `[lesson].astro` unhides every
+// `[data-hold]` on the page when an interactive fires `lesson:reveal`, or on
+// load if the lesson is already marked complete.
+type Props = {
+  /** Shown in place of the content while it is held. */
+  note?: string;
+};
+
+const {
+  note = "This section is held back until you have been through the walkthrough above, because it is the answer to it.",
+} = Astro.props;
+---
+
+<p
+  data-hold-note
+  class="not-prose my-8 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 p-4 text-sm text-gray-500 dark:text-gray-400">
+  {note}
+</p>
+
+<div data-hold hidden>
+  <slot />
+</div>

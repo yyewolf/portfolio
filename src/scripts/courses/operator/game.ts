@@ -1,4 +1,4 @@
-// Runner and view for the lesson 1 operator game.
+// Runner and view for the lesson 2 operator game.
 //
 // Two ideas drive the whole file.
 //
@@ -1215,7 +1215,7 @@ class Game {
 
   /** Says the lesson is finished. What that means for progress is the page's. */
   private announceDone(): void {
-    document.dispatchEvent(new CustomEvent("operator:done"));
+    document.dispatchEvent(new CustomEvent("lesson:reveal", { detail: { complete: true } }));
   }
 
   private renderDone(): void {

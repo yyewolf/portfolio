@@ -39,9 +39,14 @@ Phase 1, what problem are we solving?
 
 | # | Lesson | Modes |
 |---|---|---|
-| 1 | You are the devops | operate |
-| 2 | Why not just run containers? | operate |
+| 1 | Why not just run containers? | operate |
+| 2 | You are the devops | operate |
 | 3 | Introducing Kubernetes | visualize |
+
+Containers come first so the game has a problem to be the answer to. The game
+must stay second: lesson 1 may name the job (something that checks what should
+be running against what is) but never the method, because the game exists to
+make the player derive it.
 
 Phase 2, the fundamental mental model
 
@@ -173,7 +178,7 @@ Phase 11, Kubernetes isn't magic
 | 45 | Build your own controller | operate |
 | 46 | CRDs | operate, inspect |
 
-45 is the payoff for lesson 1. A small simulated API, and the reader writes the
+45 is the payoff for lesson 2. A small simulated API, and the reader writes the
 loop they were performing by hand in their first ten minutes on the track.
 
 Phase 12, architecture and tradeoffs
@@ -197,7 +202,15 @@ Phase 13, the whole thing
 A broken cluster with the hints turned off: deploy, expose, configure, persist,
 secure, diagnose, scale, upgrade.
 
-## Lesson 1, the operator game
+## Lesson 1, the outage walk
+
+Five outages in the order they arrive, each one breaking the fix chosen for the
+one before it. The reader is not operating a system, they are choosing what to
+build, which is what keeps it distinct from the lesson 2 game sitting right
+after it. Six fixes get built across the five stages and one is destroyed, so
+the closing tally is the same five items the lesson's prose lists.
+
+## Lesson 2, the operator game
 
 The design principle is that the game never explains reconciliation. The player
 has to discover that looking at the whole system, comparing wanted against
