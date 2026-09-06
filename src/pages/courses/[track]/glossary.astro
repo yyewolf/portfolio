@@ -3,7 +3,13 @@ import type { GetStaticPaths } from "astro";
 import CourseLayout from "@layouts/CourseLayout.astro";
 import BackToPrev from "@components/BackToPrev.astro";
 import CourseSearch from "@components/courses/CourseSearch.astro";
-import { getTracks, getLessons, getGlossary, type Track, type Lesson } from "@lib/courses";
+import {
+  getTracks,
+  getLessons,
+  getGlossary,
+  type Track,
+  type Lesson,
+} from "@lib/courses";
 
 export const getStaticPaths: GetStaticPaths = async () => {
   const tracks = await getTracks();
@@ -11,7 +17,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
     tracks.map(async (track) => ({
       params: { track: track.slug },
       props: { track, lessons: await getLessons(track.slug) },
-    }))
+    })),
   );
 };
 
@@ -19,27 +25,28 @@ type Props = { track: Track; lessons: Lesson[] };
 
 const { track, lessons } = Astro.props;
 const terms = getGlossary(track.slug);
-const lessonTitles = new Map(lessons.map((lesson) => [lesson.data.order, lesson.data.title]));
+const lessonTitles = new Map(
+  lessons.map((lesson) => [lesson.data.order, lesson.data.title]),
+);
 ---
 
 <CourseLayout
   title={`${track.data.title} glossary`}
-  description={`Every term introduced across the ${track.data.title} track.`}>
+  description={`Every term introduced across the ${track.data.title} track.`}
+>
   <div class="animate">
     <BackToPrev href={`/courses/${track.slug}`}>{track.data.title}</BackToPrev>
   </div>
 
   <div class="animate my-10 space-y-2">
     <h1 class="text-2xl font-semibold text-black dark:text-white">Glossary</h1>
-    <p class="text-gray-600 dark:text-gray-400">
-      {terms.length} terms, each tied to the lesson that introduces it.
-    </p>
   </div>
 
   <div
     class="animate mb-8 flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-800 px-4 py-3"
     data-glossary-page
-    data-track={track.slug}>
+    data-track={track.slug}
+  >
     <input type="checkbox" id="show-all" class="size-4 accent-blue-600" />
     <label for="show-all" class="text-sm text-gray-600 dark:text-gray-400">
       Show terms from lessons I have not reached
@@ -51,31 +58,45 @@ const lessonTitles = new Map(lessons.map((lesson) => [lesson.data.order, lesson.
     class="animate space-y-6"
     data-pagefind-body
     data-pagefind-filter={`track:${track.slug}`}
-    data-pagefind-meta={`title:${track.data.title} glossary, kind:glossary`}>
-    {terms.map((term) => (
-      <div
-        data-term-entry
-        data-introduced={term.introducedIn}
-        class="rounded-lg border border-black/15 dark:border-white/20 p-4 transition-opacity">
-        <div class="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 class="font-semibold text-black dark:text-white">{term.term}</h2>
-          <span class="text-xs text-gray-500 dark:text-gray-400">
-            Lesson {term.introducedIn} · {lessonTitles.get(term.introducedIn) ?? "not yet published"}
-          </span>
+    data-pagefind-meta={`title:${track.data.title} glossary, kind:glossary`}
+  >
+    {
+      terms.map((term) => (
+        <div
+          data-term-entry
+          data-introduced={term.introducedIn}
+          class="rounded-lg border border-black/15 dark:border-white/20 p-4 transition-opacity"
+        >
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 class="font-semibold text-black dark:text-white">
+              {term.term}
+            </h2>
+            <span class="text-xs text-gray-500 dark:text-gray-400">
+              Lesson {term.introducedIn} ·{" "}
+              {lessonTitles.get(term.introducedIn) ?? "not yet published"}
+            </span>
+          </div>
+          <p class="mt-1 text-gray-600 dark:text-gray-400">{term.short}</p>
+          {term.long && (
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              {term.long}
+            </p>
+          )}
+          {term.related && term.related.length > 0 && (
+            <p class="mt-2 text-xs text-gray-500">
+              See also {term.related.join(", ")}
+            </p>
+          )}
         </div>
-        <p class="mt-1 text-gray-600 dark:text-gray-400">{term.short}</p>
-        {term.long && (
-          <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">{term.long}</p>
-        )}
-        {term.related && term.related.length > 0 && (
-          <p class="mt-2 text-xs text-gray-500">See also {term.related.join(", ")}</p>
-        )}
-      </div>
-    ))}
+      ))
+    }
   </div>
 
   <div slot="sidebar" class="animate">
-    <CourseSearch track={track.slug} placeholder={`Search ${track.data.title}`} />
+    <CourseSearch
+      track={track.slug}
+      placeholder={`Search ${track.data.title}`}
+    />
   </div>
 </CourseLayout>
 
@@ -90,9 +111,13 @@ const lessonTitles = new Map(lessons.map((lesson) => [lesson.data.order, lesson.
     const track = root?.dataset.track;
     if (!root || !track) return;
 
-    const toggle = document.getElementById("show-all") as HTMLInputElement | null;
+    const toggle = document.getElementById(
+      "show-all",
+    ) as HTMLInputElement | null;
     const counter = root.querySelector<HTMLElement>("[data-locked-count]");
-    const entries = Array.from(document.querySelectorAll<HTMLElement>("[data-term-entry]"));
+    const entries = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-term-entry]"),
+    );
 
     // Unlike a lesson page, this reference view ships every definition and gates
     // them client-side, so `furthest` can widen the list without a rebuild.
@@ -108,7 +133,8 @@ const lessonTitles = new Map(lessons.map((lesson) => [lesson.data.order, lesson.
         entry.hidden = !unlocked && !showAll;
         entry.classList.toggle("opacity-60", !unlocked && showAll);
       }
-      if (counter) counter.textContent = locked > 0 ? ` (${locked} hidden)` : "";
+      if (counter)
+        counter.textContent = locked > 0 ? ` (${locked} hidden)` : "";
       if (locked === 0) root.hidden = true;
     };
 

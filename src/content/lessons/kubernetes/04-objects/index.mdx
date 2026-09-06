@@ -91,12 +91,11 @@ record:
 | Roll back | Put the old record back |
 | Restart | Change something, anything, so the record differs |
 
-That last row is the one that feels wrong at first, and it is worth sitting with.
-The system has no memory of your intent, only of your record. If the record has
-not changed, there is nothing for a loop to do, and asking twice is the same as
-asking once. This is a native behavior though, in most place where this is
-possible, you will likely just edit metadata to tell the loop that something
-changed. Even though virtually nothing really did.
+That last row is the one that feels wrong at first. The system has no memory of
+your intent, only of your record. If the record has not changed, there is
+nothing for a loop to do, and asking twice is the same as asking once. So the
+usual move is to edit some metadata so the record differs. Nothing meaningful
+changed, but the record did, and the record is all the loop looks at.
 
 ## The kinds you will meet
 
@@ -112,11 +111,9 @@ lessons arrive:
 | ConfigMap | Some data |
 | Secret | Some data, treated as sensitive |
 
-The first three stack, and that is the useful thing to take from this table. A
-Deployment is not a bigger Pod. It manages ReplicaSets, a ReplicaSet manages
-pods, and a pod manages containers, and each layer only really knows about the
-one directly beneath it. It's abstraction built on abstraction at every step of 
-the way.
+The first three are stacked up. A Deployment is not a bigger Pod. It manages ReplicaSets,
+a ReplicaSet manages pods, and a pod manages containers, and each layer only
+knows about the one directly beneath it. It's simply abstractions built on other abstractions.
 
 The word is borrowed, by the way: a
 [pod](https://en.wikipedia.org/wiki/Cetacea) is... a group of whales.
@@ -124,8 +121,8 @@ Containers, whales, it clearly made sense to somebody... right ?
 
 ConfigMap and Secret are by default pretty much the same object. 
 A Secret is base64-encoded rather than encrypted (btw, encoding is 
-NOT protection), and out of the box it is stored much like a ConfigMap is.
-A cluster can be set up to encrypt them at rest, but is not the default.
+NOT protection), and it is stored much like a ConfigMap is.
+A cluster can be set up to encrypt them at rest, but that is not the default.
 
 This exists only to separate the concerns of both kinds. It allows for
 a finer permission system that we'll talk about in a future lesson.
@@ -146,10 +143,7 @@ Not everything is scoped this way. A <Term>node</Term> is a property of the whol
 <Term>cluster</Term> rather than of anyone's namespace, and there are a handful
 of others like it.
 
-With that, there's two types of objects :
-
-- Cluster-wide objects
-- Namespaced objects
+So there are two kinds of object: cluster-wide and namespaced.
 
 ## Where this goes next
 

@@ -22,7 +22,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
     tracks.map(async (track) => ({
       params: { track: track.slug },
       props: { track, lessons: await getLessons(track.slug) },
-    }))
+    })),
   );
 };
 
@@ -48,18 +48,24 @@ const first = lessons[0];
 
   <div class="animate my-10 space-y-3">
     <div class="flex items-center gap-3">
-      {track.data.logo && (
-        <img
-          src={track.data.logo}
-          alt={track.data.logoAlt ?? ""}
-          width="40"
-          height="40"
-          class="size-10 shrink-0"
-        />
-      )}
-      <h1 class="text-2xl font-semibold text-black dark:text-white">{track.data.title}</h1>
+      {
+        track.data.logo && (
+          <img
+            src={track.data.logo}
+            alt={track.data.logoAlt ?? ""}
+            width="40"
+            height="40"
+            class="size-10 shrink-0"
+          />
+        )
+      }
+      <h1 class="text-2xl font-semibold text-black dark:text-white">
+        {track.data.title}
+      </h1>
     </div>
-    <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
+    <div
+      class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400"
+    >
       <span>{stats.lessonCount} lessons</span>
       <span>{stats.phaseCount} phases</span>
       <span>~{stats.totalMinutes} min total</span>
@@ -71,36 +77,46 @@ const first = lessons[0];
     <Content />
   </article>
 
-  {first && (
-    <div class="animate mt-8" data-resume data-track={track.slug}>
-      <a
-        href={lessonHref(first)}
-        data-resume-link
-        class="inline-block rounded-lg border border-blue-500/60 bg-blue-50/60 dark:bg-blue-950/30 px-4 py-2 font-medium text-blue-700 dark:text-blue-300 transition-colors hover:bg-blue-100/60 dark:hover:bg-blue-900/40">
-        <span data-resume-label>Start lesson 1</span>
-      </a>
-      <button
-        type="button"
-        data-reset
-        hidden
-        class="ml-3 text-sm text-gray-500 underline underline-offset-2 hover:text-black dark:hover:text-white">
-        Reset progress
-      </button>
-    </div>
-  )}
+  {
+    first && (
+      <div class="animate mt-8" data-resume data-track={track.slug}>
+        <a
+          href={lessonHref(first)}
+          data-resume-link
+          class="inline-block rounded-lg border border-blue-500/60 bg-blue-50/60 dark:bg-blue-950/30 px-4 py-2 font-medium text-blue-700 dark:text-blue-300 transition-colors hover:bg-blue-100/60 dark:hover:bg-blue-900/40"
+        >
+          <span data-resume-label>Start lesson 1</span>
+        </a>
+        <button
+          type="button"
+          data-reset
+          hidden
+          class="ml-3 text-sm text-gray-500 underline underline-offset-2 hover:text-black dark:hover:text-white"
+        >
+          Reset progress
+        </button>
+      </div>
+    )
+  }
 
   <div class="animate mt-12">
     <PhaseOutline track={track.slug} groups={groups} />
   </div>
 
   <div slot="sidebar" class="animate space-y-6">
-    <CourseSearch track={track.slug} placeholder={`Search ${track.data.title}`} />
+    <CourseSearch
+      track={track.slug}
+      placeholder={`Search ${track.data.title}`}
+    />
     <a
       href={`/courses/${track.slug}/glossary`}
-      class="block rounded-lg border border-gray-200 dark:border-gray-800 px-4 py-3 transition-colors hover:bg-black/5 dark:hover:bg-white/5">
-      <span class="block font-semibold text-black dark:text-white">Glossary</span>
+      class="block rounded-lg border border-gray-200 dark:border-gray-800 px-4 py-3 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+    >
+      <span class="block font-semibold text-black dark:text-white"
+        >Glossary</span
+      >
       <span class="mt-0.5 block text-sm text-gray-600 dark:text-gray-400">
-        {stats.termCount} terms, revealed as you go
+        {stats.termCount} terms
       </span>
     </a>
   </div>
@@ -127,7 +143,7 @@ const first = lessons[0];
 
     if (furthest > 0 && label && link) {
       const target = document.querySelector<HTMLAnchorElement>(
-        `[data-lesson-list] [data-order="${furthest}"]`
+        `[data-lesson-list] [data-order="${furthest}"]`,
       );
       if (target) {
         link.href = target.href;

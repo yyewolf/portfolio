@@ -23,7 +23,7 @@ export const DEPTHS: { key: Depth; label: string; blurb: string }[] = [
   {
     key: "core",
     label: "Core",
-    blurb: "Enough to understand what Kubernetes is and how it thinks. Stop here and you still know Kubernetes.",
+    blurb: "Enough to understand what Kubernetes is and how it thinks.",
   },
   {
     key: "practical",

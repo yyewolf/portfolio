@@ -26,7 +26,7 @@ A <Term>cluster</Term> is a set of machines managed as one pool of compute. You
 stop addressing individual servers and start addressing the pool: you ask for
 ten copies, and you do not say where they go.
 
-The pool splits in two, and the split is the first thing worth knowing about it.
+The pool splits in two, and that split explains most of what follows.
 
 <ClusterSplit />
 
@@ -54,11 +54,10 @@ lesson one has somewhere to land:
 | a rollout that goes gradually and can stop | another controller |
 | a name that resolves to live copies | a Service, plus work on every node |
 
-A controller here is simply loop reading things, just like you did. 
+A controller here is simply a loop reading things, just like you did.
 
-The last row is the odd one out here. Deciding which copies are alive is a loop like the
-others, but it actually require a bit more stuff to be handled and will be tackled
-later on.
+The last row is different. Deciding which copies are alive is a loop like the
+others, but it needs more machinery around it, so it gets its own lesson later.
 
 Here is the whole thing on one map. You are not expected to remember any of
 these names yet. The point is that every one of them sits on one side of the
@@ -81,7 +80,7 @@ If a node goes down, what you asked for survives, because it was never kept
 there. The different loops will see a gap between expectation and reality, 
 and place the missing copies somewhere appropriate.
 
-And the coolest part about it, is that it's merely a consequence of the design.
+And the coolest part about it, is that it's simply a consequence of the design.
 
 ## Where this goes next
 
