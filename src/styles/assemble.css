@@ -1,0 +1,367 @@
+/* ---------------------------------------------------------------------------
+ * Lesson 4's object assembly. Everything is scoped under `.as`, which sits
+ * inside a `not-prose` wrapper so the article's typography plugin keeps its
+ * hands off the panels. The markup is built at runtime by
+ * src/scripts/courses/assemble/assemble.ts, so Astro's scoped styles cannot
+ * reach it and these rules are global on purpose.
+ * ------------------------------------------------------------------------ */
+
+.as {
+  --as-line: #e5e7eb;
+  --as-surface: #ffffff;
+  --as-sunk: #f9fafb;
+  --as-ink: #111827;
+  --as-ink2: #4b5563;
+  --as-muted: #9ca3af;
+  --as-accent: #2563eb;
+  --as-good: #047857;
+  --as-good-bg: #ecfdf5;
+  --as-warn: #b45309;
+  --as-key: #7c3aed;
+  --as-add-bg: #ecfdf5;
+
+  font-family: inherit;
+  color: var(--as-ink2);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+html.dark .as {
+  --as-line: #1f2937;
+  --as-surface: #030712;
+  --as-sunk: #0b1120;
+  --as-ink: #f9fafb;
+  --as-ink2: #9ca3af;
+  --as-muted: #6b7280;
+  --as-accent: #60a5fa;
+  --as-good: #6ee7b7;
+  --as-good-bg: #04241c;
+  --as-warn: #fcd34d;
+  --as-key: #c4b5fd;
+  --as-add-bg: #052e26;
+}
+
+.as *,
+.as *::before,
+.as *::after {
+  box-sizing: border-box;
+}
+
+/* global.css styles the bare `header` element as fixed site chrome. */
+.as header {
+  position: static;
+  inset: auto;
+}
+
+.as-shell {
+  border: 1px solid var(--as-line);
+  border-radius: 0.9rem;
+  background: var(--as-surface);
+  overflow: hidden;
+}
+
+.as-head {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--as-line);
+  background: var(--as-sunk);
+}
+
+.as-rail {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.as-rail li {
+  flex: 1;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--as-line);
+  transition: background 0.25s ease;
+}
+
+.as-rail li span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.as-rail li[data-state="done"] {
+  background: var(--as-good);
+}
+
+.as-rail li[data-state="current"] {
+  background: var(--as-accent);
+}
+
+.as-body {
+  padding: 1.1rem 1rem 1.2rem;
+}
+
+.as-kicker {
+  margin: 0 0 0.3rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--as-muted);
+}
+
+.as-title {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--as-ink);
+}
+
+/* The requirement, said the way a person would say it. */
+.as-need {
+  margin: 0 0 0.9rem;
+  font-size: 0.95rem;
+  color: var(--as-ink);
+}
+
+.as-ask {
+  margin: 0 0 0.5rem;
+  font-weight: 650;
+  color: var(--as-ink);
+}
+
+.as-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.as-option {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--as-line);
+  border-radius: 0.55rem;
+  background: var(--as-surface);
+  color: var(--as-ink2);
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.as-option:hover:not(:disabled) {
+  border-color: var(--as-accent);
+  background: var(--as-sunk);
+}
+
+.as-option:focus-visible {
+  outline: 2px solid var(--as-accent);
+  outline-offset: 2px;
+}
+
+.as-option:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.as-option[data-picked="right"] {
+  border-color: var(--as-good);
+  background: var(--as-good-bg);
+  color: var(--as-good);
+  opacity: 1;
+}
+
+.as-option[data-picked="wrong"] {
+  border-color: var(--as-warn);
+  text-decoration: line-through;
+}
+
+.as-reply {
+  margin: 0.35rem 0 0.1rem;
+  padding-left: 0.7rem;
+  border-left: 2px solid var(--as-line);
+  font-size: 0.82rem;
+  text-decoration: none;
+}
+
+.as-reply[data-tone="right"] {
+  border-left-color: var(--as-good);
+}
+
+.as-reply[data-tone="wrong"] {
+  border-left-color: var(--as-warn);
+}
+
+/* --- the manifests ------------------------------------------------------- */
+
+.as-written {
+  margin-top: 1.1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--as-line);
+}
+
+.as-written-head {
+  margin: 0 0 0.5rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--as-muted);
+}
+
+.as-files {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: 1fr;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 42rem) {
+  .as-files {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.as-file {
+  border: 1px solid var(--as-line);
+  border-radius: 0.5rem;
+  background: var(--as-sunk);
+  overflow: hidden;
+}
+
+.as-file-name {
+  margin: 0;
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid var(--as-line);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  color: var(--as-muted);
+}
+
+.as-yaml {
+  margin: 0;
+  padding: 0.55rem 0.6rem;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--as-ink2);
+  background: none;
+}
+
+.as-yaml code {
+  font: inherit;
+  background: none;
+  white-space: pre;
+}
+
+.as-key {
+  color: var(--as-key);
+  font-weight: 600;
+}
+
+.as-dash {
+  color: var(--as-muted);
+}
+
+/* Lines that appeared this round. `ins` is the right element for it, and the
+ * default underline is not what we want on a block of YAML. */
+.as-add {
+  display: inline-block;
+  width: 100%;
+  text-decoration: none;
+  background: var(--as-add-bg);
+  box-shadow: -0.6rem 0 0 var(--as-add-bg);
+}
+
+.as-file[data-updated="yes"] {
+  border-color: var(--as-accent);
+}
+
+.as-file-tag {
+  margin-left: 0.4rem;
+  padding: 0.02rem 0.3rem;
+  border-radius: 0.25rem;
+  background: var(--as-accent);
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+html.dark .as-file-tag {
+  color: #04121f;
+}
+
+.as-file-note {
+  margin: 0;
+  padding: 0.35rem 0.6rem 0.45rem;
+  border-top: 1px solid var(--as-line);
+  font-size: 0.75rem;
+  color: var(--as-muted);
+}
+
+/* --- controls ------------------------------------------------------------ */
+
+.as-foot {
+  margin-top: 0.9rem;
+}
+
+.as-btn {
+  border: 1px solid var(--as-line);
+  border-radius: 0.5rem;
+  background: var(--as-surface);
+  color: var(--as-ink);
+  padding: 0.45rem 0.9rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.as-btn:hover:not(:disabled) {
+  border-color: var(--as-accent);
+}
+
+.as-btn:focus-visible {
+  outline: 2px solid var(--as-accent);
+  outline-offset: 2px;
+}
+
+.as-btn[data-tone="primary"] {
+  border-color: var(--as-accent);
+  background: var(--as-accent);
+  color: #fff;
+}
+
+html.dark .as-btn[data-tone="primary"] {
+  color: #04121f;
+}
+
+.as-hint {
+  color: var(--as-muted);
+  font-size: 0.82rem;
+}
+
+.as-screen p {
+  margin: 0 0 0.6rem;
+}
+
+.as-screen > :last-child {
+  margin-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .as-rail li,
+  .as-option {
+    transition: none;
+  }
+}

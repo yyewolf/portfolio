@@ -1,0 +1,48 @@
+---
+// Mount point for lesson 4's object assembly. The intro screen is rendered here
+// rather than in JavaScript so the lesson still says something without it, and
+// so the opening copy lives in one place. Everything after the Start button is
+// built at runtime by src/scripts/courses/assemble/assemble.ts.
+//
+// Nothing is held back here. Lesson 4 explains the kinds before this runs, so
+// the exercise is applying them rather than deriving them, and no prose below
+// it would be spoiled by reading ahead.
+import "@styles/assemble.css";
+---
+
+<div data-assemble>
+  <div class="as not-prose my-8">
+    <div data-as-stage>
+      <div class="as-shell">
+        <div class="as-body">
+          <div class="as-screen">
+            <p>
+              Four requirements, for each one, pick what you would write down.
+            </p>
+            <div class="as-foot">
+              <button
+                type="button"
+                class="as-btn"
+                data-tone="primary"
+                data-go="start">Start</button
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <noscript>
+      <p class="as-hint mt-3">
+        This exercise needs JavaScript. The short version: a Deployment keeps
+        copies running and updates them, a Service gives them one stable name, a
+        ConfigMap holds data, and a Secret holds data that permissions are meant
+        to treat differently.
+      </p>
+    </noscript>
+  </div>
+</div>
+
+<script>
+  import "@scripts/courses/assemble/assemble";
+</script>

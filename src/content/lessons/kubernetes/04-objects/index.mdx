@@ -10,12 +10,17 @@ modes: [operate, inspect]
 draft: false
 ---
 
-There is no Kubernetes command for "deploy my app". Underneath, there is not
-really one for scaling up, restarting, or rolling back either. There is one
-operation, which is writing down what you want.
+import AssembleObjects from "@components/courses/AssembleObjects.astro";
 
-The unit you write down is an <Term>object</Term>. It has a kind, a name, and a
-spec describing the state you are asking for:
+There is no Kubernetes command for "deploy my app". There is not *really* one for
+scaling up, restarting, or rolling back either (we'll come back on that later).
+
+There is one operation, and it is writing down what you want.
+
+## An object is a record
+
+The unit you write down is an <Term>object</Term>. It has a kind, a name, and usually 
+a spec or similar used to describe the state you are asking for:
 
 ```yaml
 kind: Deployment
@@ -25,32 +30,130 @@ spec:
   replicas: 3
 ```
 
-That object does not run anything. It is a record, and the record says three.
-Something else, a loop of the kind you were being in lesson two, reads it, counts
-what exists, and closes the gap.
+Submitting that starts nothing. No container is created by the act of writing it
+down, and nothing about the file reaches a machine. It is a record, the record
+says three, and that is the whole of its contribution.
 
-This is what <Term>declarative</Term> means in practice, and it is why the same
-file works whether you are creating the thing or changing it. A file describing
-an object is a <Term>manifest</Term>.
+A loop reads the record, counts what actually exists,
+and bridges the differences. Remember? Yeah, you've been that loop.
+
+## Spec and status
+
+Most objects have a second half that you do not write:
+
+```yaml
+spec:
+  replicas: 3
+status:
+  replicas: 2
+```
+
+The spec is <Term>desired state</Term>. You own it, and nothing in the cluster
+edits it behind your back.
+
+The status is <Term>actual state</Term>, and it belongs to the loop that looks
+after that kind of object rather than to you or to the cluster at large. It is a
+report rather than a request. Setting `status.replicas` to three does not create
+anything, in the same way that writing a different number on a thermometer does
+not change the room's temperature.
+
+Where both halves exist, the gap between them is the only thing any loop in the
+system ever acts on. The panels you were reading by hand in lesson two are these
+two fields.
+
+## The same file, whatever the situation
+
+Because the object is a description rather than an instruction, the same file
+works whether the thing exists yet or not. Send it at an empty cluster and three
+copies get created. Send it at a cluster already running three and nothing
+happens at all. Change the number to five and send the same file again, and two
+more appear.
+
+That is what <Term>declarative</Term> means in practice, and a file describing an
+object is a <Term>manifest</Term>. You are never picking between create and
+update, because that distinction lives in the system rather than in you.
+
+It also means sending the same thing twice is safe, which matters more than it
+sounds. A retry after a timeout is not a second deployment.
+
+## What this takes away
+
+There is no restart button, because a restart is not a state. Nothing you can
+write down says "off and then on again".
+
+So every operation you might want turns into the same operation, done to the
+record:
+
+| What you want | What you actually do |
+|---|---|
+| Scale up | Change a number |
+| Roll out a new version | Change the image |
+| Roll back | Put the old record back |
+| Restart | Change something, anything, so the record differs |
+
+That last row is the one that feels wrong at first, and it is worth sitting with.
+The system has no memory of your intent, only of your record. If the record has
+not changed, there is nothing for a loop to do, and asking twice is the same as
+asking once. This is a native behavior though, in most place where this is
+possible, you will likely just edit metadata to tell the loop that something
+changed. Even though virtually nothing really did.
 
 ## The kinds you will meet
 
 You do not need these yet. They are here so the names are familiar when their
 lessons arrive:
 
-| Kind | The state it asks for |
+| Kind | What it is |
 |---|---|
-| Pod | These containers, running together |
-| Deployment | This many identical pods, updated safely |
-| Service | One stable address for a changing set of pods |
-| ConfigMap | This configuration, available to pods |
-| Secret | The same, for values that should not be in an image |
+| Pod | A set of containers, run together |
+| ReplicaSet | A set of identical pods |
+| Deployment | Rollouts, on top of a ReplicaSet |
+| Service | One stable name for a changing set of pods |
+| ConfigMap | Some data |
+| Secret | Some data, treated as sensitive |
 
-> **Interactive.** Given a described system, assemble the objects it needs. The
-> wrong answers are the interesting part. Not built yet.
+The first three stack, and that is the useful thing to take from this table. A
+Deployment is not a bigger Pod. It manages ReplicaSets, a ReplicaSet manages
+pods, and a pod manages containers, and each layer only really knows about the
+one directly beneath it. It's abstraction built on abstraction at every step of 
+the way.
 
-Objects live in a <Term>namespace</Term>, which scopes names. Two namespaces can
-each hold a Deployment called `web` without colliding.
+The word is borrowed, by the way: a
+[pod](https://en.wikipedia.org/wiki/Cetacea) is... a group of whales.
+Containers, whales, it clearly made sense to somebody... right ?
 
-The next two lessons cover where these objects go when you submit them, and what
-remembers them afterwards.
+ConfigMap and Secret are by default pretty much the same object. 
+A Secret is base64-encoded rather than encrypted (btw, encoding is 
+NOT protection), and out of the box it is stored much like a ConfigMap is.
+A cluster can be set up to encrypt them at rest, but is not the default.
+
+This exists only to separate the concerns of both kinds. It allows for
+a finer permission system that we'll talk about in a future lesson.
+
+Here is a system, described the way somebody would describe it to you. Work out
+what you would write down for each part of it.
+
+<AssembleObjects />
+
+## Names live in a namespace
+
+Objects sit in a <Term>namespace</Term>, which scopes their names. Two namespaces
+can each hold a Deployment called `web` without colliding, which is what lets one
+cluster carry a team per namespace, or staging beside production, without anyone
+agreeing on naming.
+
+Not everything is scoped this way. A <Term>node</Term> is a property of the whole
+<Term>cluster</Term> rather than of anyone's namespace, and there are a handful
+of others like it.
+
+With that, there's two types of objects :
+
+- Cluster-wide objects
+- Namespaced objects
+
+## Where this goes next
+
+Objects are the note from your list in lesson one, and now they have a shape.
+
+The next two lessons will follow one of them: where it goes when you submit
+it, and what happens afterwards.
