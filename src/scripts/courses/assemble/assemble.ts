@@ -246,4 +246,6 @@ const mount = (): void => {
   });
 };
 
-mount();
+// Per page load: this module is evaluated once for the session, so a lesson
+// arrived at by going back would otherwise render its Start button unwired.
+document.addEventListener("astro:page-load", mount);

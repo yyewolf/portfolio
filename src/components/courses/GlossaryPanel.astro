@@ -73,17 +73,27 @@ const unlockedNames = new Set(terms.map((term) => term.term.toLowerCase()));
 </details>
 
 <script>
-  const panel = document.getElementById("glossary-panel") as HTMLDetailsElement | null;
+  // One DOM for both layouts: a disclosure on small screens, always open on
+  // desktop. Duplicating the markup instead would double it in the search index.
+  const desktop = window.matchMedia("(min-width: 1024px)");
 
-  if (panel) {
-    // One DOM for both layouts: a disclosure on small screens, always open on
-    // desktop. Duplicating the markup instead would double it in the search index.
-    const desktop = window.matchMedia("(min-width: 1024px)");
-    const sync = () => {
-      if (desktop.matches) panel.open = true;
-    };
+  const findPanel = () =>
+    document.getElementById("glossary-panel") as HTMLDetailsElement | null;
+
+  const sync = () => {
+    const panel = findPanel();
+    if (panel && desktop.matches) panel.open = true;
+  };
+
+  // The media query outlives every page the reader swaps through, so this is
+  // registered once and looks the panel up when it fires rather than closing
+  // over the element that happened to be on screen at module eval.
+  desktop.addEventListener("change", sync);
+
+  function setup(): void {
+    const panel = findPanel();
+    if (!panel) return;
     sync();
-    desktop.addEventListener("change", sync);
 
     const filter = document.getElementById("glossary-filter") as HTMLInputElement | null;
     const empty = panel.querySelector("[data-glossary-empty]") as HTMLElement | null;
@@ -100,6 +110,8 @@ const unlockedNames = new Set(terms.map((term) => term.term.toLowerCase()));
       if (empty) empty.classList.toggle("hidden", visible > 0);
     });
   }
+
+  document.addEventListener("astro:page-load", setup);
 </script>
 
 <style>

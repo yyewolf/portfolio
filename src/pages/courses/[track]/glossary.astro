@@ -82,10 +82,14 @@ const lessonTitles = new Map(lessons.map((lesson) => [lesson.data.order, lesson.
 <script>
   import { trackProgress } from "@scripts/courses/progress";
 
-  const root = document.querySelector<HTMLElement>("[data-glossary-page]");
-  const track = root?.dataset.track;
+  // Per page load, not per module eval: under the ClientRouter this file runs
+  // once for the session, so returning here after a lesson would keep gating on
+  // the `furthest` that was current when the reader first opened the glossary.
+  function setup(): void {
+    const root = document.querySelector<HTMLElement>("[data-glossary-page]");
+    const track = root?.dataset.track;
+    if (!root || !track) return;
 
-  if (root && track) {
     const toggle = document.getElementById("show-all") as HTMLInputElement | null;
     const counter = root.querySelector<HTMLElement>("[data-locked-count]");
     const entries = Array.from(document.querySelectorAll<HTMLElement>("[data-term-entry]"));
@@ -105,10 +109,12 @@ const lessonTitles = new Map(lessons.map((lesson) => [lesson.data.order, lesson.
         entry.classList.toggle("opacity-60", !unlocked && showAll);
       }
       if (counter) counter.textContent = locked > 0 ? ` (${locked} hidden)` : "";
-      if (root && locked === 0) root.hidden = true;
+      if (locked === 0) root.hidden = true;
     };
 
     paint();
     toggle?.addEventListener("change", paint);
   }
+
+  document.addEventListener("astro:page-load", setup);
 </script>

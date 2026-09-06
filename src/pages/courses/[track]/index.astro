@@ -109,10 +109,17 @@ const first = lessons[0];
 <script>
   import { trackProgress, resetTrack } from "@scripts/courses/progress";
 
-  const root = document.querySelector<HTMLElement>("[data-resume]");
-  const track = root?.dataset.track;
+  /**
+   * Runs per page load rather than on module eval. The reader arrives here from
+   * a lesson as often as from anywhere else, and that navigation is the one
+   * that just moved `furthest`; on module eval alone the swapped-in markup
+   * would still read "Start lesson 1" until a refresh.
+   */
+  function setup(): void {
+    const root = document.querySelector<HTMLElement>("[data-resume]");
+    const track = root?.dataset.track;
+    if (!root || !track) return;
 
-  if (root && track) {
     const label = root.querySelector<HTMLElement>("[data-resume-label]");
     const link = root.querySelector<HTMLAnchorElement>("[data-resume-link]");
     const reset = root.querySelector<HTMLButtonElement>("[data-reset]");
@@ -134,4 +141,6 @@ const first = lessons[0];
       window.location.reload();
     });
   }
+
+  document.addEventListener("astro:page-load", setup);
 </script>

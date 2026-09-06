@@ -55,17 +55,25 @@ const { track, lessons, currentOrder } = Astro.props;
 
   // A page renders one of these per phase, and this module runs once for all of
   // them, so every list has to be walked.
-  for (const list of document.querySelectorAll<HTMLElement>("[data-lesson-list]")) {
-    const track = list.dataset.track;
-    if (!track) continue;
+  function paint(): void {
+    for (const list of document.querySelectorAll<HTMLElement>("[data-lesson-list]")) {
+      const track = list.dataset.track;
+      if (!track) continue;
 
-    const { completed } = trackProgress(track);
-    for (const order of completed) {
-      const link = list.querySelector<HTMLElement>(`[data-order="${order}"]`);
-      if (!link) continue;
-      link.querySelector<HTMLElement>("[data-lesson-number]")?.setAttribute("hidden", "");
-      link.querySelector<SVGElement>("[data-lesson-check]")?.classList.remove("hidden");
-      link.classList.add("text-blue-700", "dark:text-blue-300");
+      const { completed } = trackProgress(track);
+      for (const order of completed) {
+        const link = list.querySelector<HTMLElement>(`[data-order="${order}"]`);
+        if (!link) continue;
+        link.querySelector<HTMLElement>("[data-lesson-number]")?.setAttribute("hidden", "");
+        link.querySelector<SVGElement>("[data-lesson-check]")?.classList.remove("hidden");
+        link.classList.add("text-blue-700", "dark:text-blue-300");
+      }
     }
   }
+
+  // Under the ClientRouter this module is evaluated once for the whole session,
+  // while a navigation back to the outline swaps in the build-time markup, with
+  // no tick on any lesson. Reading storage on every page load rather than on
+  // module eval is what keeps the list in step with progress written later on.
+  document.addEventListener("astro:page-load", paint);
 </script>
