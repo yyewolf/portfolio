@@ -25,11 +25,119 @@ body {
   @apply text-gray-700 dark:text-gray-300;
 }
 
+/* The header floats over the background: transparent at the top of the page,
+   condensing into a frosted bar once scrolled. `html.scrolled` is toggled in
+   Head.astro. The `:has()` clause keeps the open mobile panel readable. */
 header {
-  @apply fixed top-0 left-0 right-0 z-50 py-4;
-  @apply bg-white/90 dark:bg-gray-950/90;
-  @apply backdrop-blur-md border-b border-gray-200 dark:border-gray-800;
-  @apply shadow-sm;
+  @apply fixed top-0 left-0 right-0 z-50;
+  padding-block: 1.25rem;
+  background-color: transparent;
+  transition:
+    padding-block 0.3s ease,
+    background-color 0.3s ease,
+    backdrop-filter 0.3s ease;
+}
+
+html.scrolled header,
+header:has(#mobile-menu[data-open]) {
+  padding-block: 0.75rem;
+  @apply bg-white/65 dark:bg-gray-950/60;
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+}
+
+/* A hairline that fades out at both ends, rather than a full-width border. */
+header::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 1px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  background: linear-gradient(
+    to right,
+    transparent,
+    theme(colors.gray.300) 20%,
+    theme(colors.gray.300) 80%,
+    transparent
+  );
+}
+
+html.dark header::after {
+  background: linear-gradient(
+    to right,
+    transparent,
+    theme(colors.gray.800) 20%,
+    theme(colors.gray.800) 80%,
+    transparent
+  );
+}
+
+html.scrolled header::after,
+header:has(#mobile-menu[data-open])::after {
+  opacity: 1;
+}
+
+/* Reading progress, sitting on the header's bottom edge. Driven entirely by a
+   scroll-driven animation, so it costs no JS; where that isn't supported the
+   bar stays at scaleX(0) and is simply invisible. */
+#nav-progress {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  transform: scaleX(0);
+  transform-origin: left;
+  background-image: linear-gradient(
+    to right,
+    theme(colors.blue.600),
+    theme(colors.violet.600)
+  );
+  animation: nav-progress linear both;
+  animation-timeline: scroll(root block);
+}
+
+@keyframes nav-progress {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* Nav links get a gradient underline that grows from the centre. */
+header nav a {
+  position: relative;
+}
+
+header nav a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.35rem;
+  height: 1.5px;
+  border-radius: 1px;
+  transform: scaleX(0);
+  transition: transform 0.25s ease;
+  background-image: linear-gradient(
+    to right,
+    theme(colors.blue.600),
+    theme(colors.violet.600)
+  );
+}
+
+header nav a:hover::after,
+header nav a[aria-current="page"]::after {
+  transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  header,
+  header::after,
+  header nav a::after,
+  #nav-progress {
+    transition: none;
+    animation: none;
+  }
 }
 
 main {

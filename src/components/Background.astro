@@ -1,0 +1,675 @@
+---
+/**
+ * Ambient site background: a small, quiet service topology.
+ *
+ * A handful of nodes laid out in tiers, connected across adjacent tiers.
+ * Service nodes churn in and out, edges occasionally rewire, and packets
+ * travel along links now and then. Scroll position selects which topology is
+ * shown, and the graph morphs between them rather than cutting.
+ *
+ * Everything is drawn at very low alpha so it never competes with text.
+ * Sits at z-index -1, under the viewport background propagated from `body`.
+ */
+---
+
+<div class="bg-root" aria-hidden="true" transition:persist="site-background">
+  <canvas class="topology" data-site-background></canvas>
+</div>
+
+<style>
+  .bg-root {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+    contain: strict;
+  }
+
+  .topology {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    /* Hold the graph back further behind the centre column, where the text
+       sits, and let it breathe in the margins. */
+    mask-image: linear-gradient(
+      to right,
+      #000 0%,
+      #000 16%,
+      rgba(0, 0, 0, 0.4) 34%,
+      rgba(0, 0, 0, 0.4) 66%,
+      #000 84%,
+      #000 100%
+    );
+  }
+
+  @media (max-width: 768px) {
+    /* No margins to speak of on a phone, so lean on overall opacity instead. */
+    .topology {
+      mask-image: none;
+      opacity: 0.6;
+    }
+  }
+</style>
+
+<script>
+  type Role = "service" | "control";
+
+  type Tier = { count: number; role: Role };
+
+  /** Each scene is a set of tiers, laid out left to right. */
+  const SCENES: Tier[][] = [
+    // client -> gateway -> service -> database
+    [
+      { count: 6, role: "service" },
+      { count: 2, role: "control" },
+      { count: 9, role: "service" },
+      { count: 4, role: "control" },
+    ],
+    // control plane -> nodes -> workloads
+    [
+      { count: 3, role: "control" },
+      { count: 6, role: "service" },
+      { count: 14, role: "service" },
+    ],
+  ];
+
+  /** Upper bound on nodes; scenes are matched into this fixed pool. */
+  const POOL = 40;
+
+  const EASE_POSITION = 0.02;
+  const EASE_ALPHA = 0.035;
+
+  const CHURN_INTERVAL = [2.5, 6] as const;
+  const REWIRE_INTERVAL = [2, 5] as const;
+  const PACKET_INTERVAL = [0.4, 1.1] as const;
+  /** Cap for the ambient emitter; sweeps and hops may briefly exceed it. */
+  const MAX_PACKETS = 12;
+  const HARD_PACKET_CAP = 24;
+  /** A control plane occasionally fans packets out to everything downstream. */
+  const SWEEP_INTERVAL = [7, 13] as const;
+  /** On arrival, a packet often carries on down the next tier. */
+  const HOP_CHANCE = 0.62;
+  const MAX_HOPS = 3;
+  /** Share of ambient packets that travel back along their edge, as replies. */
+  const REVERSE_SHARE = 0.28;
+  /** Scenes cycle on their own when the page is too short to scroll. */
+  const IDLE_SCENE_INTERVAL = 26;
+
+  type Node = {
+    /** Current and target position, in normalised 0..1 space. */
+    x: number;
+    y: number;
+    tx: number;
+    ty: number;
+    alpha: number;
+    targetAlpha: number;
+    role: Role;
+    radius: number;
+    targetRadius: number;
+    tier: number;
+    /** Wander phase and amplitude, so nodes don't drift in lockstep. */
+    phase: number;
+    driftX: number;
+    driftY: number;
+    /** Control planes breathe very slightly; services don't. */
+    pulse: number;
+    /** Brief lift when a packet lands here; decays back to 0. */
+    flash: number;
+  };
+
+  type Edge = {
+    a: number;
+    b: number;
+    alpha: number;
+    targetAlpha: number;
+    /** Brightens while a packet is crossing, so links read as carrying load. */
+    charge: number;
+  };
+
+  type Packet = {
+    edge: Edge;
+    t: number;
+    speed: number;
+    reverse: boolean;
+    /** Hops taken so far, so a journey can't run on forever. */
+    hops: number;
+  };
+
+  /** A packet waiting on a stagger delay, used to spread sweeps out. */
+  type Pending = { edge: Edge; delay: number; speed: number };
+
+  type Palette = {
+    node: string;
+    control: string;
+    edge: string;
+    packet: string;
+    nodeAlpha: number;
+    edgeAlpha: number;
+  };
+
+  const DARK: Palette = {
+    node: "148, 163, 184",
+    control: "186, 200, 219",
+    edge: "148, 163, 184",
+    packet: "125, 175, 255",
+    nodeAlpha: 0.3,
+    edgeAlpha: 0.085,
+  };
+
+  const LIGHT: Palette = {
+    node: "71, 85, 105",
+    control: "51, 65, 85",
+    edge: "100, 116, 139",
+    packet: "37, 99, 235",
+    nodeAlpha: 0.26,
+    edgeAlpha: 0.075,
+  };
+
+  const rand = (min: number, max: number) => min + Math.random() * (max - min);
+  const pick = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)];
+
+  function startBackground(canvas: HTMLCanvasElement) {
+    // `transition:persist` keeps this canvas across navigations, so a second
+    // init would leave two rAF loops drawing to it.
+    if (canvas.dataset.bound === "1") return;
+    canvas.dataset.bound = "1";
+
+    const ctx = canvas.getContext("2d", { alpha: true })!;
+    if (!ctx) return;
+
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    let width = 0;
+    let height = 0;
+    let frame = 0;
+    let last = 0;
+    let time = 0;
+    let palette = LIGHT;
+
+    let nodes: Node[] = [];
+    let edges: Edge[] = [];
+    let packets: Packet[] = [];
+    let pending: Pending[] = [];
+
+    let scene = -1;
+    let tierCount = 0;
+    let activeCount = 0;
+    let untilChurn = rand(...CHURN_INTERVAL);
+    let untilRewire = rand(...REWIRE_INTERVAL);
+    let untilPacket = rand(...PACKET_INTERVAL);
+    let untilSweep = rand(...SWEEP_INTERVAL);
+    let untilIdleScene = IDLE_SCENE_INTERVAL;
+
+    function readTheme() {
+      palette = document.documentElement.classList.contains("dark") ? DARK : LIGHT;
+    }
+
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function createPool() {
+      nodes = Array.from({ length: POOL }, () => ({
+        x: 0.5,
+        y: 0.5,
+        tx: 0.5,
+        ty: 0.5,
+        alpha: 0,
+        targetAlpha: 0,
+        role: "service" as Role,
+        radius: 1.6,
+        targetRadius: 1.6,
+        tier: 0,
+        phase: Math.random() * Math.PI * 2,
+        driftX: rand(4, 11),
+        driftY: rand(4, 12),
+        pulse: Math.random() * Math.PI * 2,
+        flash: 0,
+      }));
+    }
+
+    /** Place a node within its tier, with enough jitter to avoid a rigid grid. */
+    function place(node: Node, tier: number, index: number, count: number) {
+      node.tier = tier;
+      node.tx = (tier + 0.5) / tierCount + rand(-0.035, 0.035);
+      node.ty = (index + 0.5) / count + rand(-0.35, 0.35) / count;
+      node.ty = Math.min(0.94, Math.max(0.06, node.ty));
+    }
+
+    /**
+     * Assign the scene's tiers onto the node pool in order, so a node keeps
+     * roughly its horizontal position across scenes and the change reads as a
+     * morph rather than a reshuffle.
+     */
+    function applyScene(index: number) {
+      scene = index;
+      const tiers = SCENES[index];
+      tierCount = tiers.length;
+
+      let cursor = 0;
+      tiers.forEach((tier, tierIndex) => {
+        for (let i = 0; i < tier.count && cursor < POOL; i++, cursor++) {
+          const node = nodes[cursor];
+          place(node, tierIndex, i, tier.count);
+          node.role = tier.role;
+          node.targetRadius = tier.role === "control" ? 3.4 : 1.7;
+          node.targetAlpha = 1;
+
+          // Nodes coming in fresh start where they belong instead of flying in.
+          if (node.alpha === 0) {
+            node.x = node.tx;
+            node.y = node.ty;
+          }
+        }
+      });
+
+      for (let i = cursor; i < POOL; i++) nodes[i].targetAlpha = 0;
+
+      activeCount = cursor;
+      rebuildEdges(cursor);
+    }
+
+    /** Wire each node to one or two nodes in the next tier along. */
+    function rebuildEdges(activeCount: number) {
+      for (const edge of edges) edge.targetAlpha = 0;
+
+      const byTier: number[][] = Array.from({ length: tierCount }, () => []);
+      for (let i = 0; i < activeCount; i++) byTier[nodes[i].tier].push(i);
+
+      const next: Edge[] = [];
+      for (let t = 0; t < tierCount - 1; t++) {
+        for (const a of byTier[t]) {
+          const links = Math.random() < 0.35 ? 2 : 1;
+          const targets = new Set<number>();
+          for (let i = 0; i < links; i++) targets.add(pick(byTier[t + 1]));
+          for (const b of targets) {
+            next.push({ a, b, alpha: 0, targetAlpha: 1, charge: 0 });
+          }
+        }
+      }
+
+      edges = [...edges, ...next];
+    }
+
+    /** Move one service node elsewhere in its tier, fading it out and back. */
+    function churn() {
+      const candidates = nodes.filter(
+        (n) => n.targetAlpha === 1 && n.role === "service"
+      );
+      if (!candidates.length) return;
+
+      const node = pick(candidates);
+      node.targetAlpha = 0;
+
+      window.setTimeout(() => {
+        if (nodes.indexOf(node) >= activeCount) return;
+        node.ty = Math.min(0.94, Math.max(0.06, node.ty + rand(-0.18, 0.18)));
+        node.y = node.ty;
+        node.targetAlpha = 1;
+      }, 1400);
+    }
+
+    /** Repoint one live edge at a different node in the same target tier. */
+    function rewire() {
+      const live = edges.filter((e) => e.targetAlpha === 1);
+      if (!live.length) return;
+
+      const edge = pick(live);
+      const tier = nodes[edge.b].tier;
+      const options = nodes
+        .map((n, i) => (n.targetAlpha === 1 && n.tier === tier ? i : -1))
+        .filter((i) => i >= 0 && i !== edge.b);
+
+      if (!options.length) return;
+
+      edge.targetAlpha = 0;
+      edges.push({ a: edge.a, b: pick(options), alpha: 0, targetAlpha: 1, charge: 0 });
+    }
+
+    function emitPacket() {
+      const live = edges.filter((e) => e.targetAlpha === 1 && e.alpha > 0.6);
+      if (!live.length || packets.length >= MAX_PACKETS) return;
+      packets.push({
+        edge: pick(live),
+        t: 0,
+        speed: rand(0.5, 0.9),
+        reverse: Math.random() < REVERSE_SHARE,
+        hops: 0,
+      });
+    }
+
+    /**
+     * Continue a journey past the node it just reached, so a packet can trace
+     * a whole path across the tiers rather than hopping a single link.
+     */
+    function hop(from: number, packet: Packet) {
+      if (packets.length >= HARD_PACKET_CAP) return;
+
+      const onward = edges.filter(
+        (e) =>
+          e.targetAlpha === 1 && (packet.reverse ? e.b === from : e.a === from)
+      );
+      if (!onward.length) return;
+
+      packets.push({
+        edge: pick(onward),
+        t: 0,
+        speed: packet.speed,
+        reverse: packet.reverse,
+        hops: packet.hops + 1,
+      });
+    }
+
+    /** Fan packets out from one control plane to everything it feeds. */
+    function sweep() {
+      const sources = nodes
+        .map((node, i) => ({ node, i }))
+        .filter(({ node }) => node.targetAlpha === 1 && node.role === "control")
+        .map(({ i }) => ({ i, out: edges.filter((e) => e.targetAlpha === 1 && e.a === i) }))
+        .filter(({ out }) => out.length > 0);
+
+      if (!sources.length) return;
+
+      const source = pick(sources);
+      source.out.slice(0, 6).forEach((edge, i) => {
+        pending.push({ edge, delay: i * 0.13, speed: rand(0.65, 0.9) });
+      });
+    }
+
+    /** Scroll position drives which topology is on screen. */
+    function sceneFromScroll() {
+      const scrollable = Math.max(
+        0,
+        document.documentElement.scrollHeight - window.innerHeight
+      );
+      if (scrollable < 200) return null;
+
+      const progress = Math.min(1, window.scrollY / scrollable);
+      const index = Math.min(SCENES.length - 1, Math.floor(progress * SCENES.length));
+      if (index === scene) return index;
+
+      const boundary = Math.max(index, scene) / SCENES.length;
+      return Math.abs(progress - boundary) < 0.03 ? scene : index;
+    }
+
+    function step(dt: number) {
+      const target = sceneFromScroll();
+
+      if (target === null) {
+        // Page can't scroll, so cycle on a timer instead of sitting still.
+        untilIdleScene -= dt;
+        if (untilIdleScene <= 0) {
+          untilIdleScene = IDLE_SCENE_INTERVAL;
+          applyScene((scene + 1) % SCENES.length);
+        }
+      } else if (target !== scene) {
+        untilIdleScene = IDLE_SCENE_INTERVAL;
+        applyScene(target);
+      }
+
+      for (const node of nodes) {
+        node.x += (node.tx - node.x) * EASE_POSITION;
+        node.y += (node.ty - node.y) * EASE_POSITION;
+        node.alpha += (node.targetAlpha - node.alpha) * EASE_ALPHA;
+        node.radius += (node.targetRadius - node.radius) * EASE_POSITION;
+      }
+
+      for (const edge of edges) {
+        edge.alpha += (edge.targetAlpha - edge.alpha) * EASE_ALPHA;
+      }
+      edges = edges.filter((e) => e.targetAlpha === 1 || e.alpha > 0.01);
+
+      untilChurn -= dt;
+      if (untilChurn <= 0) {
+        untilChurn = rand(...CHURN_INTERVAL);
+        churn();
+      }
+
+      untilRewire -= dt;
+      if (untilRewire <= 0) {
+        untilRewire = rand(...REWIRE_INTERVAL);
+        rewire();
+      }
+
+      untilPacket -= dt;
+      if (untilPacket <= 0) {
+        untilPacket = rand(...PACKET_INTERVAL);
+        emitPacket();
+      }
+
+      untilSweep -= dt;
+      if (untilSweep <= 0) {
+        untilSweep = rand(...SWEEP_INTERVAL);
+        sweep();
+      }
+
+      // Release staggered packets whose delay has run out.
+      const waiting: Pending[] = [];
+      for (const item of pending) {
+        item.delay -= dt;
+        if (item.delay > 0) waiting.push(item);
+        else if (packets.length < HARD_PACKET_CAP && item.edge.targetAlpha === 1) {
+          packets.push({ edge: item.edge, t: 0, speed: item.speed, reverse: false, hops: 0 });
+        }
+      }
+      pending = waiting;
+
+      for (const packet of packets) packet.t += packet.speed * dt;
+
+      const flying: Packet[] = [];
+      for (const packet of packets) {
+        if (packet.edge.targetAlpha !== 1) continue;
+        if (packet.t > 1) {
+          // Landing lights the destination node up briefly, and often carries
+          // the journey onward to the next tier.
+          const landed = packet.reverse ? packet.edge.a : packet.edge.b;
+          nodes[landed].flash = 1;
+          if (packet.hops < MAX_HOPS && Math.random() < HOP_CHANCE) {
+            hop(landed, packet);
+          }
+          continue;
+        }
+        flying.push(packet);
+      }
+      packets = flying;
+
+      for (const node of nodes) node.flash = Math.max(0, node.flash - dt * 2.2);
+      for (const edge of edges) edge.charge = Math.max(0, edge.charge - dt * 2);
+      for (const packet of packets) {
+        packet.edge.charge = Math.max(packet.edge.charge, Math.sin(packet.t * Math.PI));
+      }
+    }
+
+    /** Node position in device pixels, including its slow wander. */
+    function px(node: Node) {
+      const padX = width * 0.07;
+      const padY = height * 0.1;
+      return {
+        // Two harmonics rather than one, so the wander doesn't read as a
+        // clean circle.
+        x:
+          padX + node.x * (width - padX * 2) +
+          Math.sin(time * 0.16 + node.phase) * node.driftX +
+          Math.sin(time * 0.41 + node.phase * 1.7) * node.driftX * 0.28,
+        y:
+          padY + node.y * (height - padY * 2) +
+          Math.cos(time * 0.13 + node.phase) * node.driftY +
+          Math.cos(time * 0.37 + node.phase * 1.3) * node.driftY * 0.24,
+      };
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, width, height);
+
+      const points = nodes.map(px);
+
+      ctx.lineWidth = 1;
+      for (const edge of edges) {
+        const a = nodes[edge.a];
+        const b = nodes[edge.b];
+        const alpha =
+          edge.alpha * a.alpha * b.alpha * palette.edgeAlpha * (1 + edge.charge * 1.9);
+        if (alpha <= 0.002) continue;
+
+        ctx.strokeStyle = `rgba(${palette.edge}, ${alpha})`;
+        ctx.beginPath();
+        ctx.moveTo(points[edge.a].x, points[edge.a].y);
+        ctx.lineTo(points[edge.b].x, points[edge.b].y);
+        ctx.stroke();
+      }
+
+      for (const packet of packets) {
+        const head = points[packet.reverse ? packet.edge.a : packet.edge.b];
+        const tail = points[packet.reverse ? packet.edge.b : packet.edge.a];
+        if (!head || !tail) continue;
+
+        // Ease in and out so packets don't pop at either end.
+        const alpha = Math.sin(packet.t * Math.PI) * 0.55;
+        if (alpha <= 0.01) continue;
+
+        const x = tail.x + (head.x - tail.x) * packet.t;
+        const y = tail.y + (head.y - tail.y) * packet.t;
+
+        // A short trail behind the head, fading to nothing.
+        const back = Math.max(0, packet.t - 0.16);
+        const bx = tail.x + (head.x - tail.x) * back;
+        const by = tail.y + (head.y - tail.y) * back;
+
+        const trail = ctx.createLinearGradient(bx, by, x, y);
+        trail.addColorStop(0, `rgba(${palette.packet}, 0)`);
+        trail.addColorStop(1, `rgba(${palette.packet}, ${alpha * 0.7})`);
+        ctx.strokeStyle = trail;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+
+        ctx.fillStyle = `rgba(${palette.packet}, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        if (node.alpha <= 0.01) continue;
+
+        const point = points[i];
+        const control = node.role === "control";
+        const tone = control ? palette.control : palette.node;
+        const alpha =
+          node.alpha * palette.nodeAlpha * (control ? 1.25 : 1) * (1 + node.flash * 1.2);
+
+        ctx.fillStyle = `rgba(${tone}, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(
+          point.x,
+          point.y,
+          node.radius * (0.35 + node.alpha * 0.65) + node.flash * 1.1,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+
+        if (control) {
+          // A ring that breathes very slightly, only on control planes.
+          const breath = 1 + Math.sin(time * 0.7 + node.pulse) * 0.17;
+          ctx.strokeStyle = `rgba(${tone}, ${alpha * 0.3})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, node.radius * 2.6 * breath, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+    }
+
+    function loop(now: number) {
+      frame = requestAnimationFrame(loop);
+
+      // Clamp dt so a backgrounded tab doesn't jump on return.
+      const dt = Math.min((now - last) / 1000, 0.05);
+      last = now;
+      time += dt;
+
+      step(dt);
+      draw();
+    }
+
+    function start() {
+      if (frame) return;
+      last = performance.now();
+      frame = requestAnimationFrame(loop);
+    }
+
+    function stop() {
+      if (!frame) return;
+      cancelAnimationFrame(frame);
+      frame = 0;
+    }
+
+    readTheme();
+    resize();
+    createPool();
+    applyScene(0);
+
+    // Settle the graph into place so the first paint isn't mid-fade.
+    for (let i = 0; i < 400; i++) {
+      for (const node of nodes) {
+        node.x += (node.tx - node.x) * EASE_POSITION;
+        node.y += (node.ty - node.y) * EASE_POSITION;
+        node.alpha += (node.targetAlpha - node.alpha) * EASE_ALPHA;
+        node.radius += (node.targetRadius - node.radius) * EASE_POSITION;
+      }
+      for (const edge of edges) {
+        edge.alpha += (edge.targetAlpha - edge.alpha) * EASE_ALPHA;
+      }
+    }
+
+    window.addEventListener("resize", () => {
+      resize();
+      draw();
+    }, { passive: true });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) stop();
+      else if (!reduced.matches) start();
+    });
+
+    // The theme toggle swaps `.dark` on <html>; repaint when it does.
+    new MutationObserver(() => {
+      readTheme();
+      draw();
+    }).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    if (reduced.matches) draw();
+    else start();
+
+    reduced.addEventListener("change", (event) => {
+      if (event.matches) {
+        stop();
+        draw();
+      } else {
+        start();
+      }
+    });
+  }
+
+  function init() {
+    const canvas = document.querySelector<HTMLCanvasElement>("[data-site-background]");
+    if (canvas) startBackground(canvas);
+  }
+
+  init();
+  document.addEventListener("astro:after-swap", init);
+</script>
