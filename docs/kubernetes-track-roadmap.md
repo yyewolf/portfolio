@@ -1,9 +1,13 @@
 # Kubernetes track roadmap
 
-The full plan for the `kubernetes` course track: 51 lessons of about ten
-minutes, in 13 phases, across three depths. It ships in batches, so this file is
-the plan of record and `src/content/lessons/kubernetes/` is what has actually
-gone out.
+The full plan for the `kubernetes` course track: 51 lessons in 13 phases, across
+three depths. It ships in batches, so this file is the plan of record and
+`src/content/lessons/kubernetes/` is what has actually gone out.
+
+Lesson length is not uniform — a lesson that is mostly an interactive runs well
+past a lesson that is mostly prose. Each lesson's `minutes` is estimated from its
+own contents; the recipe is in
+[AGENTS.md](../AGENTS.md#estimating-minutes).
 
 Mechanics live in [AGENTS.md](../AGENTS.md#the-courses-subsystem). Phase
 metadata (title, summary, depth, accent) is

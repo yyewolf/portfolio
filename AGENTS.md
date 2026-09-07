@@ -33,9 +33,10 @@ print(sum(f['errorCount'] for f in d))"   # expect 79
 
 # The Courses subsystem
 
-A course is a **track** (e.g. Kubernetes) made of ordered **lessons** of about
-ten minutes each, with a **glossary** that only ever shows terms the reader has
-already met.
+A course is a **track** (e.g. Kubernetes) made of ordered **lessons**, with a
+**glossary** that only ever shows terms the reader has already met. Lesson length
+varies with how much of the lesson is interactive; see [Estimating
+`minutes`](#estimating-minutes).
 
 Lessons are grouped into **phases**, and phases into three **depth tiers** (core,
 practical, deep). A lesson declares its `phase` in frontmatter; the depth is a
@@ -87,7 +88,7 @@ Routes: `/courses`, `/courses/<track>`, `/courses/<track>/glossary`,
    phase: 2               # must exist in the track's phases.json
    title: Probes and health
    description: One sentence, shown on cards and in search results.
-   minutes: 10            # explicit; reading time is NOT computed for lessons
+   minutes: 12            # explicit; reading time is NOT computed for lessons
    tags: [workloads]
    modes: [operate]       # planned interactives: visualize | operate | inspect
    holdGlossary: false    # hide the sidebar glossary until the lesson is completed
@@ -105,6 +106,28 @@ Routes: `/courses`, `/courses/<track>`, `/courses/<track>/glossary`,
 
 Renumbering lessons means updating every `introducedIn` that points at them.
 There is no migration helper; grep the glossary.
+
+## Estimating `minutes`
+
+`minutes` is authored, never computed, and it is summed per phase and per depth
+tier on the track page. A flat ten everywhere makes those totals meaningless, so
+estimate each lesson from what it actually contains:
+
+| Ingredient | Budget |
+|---|---|
+| Prose | 180 words/min — technical reading, not skimming |
+| Code block | ~6s per line; YAML the reader is meant to parse, not copy |
+| Table row | ~8s |
+| Diagram (`ClusterSplit`, timelines) | 30s per figure |
+| Explorable diagram (`ClusterMap`) | 2 min |
+| Choice round (`OutageWalk`, `AssembleObjects`) | ~1.5 min each: read the setup, read every option, ~20s deciding, read one or two replies |
+| Game level (`OperatorGame`) | ~2 min each, including its debrief and quiz |
+| Watched animation | its scripted delay, plus the reader re-reading what moved |
+
+Then round to the nearest minute. The interactives dominate: lesson 2 is 52 words
+of MDX and twenty minutes of lesson, and lesson 3 is longer to read than lesson 1
+but shorter to do. Re-estimate when a lesson gains or loses an interactive — a
+number left at its placeholder is worse than no number.
 
 ## Adding a track
 
