@@ -1,65 +1,205 @@
 ---
 import Container from "@components/Container.astro";
-import Link from "@components/Link.astro";
 import { SITE } from "@consts";
+
+const LINKS = [
+  { href: "/blog", label: "Blog" },
+  { href: "/work", label: "Work" },
+  { href: "/projects", label: "Projects" },
+  { href: "/courses", label: "Courses" },
+  { href: "/talks", label: "Talks" },
+  { href: "/certifications", label: "Certifications" },
+];
+
+const pathname = Astro.url.pathname.replace(/\/+$/, "") || "/";
+const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 ---
 
 <header>
   <Container>
-    <div class="flex items-center justify-between">
-      <Link href="/" underline={false}>
-        <div class="font-bold text-xl text-black dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-          {SITE.NAME}
-        </div>
-      </Link>
-      
-      <nav class="flex items-center space-x-6">
-        <Link href="/blog" underline={false} class="font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-          Blog
-        </Link>
-        <Link href="/work" underline={false} class="font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-          Work
-        </Link>
-        <Link href="/projects" underline={false} class="font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-          Projects
-        </Link>
-        <Link href="/courses" underline={false} class="font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-          Courses
-        </Link>
-        <Link href="/talks" underline={false} class="font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-          Talks
-        </Link>
-        <Link href="/certifications" underline={false} class="font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-          Certifications
-        </Link>
-        <button id="theme-toggle" aria-label="Toggle dark mode" class="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+    <div class="flex items-center justify-between gap-4">
+      <a
+        href="/"
+        class="font-bold text-lg sm:text-xl text-black dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+      >
+        {SITE.NAME}
+      </a>
+
+      <div class="flex items-center gap-1 sm:gap-2">
+        <!-- Desktop navigation -->
+        <nav class="hidden md:flex items-center gap-5 lg:gap-6" aria-label="Main">
+          {
+            LINKS.map(({ href, label }) => (
+              <a
+                href={href}
+                aria-current={isActive(href) ? "page" : undefined}
+                class:list={[
+                  "font-medium text-sm lg:text-base transition-colors",
+                  isActive(href)
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400",
+                ]}
+              >
+                {label}
+              </a>
+            ))
+          }
+        </nav>
+
+        <button
+          id="theme-toggle"
+          type="button"
+          aria-label="Toggle dark mode"
+          class="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+        >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden dark:block">
-            <circle cx="12" cy="12" r="5"/>
-            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            <circle cx="12" cy="12" r="5"></circle>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
           </svg>
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="block dark:hidden">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
           </svg>
         </button>
-      </nav>
+
+        <!-- Mobile menu trigger -->
+        <button
+          id="menu-toggle"
+          type="button"
+          aria-label="Open menu"
+          aria-expanded="false"
+          aria-controls="mobile-menu"
+          class="group md:hidden p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-data-[open]:hidden">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden group-data-[open]:block">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile navigation panel -->
+    <div
+      id="mobile-menu"
+      class="md:hidden grid grid-rows-[0fr] invisible data-[open]:grid-rows-[1fr] data-[open]:visible transition-[grid-template-rows,visibility] duration-300 ease-out motion-reduce:transition-none"
+    >
+      <div class="min-h-0 overflow-hidden">
+        <nav
+          class="mt-4 flex flex-col border-t border-gray-200 dark:border-gray-800 pt-2 max-h-[calc(100dvh-8rem)] overflow-y-auto"
+          aria-label="Mobile"
+        >
+          {
+            LINKS.map(({ href, label }) => (
+              <a
+                href={href}
+                aria-current={isActive(href) ? "page" : undefined}
+                class:list={[
+                  "py-3 font-medium transition-colors",
+                  isActive(href)
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400",
+                ]}
+              >
+                {label}
+              </a>
+            ))
+          }
+        </nav>
+      </div>
     </div>
   </Container>
 </header>
 
 <script>
-  // Theme toggle functionality
-  const themeToggle = document.getElementById('theme-toggle');
-  
-  if (themeToggle) {
-    themeToggle.addEventListener('click', () => {
-      document.documentElement.classList.toggle('dark');
-      
-      // Save preference to localStorage
-      if (document.documentElement.classList.contains('dark')) {
-        localStorage.setItem('theme', 'dark');
-      } else {
-        localStorage.setItem('theme', 'light');
-      }
-    });
+  // ClientRouter swaps the header DOM on navigation, so listeners have to be
+  // rebound on every page load. Document-level ones are torn down first,
+  // otherwise they pile up (and keep pointing at detached elements).
+  let controller: AbortController | null = null;
+
+  function setupHeader() {
+    controller?.abort();
+    controller = new AbortController();
+    const { signal } = controller;
+
+    const menuToggle = document.getElementById("menu-toggle");
+    const menu = document.getElementById("mobile-menu");
+    const themeToggle = document.getElementById("theme-toggle");
+
+    if (menuToggle && menu) {
+      const setOpen = (open: boolean) => {
+        menu.toggleAttribute("data-open", open);
+        menuToggle.toggleAttribute("data-open", open);
+        menuToggle.setAttribute("aria-expanded", String(open));
+        menuToggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+      };
+
+      menuToggle.addEventListener(
+        "click",
+        () => setOpen(!menu.hasAttribute("data-open")),
+        { signal }
+      );
+
+      // A link to the current page doesn't trigger a swap, so close by hand.
+      menu.addEventListener(
+        "click",
+        (event) => {
+          if ((event.target as HTMLElement).closest("a")) setOpen(false);
+        },
+        { signal }
+      );
+
+      document.addEventListener(
+        "keydown",
+        (event) => {
+          if (event.key === "Escape" && menu.hasAttribute("data-open")) {
+            setOpen(false);
+            menuToggle.focus();
+          }
+        },
+        { signal }
+      );
+
+      document.addEventListener(
+        "click",
+        (event) => {
+          const target = event.target as Node;
+          if (
+            menu.hasAttribute("data-open") &&
+            !menu.contains(target) &&
+            !menuToggle.contains(target)
+          ) {
+            setOpen(false);
+          }
+        },
+        { signal }
+      );
+
+      // Crossing back to the desktop breakpoint while open would strand the panel.
+      window
+        .matchMedia("(min-width: 768px)")
+        .addEventListener(
+          "change",
+          (event) => {
+            if (event.matches) setOpen(false);
+          },
+          { signal }
+        );
+    }
+
+    themeToggle?.addEventListener(
+      "click",
+      () => {
+        const dark = document.documentElement.classList.toggle("dark");
+        localStorage.setItem("theme", dark ? "dark" : "light");
+      },
+      { signal }
+    );
   }
+
+  document.addEventListener("astro:page-load", setupHeader);
 </script>

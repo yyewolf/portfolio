@@ -5,6 +5,8 @@
 html {
   overflow-y: scroll;
   color-scheme: light;
+  /* Keep anchor targets clear of the fixed header. */
+  scroll-padding-top: 6rem;
 }
 
 html.dark {
@@ -31,7 +33,7 @@ header {
 }
 
 main {
-  @apply flex-1 py-32;
+  @apply flex-1 py-24 md:py-32;
 }
 
 footer {
