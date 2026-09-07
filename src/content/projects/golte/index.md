@@ -1,7 +1,7 @@
 ---
 title: "Golte"
 description: "A cursed SMS-Discord Bridge application"
-date: 2024-07-25
+date: 2025-07-25
 repoURL: "https://github.com/yyewolf/golte"
 ---
 
