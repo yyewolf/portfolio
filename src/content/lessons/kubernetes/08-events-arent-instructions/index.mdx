@@ -1,0 +1,195 @@
+---
+track: kubernetes
+order: 8
+phase: 2
+title: Events aren't instructions
+description: The feed that looks like the system telling you what to do, and the reason nothing in the cluster is allowed to listen to it.
+minutes: 16
+tags: [fundamentals, architecture, operations]
+modes: [operate]
+draft: false
+---
+
+import EventTriage from "@components/courses/EventTriage.astro";
+
+Everything in this phase has been building to one habit, and the habit is
+awkward because the tooling fights it.
+
+## An event is an object
+
+`kubectl get events` shows you a stream, so it feels like a stream. It is not.
+Each line is an <Term>Event</Term>, and an Event is an object like every other
+object in this phase: it has a kind, it has a namespace, it was written through
+the API server, and it is sitting in etcd next to your Deployment.
+
+```yaml
+kind: Event
+metadata:
+  namespace: shop
+reason: FailedScheduling
+message: "0/3 nodes are available: 3 Insufficient cpu"
+involvedObject:
+  kind: Pod
+  name: report-nightly-28492-lm4x
+count: 847
+firstTimestamp: "2026-04-11T09:17:03Z"
+lastTimestamp: "2026-04-11T09:31:44Z"
+type: Warning
+```
+
+Three fields there are worth more than the rest.
+
+`count` is 847 and there is one object. The API server folds repeats of the same
+thing about the same object into one record and increments a counter, so a big
+number means something has been retrying for a while, not that 847 things
+happened to you.
+
+Both timestamps describe the past. There is no field on an Event saying what is
+true now, because that is not what it is for.
+
+And there is one field that does not appear at all: nothing says who should
+handle it. Events are addressed to nobody.
+
+## They also expire
+
+Events are kept for about an hour by default, and then deleted. Not archived,
+deleted.
+
+So the feed is a window roughly one hour deep onto a system that has been running
+for months. A problem that started this morning is invisible in it, while the
+object that problem is happening to says exactly what is wrong, in full, with no
+expiry at all.
+
+This is the first reason to distrust the feed, and it is the one that catches
+experienced people, because an empty feed reads as good news.
+
+## Edge and level
+
+There are two ways to build something that reacts to a system.
+
+An edge-triggered thing is told when something changes, and responds to the
+change. The word comes from electronics: you act on the moment a signal goes from
+low to high.
+
+A <Term term="Level-triggered">level-triggered</Term> thing looks at how things
+are right now and acts on how they are. Nobody has to tell it anything, because
+the current level is the input.
+
+The whole of Kubernetes is the second one. Run through what an edge-triggered version
+would have to survive:
+
+| What happens | Costs an edge-triggered system | Costs a level-triggered one |
+|---|---|---|
+| A notification is lost | The change never happens | Nothing. The next look sees the same gap |
+| A notification arrives twice | The change happens twice | Nothing. The second look finds no gap |
+| Two arrive out of order | The system ends up in the older state | Nothing. Only the current state was ever read |
+| The listener restarts | Everything sent while it was down is gone | Nothing. It reads everything on the way up |
+
+The right-hand column is empty because a level-triggered component never asked to
+be told. A controller is handed the *name* of an object, goes and reads it, and
+compares. Feed it the same name a thousand times and it produces one outcome.
+Never feed it at all and the periodic sweep gets there anyway.
+
+That is the property the whole system is built on, and events are what it looks
+like when you do not have it.
+
+## So who reads the events?
+
+Nothing does.
+
+No controller subscribes to them. The scheduler does not consume them. The
+kubelet does not act on them. They are written, they are read by humans and by
+dashboards, and they are deleted.
+
+They are a diary. Components write into it as a courtesy so that a person can
+reconstruct what happened, and the system would work identically if the diary
+were switched off. If you have ever seen an event about a pod being scheduled and
+assumed that the event is how the node found out, this is the correction: the
+node found out by reading the pod.
+
+## Reading a feed
+
+Knowing that is not the same as doing it.
+
+<EventTriage />
+
+## What to read instead
+
+If the feed is not the state, the state is on the object. Two places, and they
+are not equivalent.
+
+Status is the report a controller writes about what it currently sees.
+
+```text
+NAME   READY   UP-TO-DATE   AVAILABLE
+web    2/3     1            2
+```
+
+Conditions are the part worth learning to read, because they carry the reason as
+well as the state:
+
+```yaml
+status:
+  conditions:
+    - type: Available
+      status: "True"
+      reason: MinimumReplicasAvailable
+    - type: Progressing
+      status: "False"
+      reason: ProgressDeadlineExceeded
+      lastTransitionTime: "2026-04-11T09:03:12Z"
+```
+
+A <Term>condition</Term> is a claim about the object right now, with a machine
+name for the reason and a timestamp for when it last flipped. Available true and
+Progressing false is a precise sentence: it is serving, it has been trying to
+change to something else for half an hour, and it has given up. No event says
+that. Several events hint at it.
+
+Conditions do not expire, they do not accumulate, and there is a small fixed set
+of them per kind. `kubectl describe` prints the conditions and the recent events
+together, which is a convenience and also, if you read it top to bottom, the
+correct order of operations.
+
+## The gap is normal
+
+Because everything works by looking and closing gaps, there is always a moment
+between something breaking and something noticing. During that moment the system
+is wrong. It is not failing: it is wrong and converging at the same time.
+
+That window is not a defect to be engineered away, it is the cost of the design
+that makes the rest of it survivable, and it is what
+<Term>eventual consistency</Term> means in practice here. The useful question
+during an incident is therefore rarely "is it correct". It is:
+
+- Is the gap closing?
+- Is it closing fast enough?
+- Is anything *trying*, or has something given up and said so in a condition?
+
+A Deployment at 2 of 3 might be thirty seconds into a rollout or thirty minutes
+into a broken one, and those look identical in a count. The condition tells them
+apart.
+
+## The rule
+
+> Never build anything that acts on an event.
+
+Not a script, not an operator, not an alert that fires on a single line in the
+feed. Anything acting on the arrival of an event inherits every row of that
+table.
+
+Alert on conditions and on status, which describe now and which do not expire.
+Use the feed for what it is good for, which is answering "what on earth happened
+here" after the fact, within the hour, if you are quick.
+
+And when you are the one at the terminal, you are also a controller. Look at
+what is wanted, look at what is there, act on the difference, then look again.
+
+## This is the end of phase 2 of this coursem, summed up
+
+An object is what you want, the API server is the only way to say it, etcd is
+the only thing that remembers it, a controller is a loop that reads it, and an
+event is a note about something that has already happened.
+
+Next comes the other half: what actually runs, starting with the thing every one
+of these lessons has been quietly assuming.

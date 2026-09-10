@@ -1,0 +1,157 @@
+---
+track: kubernetes
+order: 5
+phase: 2
+title: The API server
+description: The entrypoint of your cluster
+minutes: 12
+tags: [fundamentals, api, architecture]
+modes: [inspect]
+draft: false
+---
+
+import RequestPath from "@components/courses/RequestPath.astro";
+
+Last lesson was about how one writes objects. This one is about 
+where they actually get handled.
+
+## There is one door
+
+The <Term>API server</Term> is the ONLY component in the cluster that anything
+talks to. 
+
+You submit an object to it. A controller reads objects from it. A machine asks
+it what it should be running. Nothing goes around it, and in particular nothing
+reads or writes the database behind it directly, including the components that live
+on the same machine.
+
+That is a stronger claim than it looks. Every read and every change passes one
+point, so anything the cluster wants to enforce, or to notice, only has to be
+built once.
+
+## It is an ordinary HTTP API
+
+There is nothing exotic about the protocol. Objects are resources with URLs,
+and the operations on them are the usual ones:
+
+```text
+GET    /api/v1/namespaces/shop/pods
+GET    /api/v1/namespaces/shop/pods/web-7d4f
+POST   /apis/apps/v1/namespaces/shop/deployments
+PATCH  /apis/apps/v1/namespaces/shop/deployments/web
+DELETE /apis/apps/v1/namespaces/shop/deployments/web
+```
+
+The path is the object's identity spelled out: which API group, which version,
+which namespace, which kind, which name. Cluster-wide kinds simply have no
+namespace segment.
+
+<Term>kubectl</Term> is an HTTP client for this and not much else. It is worth
+proving to yourself once:
+
+```bash
+kubectl get pods -v=8
+```
+
+The output is the request it sent, the headers, and the JSON that came back. A
+`kubectl` subcommand is a convenience over one or two of these calls, and
+anything you can do with it, you can do with `curl` and a credential.
+
+## Six gates
+
+A request that changes something does not go straight into the store. It walks a
+fixed sequence, and each step asks one question. The order matters, which is what
+this is for.
+
+<RequestPath />
+
+Two of those gates can change or refuse your object after you have already been
+allowed to send it. That is why what comes back out of `kubectl get` is not
+always the file you put in, and why a request can pass one gate and be rejected
+three gates later.
+
+## What the response means
+
+When the write succeeds you get the stored object back, with two things attached
+that you did not send: a name for anything you left to be generated, and a
+version number.
+
+```yaml
+metadata:
+  name: web
+  namespace: shop
+  resourceVersion: "41822"
+  uid: 6b1c0b1e-3a7a-4b5c-9f0f-2a5f0f2b8e11
+```
+
+The <Term>resourceVersion</Term> is not a version of your app or a count of your
+edits. It is a marker of *when* in the cluster's history this object was last
+written.
+
+Underneath it is one counter that every write in the cluster increments, so the
+numbers only go up and a larger one always means later. But the field is 
+documented as opaque, and the two facts live together more comfortably 
+than they look: the ordering is what lets the *server* answer "everything 
+since 41822", and the opacity is what stops *you* building on a detail 
+the project has reserved the right to change. You may
+compare two of them for equality, and you may hand one back.
+
+Handing one back is what makes it useful. Send an update carrying the version you
+read, and the write succeeds only if nothing has changed the object since:
+
+```text
+PUT /apis/apps/v1/namespaces/shop/deployments/web    resourceVersion: "41822"
+
+409 Conflict
+Operation cannot be fulfilled on deployments.apps "web": the object has been
+modified; please apply your changes to the latest version and try again
+```
+
+Two things editing one object cannot silently overwrite each other. The loser is
+told to read the current object and try again. (This is again reinforcing the 
+concept of eventual consistency)
+
+## Watch, and why it is not a queue
+
+Reading everything on a timer would work and would be terrible. So the API server
+offers one more verb:
+
+```text
+GET /api/v1/namespaces/shop/pods?watch=true&resourceVersion=41822
+```
+
+The connection stays open and the server sends a small entry every time a pod in
+that namespace is added, modified or deleted, starting from the version you named.
+This is a <Term>watch</Term>, and it is how everything in the cluster stays
+current without polling.
+
+It is very easy to read that as a message queue, and it is not one. There are two
+differences and both matter:
+
+| A queue | A watch |
+|---|---|
+| Delivers every message, eventually | Can drop you, and does |
+| You are expected to process each one | You are expected to re-read the object |
+| Missing one loses information | Missing one loses nothing you cannot re-read |
+
+A watch can end. The connection breaks, the server restarts, or the history you
+asked to resume from has been discarded because it is too old. The response to
+that is not to recover the lost entries, because they are not recoverable. It is
+to list everything again and carry on from the version that list came back with.
+
+Nothing built on this can afford to treat an entry as an instruction, because missing
+an entry would then be a missing instruction.
+
+## What it does not do
+
+The API server does not start containers. It does not decide which machine
+anything runs on. It does not notice that you asked for three and have two.
+
+It answers requests and it writes objects down. Everything in the cluster that
+appears to *do* something is a separate program that got its information the same
+way you would have: by asking this one.
+
+## Where this goes next
+
+Two questions are left open: the database behind this API, and the programs on
+the other side of it that read everything you write.

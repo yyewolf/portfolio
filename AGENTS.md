@@ -18,15 +18,16 @@ pnpm lint       # eslint
 Path aliases: `@*` maps to `./src/*` (`@lib/...`, `@components/...`,
 `@layouts/...`, `@scripts/...`, `@consts`). Defined in `tsconfig.json`.
 
-**Lint baseline: 79 pre-existing errors** in `Header.astro`,
-`certifications/index.astro`, `index.astro`, `talks/*`, `scripts/ctf/animations.ts`
-— almost all single-quote violations. `pnpm lint` exits non-zero on a clean tree.
+**Lint baseline: 73 pre-existing errors** in `certifications/index.astro`,
+`index.astro`, `talks/*`, `Background.astro`, `scripts/ctf/animations.ts`, plus a
+parse error in `courses/[track]/index.astro` — almost all single-quote
+violations. `pnpm lint` exits non-zero on a clean tree.
 Do not "fix" these as a side quest; just confirm your change adds none:
 
 ```bash
 pnpm exec eslint . -f json -o /tmp/lint.json; python3 -c "
 import json; d=json.load(open('/tmp/lint.json'))
-print(sum(f['errorCount'] for f in d))"   # expect 79
+print(sum(f['errorCount'] for f in d))"   # expect 73
 ```
 
 ---
@@ -70,6 +71,14 @@ a track in batches.
 | `src/scripts/courses/operator/` | The lesson 2 game: `engine.ts` (world model), `scenarios.ts` (levels), `game.ts` (runner and view). |
 | `src/components/courses/OperatorGame.astro` | Mounts the game, holds the lesson's closing prose in its slot. |
 | `src/styles/operator.css` | Game styles, all under `.op`. |
+| `src/scripts/courses/assemble/` | The lesson 4 object assembly: `rounds.ts` (requirements as data), `assemble.ts` (runner and view). |
+| `src/components/courses/AssembleObjects.astro` | Mounts the assembly. Styles in `src/styles/assemble.css`, under `.as`. |
+| `src/components/courses/RequestPath.astro` | Lesson 5's request path. Server-rendered; styles in `src/styles/request.css`, under `.rp`. |
+| `src/components/courses/StoreBrowser.astro` | Lesson 6's etcd key browser. Server-rendered; styles in `src/styles/store.css`, under `.sb`. |
+| `src/scripts/courses/cascade/` | The lesson 7 cascade: `engine.ts` (world plus the five loops), `cascade.ts` (runner and view). |
+| `src/components/courses/ControllerCascade.astro` | Mounts the cascade. Styles in `src/styles/cascade.css`, under `.cs`. |
+| `src/scripts/courses/triage/` | The lesson 8 triage: `rounds.ts` (feeds and answers as data), `triage.ts` (runner and view). |
+| `src/components/courses/EventTriage.astro` | Mounts the triage. Styles in `src/styles/triage.css`, under `.tr`. |
 | `src/pages/courses/` | The four routes. |
 
 Routes: `/courses`, `/courses/<track>`, `/courses/<track>/glossary`,
@@ -106,6 +115,30 @@ Routes: `/courses`, `/courses/<track>`, `/courses/<track>/glossary`,
 
 Renumbering lessons means updating every `introducedIn` that points at them.
 There is no migration helper; grep the glossary.
+
+## The track's prose voice
+
+Not enforced by anything, and easy to drift from, because a lesson is written in
+one sitting and the voice lives across eight files. Lessons 1 to 4 are the
+reference. Checked against them, the track uses:
+
+- **No em or en dashes.** Zero across every published lesson. Use a comma, a
+  colon, a full stop, or restructure.
+- **No bolded paragraph openers.** No `**Thing.** explanation` lead-ins and no
+  bolded inline-header lists. Points are made in sentences.
+- **Sentence case headings**, and no emoji anywhere.
+- Straight quotes, not curly.
+
+Lessons 5 to 8 shipped violating the first two (five em dashes, nine bold
+lead-ins) and were corrected. Worth a grep before calling a lesson done:
+
+```bash
+grep -c '—\|–' src/content/lessons/<track>/*/index.mdx   # expect 0
+grep -c '^\*\*' src/content/lessons/<track>/*/index.mdx  # expect 0
+```
+
+The same applies to strings inside the interactives, which are prose the reader
+sees and are easy to forget because they live in `.ts` and `.astro` files.
 
 ## Estimating `minutes`
 
@@ -375,6 +408,77 @@ for w in kubernetes cluster reconcil "desired state" "control loop"; do
 done
 ```
 
+## Phase 2's interactives
+
+Four more, and only two of them ship JavaScript that matters. The designs are in
+[the roadmap](docs/kubernetes-track-roadmap.md#phase-2s-four-interactives); the
+things that will silently break are here.
+
+**Two of them are server-rendered, and that is a choice.** `RequestPath.astro`
+and `StoreBrowser.astro` build every outcome as real HTML and use script only to
+collapse the list to one at a time. So they work with JavaScript off, Pagefind
+indexes the text, and the entries are keyboard-navigable because they are real
+buttons. `ClusterMap.astro` was the first of these and the two follow its shape
+deliberately. If you ever move one of them to runtime rendering you lose all
+three properties at once, silently.
+
+**The cascade's loops must never call each other.** Every `reconcile` in
+`cascade/engine.ts` takes the world, reads it, and makes at most one change.
+Passing one a hint about what just changed — or letting a loop do a second thing
+in the same sweep — turns the panel into a picture of an orchestrator, which is
+the one idea lesson 7 exists to demolish. The pause switches are load-bearing for
+the same reason: stopping the ReplicaSet controller and deleting a pod has to
+leave that pod gone.
+
+**A rollout has to add before it removes.** The deployment controller scales the
+new ReplicaSet up by one, waits for that pod to be *running*, and only then takes
+one off the old set. `MAX_SURGE`/`MAX_UNAVAILABLE` in `engine.ts` are 1 and 0,
+which is what the real 25% defaults round to for three replicas. The first
+version zeroed the old ReplicaSet in one move, and because the ReplicaSet
+controller walks its sets in array order, deletions outran creations and
+availability fell to one pod during what the lesson calls a safe operation.
+
+**Assert the trough, not just the end state.** That bug shipped because the
+replay only checked where the world landed. Replay it outside the browser:
+
+```bash
+pnpm exec esbuild src/scripts/courses/cascade/engine.ts --bundle --format=esm \
+  --outfile=/tmp/engine.mjs
+# then assert: a cold start settles at 3 running pods and 1 ReplicaSet; every
+# action settles again at the replica count the Deployment asks for; with the
+# replicaset loop skipped a deleted pod stays deleted and returns when it
+# resumes; deleting the Deployment collects everything; and a new image never
+# drops below 3 running, peaks at exactly 4 pods, and leaves one serving set
+```
+
+**The triage records the read at answer time, not at the end of the round.**
+`triage.ts` freezes `readFirst` into a `Result` on the reader's *first* answer.
+Measuring it when the round closes would count the describe the panel prints
+after a correct answer, and every reader would score a perfect run. A right
+answer from a guess still clears the round on purpose: the closing screen makes
+a claim about habit, not about correctness, and punishing the guess in the moment
+turns the whole thing into a quiz.
+
+**Prose around an interactive must not restate it.** The rule stated for lesson
+2 — if you are adding a paragraph, check it is not already on a screen — now
+applies to five of them, and it is the easiest thing in this subsystem to get
+wrong, because the panel's copy and the lesson's copy are written in different
+files. Lesson 5 shipped with two paragraphs re-explaining the two gates the
+panel's own outcomes explain, and lesson 8 shipped with a three-point list that
+was verbatim the `lesson` field of triage rounds 2, 3 and 4. Both are gone. Read
+the panel's strings before writing the paragraph after it.
+
+**Point forward as little as possible.** A lesson may hand the reader into the
+next one at its close, and may call back to something they did. It should not
+keep promising that a thing "gets a lesson of its own" or is "the subject of a
+later phase": those age badly as the track is renumbered, and they mostly exist
+to excuse not explaining something. If the reason is short, give the reason.
+
+**Neither of the two runtime ones dispatches `lesson:reveal`.** Lessons 7 and 8
+are prose *and* an interactive, unlike lesson 2 where the game is the lesson, so
+finishing the panel is not finishing the lesson. Adding a `complete: true`
+dispatch would tick them off early. Clicking **Next** is how they get completed.
+
 ## Holding content back
 
 Both phase 1 interactives are the answer to something the prose gives away, so
@@ -463,7 +567,7 @@ for f in dist/courses/kubernetes/*/index.html; do
   case "$f" in *glossary*) continue ;; esac    # glossary page has no sidebar panel
   echo "$(basename $(dirname $f)) $(grep -o 'data-term="' $f | wc -l)"
 done
-# expected today: 3 8 11 15 across the four published lessons
+# expected today: 3 8 11 15 20 22 25 28 across the eight published lessons
 ```
 
 ---
@@ -481,10 +585,13 @@ done
 >   that is what git is for.
 > - Keep claims verifiable. If you did not run it, do not assert it passes.
 
-**Last verified:** 2026-09-06 — `pnpm build` clean, 5 pages indexed (4 published
+**Last verified:** 2026-09-10 — `pnpm build` clean, 9 pages indexed (8 published
 lessons plus the glossary; five more lessons are `draft: true`), no `[courses]`
-warnings, sidebar term counts 3 / 8 / 11 / 15, lint at baseline 79. Every level
-verified solvable by replaying the engine outside the browser.
+warnings, sidebar term counts 3 / 8 / 11 / 15 / 20 / 22 / 25 / 28, lint at
+baseline 73 with nothing added. Lesson 2's levels and lesson 7's cascade both
+verified by replaying their engines outside the browser; lesson 8's rounds
+checked for one right answer each, three choices each, and a reply on every
+choice.
 
 ### Done
 
@@ -501,14 +608,19 @@ verified solvable by replaying the engine outside the browser.
   terminology mapping, a controller that repairs the system on its own, and a
   closing screen on eventual consistency.
 - `holdGlossary` frontmatter flag plus the `[data-hold]` reveal mechanism.
+- **Phases 1 and 2 complete: lessons 1 to 8 published**, each with its
+  interactive — the outage walk, the operator game, the cluster map, the object
+  assembly, the request path, the store browser, the controller cascade and the
+  event triage.
 
 ### In progress
 
-- **Lesson prose is placeholder, lessons 1 and 2 excepted.** Both are finished:
-  lesson 2 is the game, lesson 1 is prose plus the outage walk. Lessons 3 and 4
-  are stubs carrying correct frontmatter and `<Term>` wiring. The user is
-  writing the real curriculum. Do not treat those bodies as reference material,
-  and do not expand them unasked.
+- **Lessons 1 to 8 are written; everything after them is not.** Phase 3 onward
+  is planned in the roadmap and unwritten. Lessons 9, 10, 15, 19 and 22 exist as
+  `draft: true` files carrying prose from an earlier six-lesson version of the
+  track: they hold the right `order` and `phase` but the bodies need rewriting
+  rather than un-drafting, and their `<Term>` uses still point at the old lesson
+  numbering. Do not treat those bodies as reference material.
 
 ### Not built
 
@@ -526,6 +638,10 @@ verified solvable by replaying the engine outside the browser.
   harness covers the engine, not the reading/staleness layer in `game.ts`.
 - Lesson 7 of the roadmap's level design (dependencies, ordering) is not built.
   Six levels plus the automatic finale ship.
+- Phase 2's four interactives have no tests either. The cascade engine and the
+  triage round data are checked by the esbuild replays described above, which
+  cover the model and the data but not `cascade.ts`'s painting or `triage.ts`'s
+  read accounting.
 - No per-lesson "last updated" date; the schema has no date field at all.
 
 ### Gotchas learned
@@ -561,6 +677,21 @@ Each of these cost a real debugging cycle. Full explanations are inline above.
 
 ### Log
 
+- **2026-09-10** — **Phase 2 finished: lessons 5 to 8 written and built.** The
+  API server (six gates, watch, `resourceVersion`), etcd (revisions as a clock,
+  quorum, the store as the only thing that cannot be rebuilt), controllers (the
+  loop is handed a name rather than a change, ownership and garbage collection,
+  fighting controllers), and events (an event is an object with an expiry, level
+  against edge, conditions as the thing to read and to alert on). Four
+  interactives with them: a server-rendered request path and etcd key browser, a
+  five-loop controller cascade with pause switches, and a five-round event
+  triage that records whether the reader read the object before answering.
+  Twelve glossary terms added, and the `Controller` entry rewritten now that a
+  lesson explains it. Then an editing pass: forward references cut, prose that
+  restated its own interactive removed, and etcd's encryption-at-rest
+  configuration, its real size limits, and the fact that its protocol rather
+  than etcd itself is what Kubernetes depends on all written up. Phase 2 is 72
+  minutes.
 - **2026-09-06** — Lesson 1's interactive built: a five-stage outage walk where
   the reader picks what to build after each failure and each new outage defeats
   the previous fix. Separate from the lesson 2 engine on purpose (choosing, not

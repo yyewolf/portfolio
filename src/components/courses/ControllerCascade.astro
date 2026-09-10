@@ -1,0 +1,45 @@
+---
+// Mount point for lesson 7's controller cascade. The intro screen is rendered
+// here rather than in JavaScript, so the lesson still says something without
+// it and the opening copy lives in one place. Everything after the start button
+// is built at runtime by src/scripts/courses/cascade/cascade.ts.
+//
+// Nothing is held back. Lesson 7 explains the loop before this runs, so the
+// panel is somewhere to try the idea rather than somewhere to derive it, and no
+// prose below it is spoiled by reading ahead.
+import "@styles/cascade.css";
+---
+
+<div data-cascade>
+  <div class="cs not-prose my-8">
+    <div data-cs-stage>
+      <div class="cs-shell">
+        <div class="cs-intro">
+          <p>
+            Five loops, one cluster, and one Deployment asking for three copies.
+            Run them, then break something and watch which loop notices.
+          </p>
+          <div class="cs-foot">
+            <button type="button" class="cs-btn" data-tone="primary" data-go="start"
+              >Open the cluster</button
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <noscript>
+      <p class="cs-note mt-3">
+        This panel needs JavaScript. The short version: each loop below watches
+        one kind of object, does at most one thing per pass, and never calls
+        another loop. A Deployment produces a ReplicaSet, which produces pods,
+        which get a node, which get started. Every step happens because something
+        read the step above it, not because anything was told.
+      </p>
+    </noscript>
+  </div>
+</div>
+
+<script>
+  import "@scripts/courses/cascade/cascade";
+</script>

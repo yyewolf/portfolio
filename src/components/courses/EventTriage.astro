@@ -1,0 +1,48 @@
+---
+// Mount point for lesson 8's event triage. The intro screen is server-rendered
+// so the lesson still says something without JavaScript, and so the opening
+// copy lives in one place. Everything after the start button is built at
+// runtime by src/scripts/courses/triage/triage.ts.
+//
+// Nothing is held back: the lesson makes its argument before this runs, and the
+// exercise is about noticing how hard the argument is to follow in front of a
+// live feed. Reading ahead spoils nothing, because knowing the answer and
+// remembering to check are different skills and this one drills the second.
+import "@styles/triage.css";
+---
+
+<div data-triage>
+  <div class="tr not-prose my-8">
+    <div data-tr-stage>
+      <div class="tr-shell">
+        <div class="tr-intro">
+          <p>
+            Five feeds, five situations. Each one has a second command available
+            that tells you what is actually true, and you never have to run it.
+          </p>
+          <div class="tr-foot">
+            <button
+              type="button"
+              class="tr-btn"
+              data-tone="primary"
+              data-go="start">Open the terminal</button
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <noscript>
+      <p class="tr-note mt-3">
+        This exercise needs JavaScript. The short version: an event is a record
+        of a moment that has passed, it expires within the hour, repeats are
+        folded into one object with a counter, and none of that changes what the
+        object it happened to currently says. Read the object.
+      </p>
+    </noscript>
+  </div>
+</div>
+
+<script>
+  import "@scripts/courses/triage/triage";
+</script>

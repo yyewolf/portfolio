@@ -1,0 +1,305 @@
+/* ---------------------------------------------------------------------------
+ * Lesson 5's request-path inspector. Scoped under `.rp`, inside a `not-prose`
+ * wrapper so the article's typography plugin keeps its hands off it.
+ *
+ * Server-rendered like cluster.css, and global for the same reason: the course
+ * interactives are all styled the same way, and this one is meant to be reused
+ * when admission control comes back in the security phase.
+ * ------------------------------------------------------------------------ */
+
+.rp {
+  --rp-line: #e5e7eb;
+  --rp-surface: #ffffff;
+  --rp-sunk: #f9fafb;
+  --rp-ink: #111827;
+  --rp-ink2: #4b5563;
+  --rp-muted: #9ca3af;
+  --rp-accent: #2563eb;
+  --rp-accent-bg: #eff6ff;
+  --rp-good: #047857;
+  --rp-good-bg: #ecfdf5;
+  --rp-warn: #b45309;
+  --rp-warn-bg: #fffbeb;
+  --rp-stop: #b91c1c;
+  --rp-stop-bg: #fef2f2;
+
+  font-family: inherit;
+  color: var(--rp-ink2);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+html.dark .rp {
+  --rp-line: #1f2937;
+  --rp-surface: #030712;
+  --rp-sunk: #0b1120;
+  --rp-ink: #f9fafb;
+  --rp-ink2: #9ca3af;
+  --rp-muted: #6b7280;
+  --rp-accent: #60a5fa;
+  --rp-accent-bg: #0b1a2e;
+  --rp-good: #6ee7b7;
+  --rp-good-bg: #04241c;
+  --rp-warn: #fcd34d;
+  --rp-warn-bg: #271b04;
+  --rp-stop: #fca5a5;
+  --rp-stop-bg: #2a0d0d;
+}
+
+.rp *,
+.rp *::before,
+.rp *::after {
+  box-sizing: border-box;
+}
+
+/* global.css styles the bare `header` element as fixed site chrome. */
+.rp header {
+  position: static;
+  inset: auto;
+}
+
+/* --- the request list ---------------------------------------------------- */
+
+.rp-picker {
+  border: 1px solid var(--rp-line);
+  border-radius: 0.9rem;
+  background: var(--rp-surface);
+  overflow: hidden;
+}
+
+.rp-picker-head {
+  margin: 0;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--rp-line);
+  background: var(--rp-sunk);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rp-muted);
+}
+
+.rp-requests {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rp-requests li + li {
+  border-top: 1px solid var(--rp-line);
+}
+
+.rp-request {
+  display: block;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.rp-request:hover {
+  background: var(--rp-sunk);
+}
+
+.rp-request:focus-visible {
+  outline: 2px solid var(--rp-accent);
+  outline-offset: -2px;
+}
+
+.rp-request[aria-pressed="true"] {
+  background: var(--rp-accent-bg);
+  box-shadow: inset 3px 0 0 var(--rp-accent);
+}
+
+.rp-request-label {
+  display: block;
+  color: var(--rp-ink);
+  font-weight: 600;
+}
+
+.rp-request-wire {
+  display: block;
+  margin-top: 0.15rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  color: var(--rp-muted);
+  overflow-wrap: anywhere;
+}
+
+.rp-hint {
+  margin: 0.75rem 0 0;
+  font-size: 0.8rem;
+  color: var(--rp-muted);
+}
+
+/* --- one walkthrough ----------------------------------------------------- */
+
+.rp-walks {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rp-walk {
+  border: 1px solid var(--rp-line);
+  border-radius: 0.9rem;
+  background: var(--rp-surface);
+  padding: 1rem;
+}
+
+.rp-walk + .rp-walk {
+  margin-top: 1rem;
+}
+
+.rp-walk-head {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.rp-walk-label {
+  color: var(--rp-ink);
+  font-weight: 600;
+}
+
+.rp-walk-who {
+  font-size: 0.75rem;
+  color: var(--rp-muted);
+}
+
+.rp-premise {
+  margin: 0.35rem 0 0;
+}
+
+/* --- the gate track ------------------------------------------------------ */
+
+.rp-gates {
+  margin: 0.9rem 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: rp-gate;
+}
+
+.rp-gate {
+  position: relative;
+  padding: 0.6rem 0 0.6rem 1.6rem;
+  border-left: 2px solid var(--rp-line);
+}
+
+.rp-gate::before {
+  content: "";
+  position: absolute;
+  left: -0.3rem;
+  top: 0.95rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--rp-line);
+}
+
+.rp-gate:last-child {
+  padding-bottom: 0;
+}
+
+.rp-gate-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.rp-gate-name {
+  color: var(--rp-ink);
+  font-weight: 600;
+}
+
+.rp-gate-asks {
+  font-size: 0.75rem;
+  color: var(--rp-muted);
+}
+
+.rp-gate-code {
+  margin-left: auto;
+  padding: 0.05rem 0.4rem;
+  border-radius: 0.3rem;
+  background: var(--rp-stop-bg);
+  color: var(--rp-stop);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.rp-gate-note {
+  margin: 0.2rem 0 0;
+}
+
+.rp-gate-unreached {
+  color: var(--rp-muted);
+  font-style: italic;
+}
+
+.rp-gate[data-state="pass"] {
+  border-left-color: var(--rp-good);
+}
+
+.rp-gate[data-state="pass"]::before {
+  background: var(--rp-good);
+}
+
+.rp-gate[data-state="changed"] {
+  border-left-color: var(--rp-warn);
+  background: var(--rp-warn-bg);
+}
+
+.rp-gate[data-state="changed"]::before {
+  background: var(--rp-warn);
+}
+
+.rp-gate[data-state="stop"] {
+  border-left-color: var(--rp-stop);
+  background: var(--rp-stop-bg);
+}
+
+.rp-gate[data-state="stop"]::before {
+  background: var(--rp-stop);
+}
+
+.rp-gate[data-state="skipped"] {
+  opacity: 0.45;
+}
+
+.rp-outcome {
+  margin: 0.9rem 0 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--rp-line);
+  color: var(--rp-ink);
+}
+
+/* --- enhanced mode ------------------------------------------------------- */
+
+/* Only once the script is running is hiding things safe. */
+.rp[data-enhanced="yes"] .rp-walks {
+  margin-top: 1rem;
+}
+
+.rp[data-enhanced="yes"] .rp-gate[data-shown="no"] {
+  opacity: 0;
+  transform: translateY(0.25rem);
+}
+
+.rp[data-enhanced="yes"] .rp-gate {
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rp[data-enhanced="yes"] .rp-gate {
+    transition: none;
+  }
+}

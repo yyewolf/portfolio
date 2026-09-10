@@ -1,0 +1,452 @@
+/* ---------------------------------------------------------------------------
+ * Lesson 7's controller cascade. Everything is scoped under `.cs`, inside a
+ * `not-prose` wrapper so the article's typography plugin keeps its hands off
+ * the panels. The markup is built at runtime by
+ * src/scripts/courses/cascade/cascade.ts, so Astro's scoped styles cannot reach
+ * it and these rules are global on purpose.
+ * ------------------------------------------------------------------------ */
+
+.cs {
+  --cs-line: #e5e7eb;
+  --cs-surface: #ffffff;
+  --cs-sunk: #f9fafb;
+  --cs-ink: #111827;
+  --cs-ink2: #4b5563;
+  --cs-muted: #9ca3af;
+  --cs-accent: #2563eb;
+  --cs-accent-bg: #eff6ff;
+  --cs-good: #047857;
+  --cs-good-bg: #ecfdf5;
+  --cs-warn: #b45309;
+  --cs-warn-bg: #fffbeb;
+  --cs-stop: #b91c1c;
+  --cs-stop-bg: #fef2f2;
+
+  font-family: inherit;
+  color: var(--cs-ink2);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+html.dark .cs {
+  --cs-line: #1f2937;
+  --cs-surface: #030712;
+  --cs-sunk: #0b1120;
+  --cs-ink: #f9fafb;
+  --cs-ink2: #9ca3af;
+  --cs-muted: #6b7280;
+  --cs-accent: #60a5fa;
+  --cs-accent-bg: #0b1a2e;
+  --cs-good: #6ee7b7;
+  --cs-good-bg: #04241c;
+  --cs-warn: #fcd34d;
+  --cs-warn-bg: #271b04;
+  --cs-stop: #fca5a5;
+  --cs-stop-bg: #2a0d0d;
+}
+
+.cs *,
+.cs *::before,
+.cs *::after {
+  box-sizing: border-box;
+}
+
+/* global.css styles the bare `header` element as fixed site chrome. */
+.cs header {
+  position: static;
+  inset: auto;
+}
+
+.cs p {
+  margin: 0;
+}
+
+.cs-shell {
+  border: 1px solid var(--cs-line);
+  border-radius: 0.9rem;
+  background: var(--cs-surface);
+  overflow: hidden;
+}
+
+.cs-intro {
+  padding: 1.1rem;
+}
+
+.cs-note {
+  color: var(--cs-ink2);
+}
+
+/* --- head and controls --------------------------------------------------- */
+
+.cs-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--cs-line);
+  background: var(--cs-sunk);
+}
+
+.cs-title {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cs-muted);
+}
+
+.cs-rev {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  color: var(--cs-muted);
+}
+
+.cs-rev b {
+  color: var(--cs-ink);
+}
+
+.cs-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--cs-line);
+}
+
+.cs-btn {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--cs-line);
+  border-radius: 0.5rem;
+  background: var(--cs-surface);
+  color: var(--cs-ink);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.cs-btn:hover:not(:disabled) {
+  background: var(--cs-sunk);
+}
+
+.cs-btn:focus-visible {
+  outline: 2px solid var(--cs-accent);
+  outline-offset: 1px;
+}
+
+.cs-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.cs-btn[data-tone="primary"] {
+  border-color: var(--cs-accent);
+  background: var(--cs-accent-bg);
+  color: var(--cs-accent);
+  font-weight: 600;
+}
+
+.cs-state {
+  margin-left: auto;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.cs-state[data-state="settled"] {
+  background: var(--cs-good-bg);
+  color: var(--cs-good);
+}
+
+.cs-state[data-state="working"] {
+  background: var(--cs-warn-bg);
+  color: var(--cs-warn);
+}
+
+/* --- the two columns ----------------------------------------------------- */
+
+.cs-grid {
+  display: grid;
+  gap: 0;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 46rem) {
+  .cs-grid {
+    grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+  }
+
+  .cs-loops {
+    border-right: 1px solid var(--cs-line);
+    border-bottom: 0;
+  }
+}
+
+.cs-loops {
+  border-bottom: 1px solid var(--cs-line);
+  background: var(--cs-sunk);
+}
+
+.cs-loop {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.85rem;
+  transition: background 200ms ease;
+}
+
+.cs-loop + .cs-loop {
+  border-top: 1px solid var(--cs-line);
+}
+
+.cs-loop-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.cs-loop-name {
+  color: var(--cs-ink);
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.cs-loop-watch {
+  font-size: 0.7rem;
+  color: var(--cs-muted);
+}
+
+/* The flash is the only animation in the panel, and it is what makes the
+   cascade readable: you see which loop moved, one sweep at a time. */
+.cs-loop[data-acted="yes"] {
+  background: var(--cs-accent-bg);
+  box-shadow: inset 3px 0 0 var(--cs-accent);
+}
+
+.cs-loop[data-off="yes"] .cs-loop-text {
+  opacity: 0.45;
+}
+
+.cs-toggle {
+  flex: none;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--cs-line);
+  border-radius: 999px;
+  background: var(--cs-surface);
+  color: var(--cs-muted);
+  font: inherit;
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.cs-toggle[aria-pressed="false"] {
+  border-color: var(--cs-good);
+  color: var(--cs-good);
+}
+
+.cs-toggle[aria-pressed="true"] {
+  border-color: var(--cs-stop);
+  background: var(--cs-stop-bg);
+  color: var(--cs-stop);
+}
+
+.cs-toggle:focus-visible {
+  outline: 2px solid var(--cs-accent);
+  outline-offset: 1px;
+}
+
+/* --- the objects --------------------------------------------------------- */
+
+.cs-world {
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.cs-obj {
+  border: 1px solid var(--cs-line);
+  border-radius: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  background: var(--cs-surface);
+}
+
+.cs-obj[data-kind="replicaset"] {
+  margin-left: 1rem;
+}
+
+.cs-obj[data-kind="gone"] {
+  border-style: dashed;
+  opacity: 0.6;
+}
+
+.cs-obj[data-kind="orphan"] {
+  margin-left: 1rem;
+  border-color: var(--cs-stop);
+  background: var(--cs-stop-bg);
+}
+
+.cs-obj-kind {
+  font-size: 0.65rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--cs-muted);
+}
+
+.cs-obj-name {
+  color: var(--cs-ink);
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.cs-obj-spec {
+  font-size: 0.75rem;
+  color: var(--cs-ink2);
+}
+
+.cs-pods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cs-pod {
+  display: flex;
+  flex-direction: column;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--cs-line);
+  border-radius: 0.4rem;
+  background: var(--cs-sunk);
+  font-size: 0.68rem;
+}
+
+.cs-pod-name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--cs-ink);
+}
+
+.cs-pod-where {
+  color: var(--cs-muted);
+}
+
+.cs-pod[data-phase="Pending"] {
+  border-style: dashed;
+  border-color: var(--cs-warn);
+}
+
+.cs-pod[data-phase="Scheduled"] {
+  border-color: var(--cs-warn);
+}
+
+.cs-pod[data-phase="Running"] {
+  border-color: var(--cs-good);
+  background: var(--cs-good-bg);
+}
+
+.cs-empty {
+  color: var(--cs-muted);
+  font-size: 0.75rem;
+  font-style: italic;
+  list-style: none;
+}
+
+.cs-empty-block {
+  margin-left: 1rem;
+}
+
+/* --- the reader's actions ------------------------------------------------ */
+
+.cs-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.7rem 1rem;
+  border-top: 1px solid var(--cs-line);
+  border-bottom: 1px solid var(--cs-line);
+  background: var(--cs-sunk);
+}
+
+.cs-action {
+  font-size: 0.75rem;
+}
+
+/* --- the log ------------------------------------------------------------- */
+
+.cs-logwrap {
+  padding: 0.7rem 1rem 0.9rem;
+}
+
+.cs-log-head {
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cs-muted);
+  margin-bottom: 0.4rem;
+}
+
+.cs-log {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cs-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 9rem) minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  font-size: 0.75rem;
+  border-top: 1px solid var(--cs-line);
+}
+
+.cs-entry:first-child {
+  border-top: 0;
+}
+
+.cs-entry-who {
+  color: var(--cs-muted);
+  overflow-wrap: anywhere;
+}
+
+.cs-entry[data-who="you"] .cs-entry-who {
+  color: var(--cs-accent);
+  font-weight: 600;
+}
+
+.cs-entry-text {
+  color: var(--cs-ink);
+  overflow-wrap: anywhere;
+}
+
+.cs-entry-rev {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--cs-muted);
+}
+
+@media (max-width: 34rem) {
+  .cs-entry {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .cs-entry-who {
+    grid-column: 1 / -1;
+  }
+}
+
+.cs-foot {
+  margin-top: 0.85rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-loop {
+    transition: none;
+  }
+}

@@ -1,0 +1,237 @@
+---
+// Lesson 6's store browser: what is actually sitting in etcd after a reader has
+// applied one Deployment.
+//
+// Server-rendered, like ClusterMap and RequestPath, so it works without
+// JavaScript, gets indexed, and is keyboard-navigable. The script collapses the
+// record list to one at a time; nothing else.
+//
+// The point of the data is that only two of these keys were written by the
+// reader. The rest were written by controllers, by nodes reporting in, and by
+// components filing events, all of them through the API server. The revisions
+// are chosen to show that: the reader's Deployment is 41822, and everything a
+// controller derived from it is numbered after it.
+import "@styles/store.css";
+
+type Row = {
+  key: string;
+  kind: string;
+  rev: number;
+  /** Who wrote it. The reader wrote two of these. */
+  author: "you" | "a controller" | "a node" | "a component";
+  value: string;
+  note: string;
+};
+
+const HEAD = 42_003;
+
+const records: Row[] = [
+  {
+    key: "/registry/deployments/shop/web",
+    kind: "Deployment",
+    rev: 41_822,
+    author: "you",
+    value: `spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+  template:
+    spec:
+      containers:
+        - name: api
+          image: web:1.4
+          imagePullPolicy: IfNotPresent
+status:
+  replicas: 3
+  readyReplicas: 3`,
+    note: "The object you submitted, plus everything admission added on the way in. There is no second copy anywhere: this record is the cluster's entire memory of your intent.",
+  },
+  {
+    key: "/registry/services/specs/shop/web",
+    kind: "Service",
+    rev: 41_102,
+    author: "you",
+    value: `spec:
+  clusterIP: 10.96.43.17
+  selector:
+    app: web
+  ports:
+    - port: 80`,
+    note: "Written before the Deployment and untouched since, which is why its revision is lower. Revisions are a clock for the store, not a version of the object.",
+  },
+  {
+    key: "/registry/replicasets/shop/web-6c8f4b",
+    kind: "ReplicaSet",
+    rev: 41_823,
+    author: "a controller",
+    value: `metadata:
+  ownerReferences:
+    - kind: Deployment
+      name: web
+spec:
+  replicas: 3`,
+    note: "You did not write this. Something read your Deployment and wrote this one revision later, and it recorded which object it did that for. That link is what makes deleting the Deployment take this with it.",
+  },
+  {
+    key: "/registry/pods/shop/web-6c8f4b-2xk9",
+    kind: "Pod",
+    rev: 41_826,
+    author: "a controller",
+    value: `spec:
+  nodeName: node-2
+  containers:
+    - name: api
+      image: web:1.4
+status:
+  phase: Running
+  podIP: 10.244.2.31`,
+    note: "Nor this. Note that its status lives here too: what is actually happening on a machine is written back into the same store as what was asked for, by whatever is watching that machine.",
+  },
+  {
+    key: "/registry/secrets/shop/web-db",
+    kind: "Secret",
+    rev: 40_877,
+    author: "you",
+    value: `data:
+  password: c3VwZXJzZWNyZXQ=`,
+    note: "That is base64, and base64 is not encryption. Anything that can read this store can read every password in the cluster, which is why a backup of it is as sensitive as the cluster itself.",
+  },
+  {
+    key: "/registry/minions/node-2",
+    kind: "Node",
+    rev: 41_998,
+    author: "a node",
+    value: `status:
+  capacity:
+    cpu: "4"
+    memory: 16Gi
+  conditions:
+    - type: Ready
+      status: "True"`,
+    note: "Nodes are filed under their pre-rename name, which nobody has ever fixed. Its revision is near the top because a node keeps reporting in, which is the main reason an idle cluster still moves through revisions all day.",
+  },
+  {
+    key: "/registry/leases/kube-node-lease/node-2",
+    kind: "Lease",
+    rev: 42_003,
+    author: "a node",
+    value: `spec:
+  holderIdentity: node-2
+  renewTime: "2026-04-11T09:31:14.882Z"`,
+    note: "The current head of the store, and it will not be for long. This is a heartbeat: a tiny object rewritten every few seconds so that the absence of a rewrite means something. It exists so that node objects do not have to be.",
+  },
+  {
+    key: "/registry/events/shop/web-6c8f4b-2xk9.17c3f1",
+    kind: "Event",
+    rev: 41_827,
+    author: "a component",
+    value: `reason: Scheduled
+message: Successfully assigned shop/web-6c8f4b-2xk9 to node-2
+count: 1
+type: Normal`,
+    note: "An event is an object like any other, kept in the same store, with an expiry on it. Nothing in the cluster reads these to decide anything.",
+  },
+];
+
+const fmt = (n: number): string => n.toLocaleString("en-GB").replace(/,/g, " ");
+---
+
+<div class="sb not-prose my-8" data-store-browser>
+  <div class="sb-frame">
+    <div class="sb-head">
+      <p class="sb-head-title">The store, opened up</p>
+      <p class="sb-head-rev">
+        revision <b>{fmt(HEAD)}</b>
+      </p>
+    </div>
+
+    <ul class="sb-keys">
+      {
+        records.map((r) => (
+          <li>
+            <button
+              type="button"
+              class="sb-key"
+              data-record={r.key}
+              data-author={r.author === "you" ? "you" : "other"}
+              aria-pressed="false"
+            >
+              <code class="sb-key-path">{r.key}</code>
+              <span class="sb-key-meta">
+                <span class="sb-key-author">{r.author}</span>
+                <span class="sb-key-rev">{fmt(r.rev)}</span>
+              </span>
+            </button>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+
+  <p class="sb-hint" data-sb-hint hidden>
+    Pick a key to see what is stored under it.
+  </p>
+
+  <ul class="sb-records" data-sb-records>
+    {
+      records.map((r) => (
+        <li class="sb-record" data-detail={r.key}>
+          <p class="sb-record-head">
+            <code>{r.key}</code>
+            <span class="sb-record-kind">{r.kind}</span>
+          </p>
+          <pre class="sb-value">
+            <code>{r.value}</code>
+          </pre>
+          <p class="sb-record-note">{r.note}</p>
+        </li>
+      ))
+    }
+  </ul>
+
+  <p class="sb-foot">
+    Two of these eight keys were written by a person. Everything else in the
+    cluster's memory was put there by something reacting to what that person
+    wrote, or by a machine saying what it currently sees.
+  </p>
+</div>
+
+<script>
+  // Progressive enhancement only: every record is already on the page. This
+  // collapses the list to one at a time and wires the key buttons to it, the
+  // same shape as ClusterMap's script.
+  const setup = (): void => {
+    const root = document.querySelector<HTMLElement>("[data-store-browser]");
+    if (!root) return;
+
+    const hint = root.querySelector<HTMLElement>("[data-sb-hint]");
+    const records = Array.from(
+      root.querySelectorAll<HTMLElement>("[data-detail]"),
+    );
+    const buttons = Array.from(
+      root.querySelectorAll<HTMLButtonElement>("[data-record]"),
+    );
+    if (records.length === 0 || buttons.length === 0) return;
+
+    root.dataset.enhanced = "yes";
+    if (hint) hint.hidden = false;
+
+    const show = (key: string | null): void => {
+      for (const r of records) r.hidden = r.dataset.detail !== key;
+      for (const b of buttons)
+        b.setAttribute("aria-pressed", String(b.dataset.record === key));
+      if (hint) hint.hidden = key !== null;
+    };
+
+    for (const b of buttons) {
+      b.addEventListener("click", () => {
+        const open = b.getAttribute("aria-pressed") === "true";
+        show(open ? null : (b.dataset.record ?? null));
+      });
+    }
+
+    show(null);
+  };
+
+  document.addEventListener("astro:page-load", setup);
+</script>

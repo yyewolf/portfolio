@@ -1,0 +1,231 @@
+/* ---------------------------------------------------------------------------
+ * Lesson 6's store browser. Scoped under `.sb`, inside a `not-prose` wrapper so
+ * the article's typography plugin keeps its hands off it.
+ *
+ * Server-rendered, global for the same reason as cluster.css and request.css:
+ * the course interactives are all styled the same way.
+ * ------------------------------------------------------------------------ */
+
+.sb {
+  --sb-line: #e5e7eb;
+  --sb-surface: #ffffff;
+  --sb-sunk: #f9fafb;
+  --sb-ink: #111827;
+  --sb-ink2: #4b5563;
+  --sb-muted: #9ca3af;
+  --sb-accent: #2563eb;
+  --sb-accent-bg: #eff6ff;
+  --sb-key: #7c3aed;
+  --sb-mine: #047857;
+  --sb-mine-bg: #ecfdf5;
+
+  font-family: inherit;
+  color: var(--sb-ink2);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+html.dark .sb {
+  --sb-line: #1f2937;
+  --sb-surface: #030712;
+  --sb-sunk: #0b1120;
+  --sb-ink: #f9fafb;
+  --sb-ink2: #9ca3af;
+  --sb-muted: #6b7280;
+  --sb-accent: #60a5fa;
+  --sb-accent-bg: #0b1a2e;
+  --sb-key: #c4b5fd;
+  --sb-mine: #6ee7b7;
+  --sb-mine-bg: #04241c;
+}
+
+.sb *,
+.sb *::before,
+.sb *::after {
+  box-sizing: border-box;
+}
+
+/* global.css styles the bare `header` element as fixed site chrome. */
+.sb header {
+  position: static;
+  inset: auto;
+}
+
+.sb code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* --- the key list -------------------------------------------------------- */
+
+.sb-frame {
+  border: 1px solid var(--sb-line);
+  border-radius: 0.9rem;
+  background: var(--sb-surface);
+  overflow: hidden;
+}
+
+.sb-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--sb-line);
+  background: var(--sb-sunk);
+}
+
+.sb-head-title {
+  margin: 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sb-muted);
+}
+
+.sb-head-rev {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  color: var(--sb-muted);
+}
+
+.sb-head-rev b {
+  color: var(--sb-ink);
+}
+
+.sb-keys {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sb-keys li + li {
+  border-top: 1px solid var(--sb-line);
+}
+
+.sb-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.55rem 1rem;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.sb-key:hover {
+  background: var(--sb-sunk);
+}
+
+.sb-key:focus-visible {
+  outline: 2px solid var(--sb-accent);
+  outline-offset: -2px;
+}
+
+.sb-key[aria-pressed="true"] {
+  background: var(--sb-accent-bg);
+  box-shadow: inset 3px 0 0 var(--sb-accent);
+}
+
+.sb-key-path {
+  font-size: 0.75rem;
+  color: var(--sb-ink);
+  overflow-wrap: anywhere;
+}
+
+.sb-key-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-size: 0.7rem;
+  color: var(--sb-muted);
+}
+
+.sb-key-rev {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* The reader wrote two of these eight. That is the whole point of the list. */
+.sb-key[data-author="you"] .sb-key-author {
+  padding: 0.02rem 0.35rem;
+  border-radius: 0.3rem;
+  background: var(--sb-mine-bg);
+  color: var(--sb-mine);
+  font-weight: 600;
+}
+
+/* --- one record ---------------------------------------------------------- */
+
+.sb-hint {
+  margin: 0.75rem 0 0;
+  font-size: 0.8rem;
+  color: var(--sb-muted);
+}
+
+.sb-records {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sb-record {
+  border: 1px solid var(--sb-line);
+  border-radius: 0.9rem;
+  background: var(--sb-surface);
+  padding: 1rem;
+}
+
+.sb-record + .sb-record {
+  margin-top: 1rem;
+}
+
+.sb-record-head {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.sb-record-head code {
+  font-size: 0.75rem;
+  color: var(--sb-ink);
+  overflow-wrap: anywhere;
+}
+
+.sb-record-kind {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sb-muted);
+}
+
+.sb-value {
+  margin: 0.6rem 0 0;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--sb-line);
+  border-radius: 0.6rem;
+  background: var(--sb-sunk);
+  overflow-x: auto;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--sb-ink);
+  white-space: pre;
+}
+
+.sb-record-note {
+  margin: 0.7rem 0 0;
+}
+
+.sb-foot {
+  margin: 1rem 0 0;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--sb-line);
+  color: var(--sb-ink);
+}

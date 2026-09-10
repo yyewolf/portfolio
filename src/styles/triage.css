@@ -1,0 +1,424 @@
+/* ---------------------------------------------------------------------------
+ * Lesson 8's event triage. Everything is scoped under `.tr`, inside a
+ * `not-prose` wrapper so the article's typography plugin keeps its hands off
+ * the panels. The markup is built at runtime by
+ * src/scripts/courses/triage/triage.ts, so Astro's scoped styles cannot reach
+ * it and these rules are global on purpose.
+ * ------------------------------------------------------------------------ */
+
+.tr {
+  --tr-line: #e5e7eb;
+  --tr-surface: #ffffff;
+  --tr-sunk: #f9fafb;
+  --tr-term: #0b1120;
+  --tr-term-ink: #e5e7eb;
+  --tr-ink: #111827;
+  --tr-ink2: #4b5563;
+  --tr-muted: #9ca3af;
+  --tr-accent: #2563eb;
+  --tr-accent-bg: #eff6ff;
+  --tr-good: #047857;
+  --tr-good-bg: #ecfdf5;
+  --tr-warn: #b45309;
+  --tr-warn-bg: #fffbeb;
+  --tr-stop: #b91c1c;
+  --tr-stop-bg: #fef2f2;
+
+  font-family: inherit;
+  color: var(--tr-ink2);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+html.dark .tr {
+  --tr-line: #1f2937;
+  --tr-surface: #030712;
+  --tr-sunk: #0b1120;
+  --tr-term: #000000;
+  --tr-term-ink: #e5e7eb;
+  --tr-ink: #f9fafb;
+  --tr-ink2: #9ca3af;
+  --tr-muted: #6b7280;
+  --tr-accent: #60a5fa;
+  --tr-accent-bg: #0b1a2e;
+  --tr-good: #6ee7b7;
+  --tr-good-bg: #04241c;
+  --tr-warn: #fcd34d;
+  --tr-warn-bg: #271b04;
+  --tr-stop: #fca5a5;
+  --tr-stop-bg: #2a0d0d;
+}
+
+.tr *,
+.tr *::before,
+.tr *::after {
+  box-sizing: border-box;
+}
+
+/* global.css styles the bare `header` element as fixed site chrome. */
+.tr header {
+  position: static;
+  inset: auto;
+}
+
+.tr p {
+  margin: 0;
+}
+
+.tr-shell {
+  border: 1px solid var(--tr-line);
+  border-radius: 0.9rem;
+  background: var(--tr-surface);
+  overflow: hidden;
+}
+
+.tr-intro,
+.tr-stage {
+  padding: 1.1rem;
+}
+
+.tr-note {
+  color: var(--tr-ink2);
+}
+
+/* --- rail ---------------------------------------------------------------- */
+
+.tr-head {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--tr-line);
+  background: var(--tr-sunk);
+}
+
+.tr-rail {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tr-rail li {
+  flex: 1;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--tr-line);
+}
+
+.tr-rail li span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.tr-rail li[data-state="done"] {
+  background: var(--tr-good);
+}
+
+.tr-rail li[data-state="current"] {
+  background: var(--tr-accent);
+}
+
+/* --- the situation ------------------------------------------------------- */
+
+.tr-kicker {
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tr-muted);
+}
+
+.tr-setup {
+  margin-top: 0.3rem !important;
+  color: var(--tr-ink);
+}
+
+.tr-title {
+  margin: 0.4rem 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--tr-ink);
+}
+
+/* --- the feed ------------------------------------------------------------ */
+
+.tr-feed,
+.tr-truth {
+  margin-top: 0.9rem;
+  border: 1px solid var(--tr-line);
+  border-radius: 0.6rem;
+  overflow: hidden;
+  background: var(--tr-term);
+}
+
+.tr-cmd {
+  padding: 0.5rem 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.74rem;
+  color: var(--tr-term-ink);
+  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+  overflow-wrap: anywhere;
+}
+
+.tr-cmd span {
+  color: var(--tr-muted);
+  margin-right: 0.35rem;
+}
+
+.tr-events {
+  margin: 0;
+  padding: 0.4rem 0;
+  list-style: none;
+  overflow-x: auto;
+}
+
+.tr-event {
+  display: grid;
+  grid-template-columns: minmax(7rem, auto) 4.5rem minmax(6rem, auto) minmax(0, 1fr);
+  gap: 0.5rem;
+  padding: 0.2rem 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  color: var(--tr-term-ink);
+}
+
+.tr-ev-message {
+  grid-column: 1 / -1;
+  padding-left: 0.5rem;
+  color: var(--tr-muted);
+  overflow-wrap: anywhere;
+}
+
+.tr-ev-age {
+  color: var(--tr-muted);
+  white-space: nowrap;
+}
+
+.tr-count {
+  color: #f59e0b;
+}
+
+.tr-event[data-type="Warning"] .tr-ev-type {
+  color: #fbbf24;
+}
+
+.tr-event[data-type="Normal"] .tr-ev-type {
+  color: #94a3b8;
+}
+
+.tr-ev-object {
+  color: #93c5fd;
+  overflow-wrap: anywhere;
+}
+
+/* The bait. It reads exactly as it would on a real terminal; the highlight is
+   only there so the closing prose can point at "the top line". */
+.tr-event[data-loud="yes"] {
+  background: rgb(255 255 255 / 0.05);
+}
+
+@media (min-width: 42rem) {
+  .tr-event {
+    grid-template-columns:
+      minmax(7rem, auto) 4.5rem minmax(6rem, auto) minmax(10rem, auto)
+      minmax(0, 1fr);
+  }
+
+  .tr-ev-message {
+    grid-column: auto;
+    padding-left: 0;
+  }
+}
+
+/* --- reading the object -------------------------------------------------- */
+
+.tr-readrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.7rem;
+}
+
+.tr-readnote {
+  font-size: 0.75rem;
+  color: var(--tr-muted);
+}
+
+.tr-out {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  overflow-x: auto;
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--tr-term-ink);
+  white-space: pre;
+}
+
+.tr-reading {
+  padding: 0.55rem 0.75rem;
+  border-top: 1px solid rgb(255 255 255 / 0.08);
+  background: rgb(255 255 255 / 0.04);
+  color: var(--tr-term-ink);
+  font-size: 0.8rem;
+}
+
+/* --- the question -------------------------------------------------------- */
+
+.tr-ask {
+  margin-top: 1rem !important;
+  color: var(--tr-ink);
+  font-weight: 600;
+}
+
+.tr-options {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tr-options li + li {
+  margin-top: 0.45rem;
+}
+
+.tr-option {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--tr-line);
+  border-radius: 0.5rem;
+  background: var(--tr-surface);
+  color: var(--tr-ink);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tr-option:hover:not(:disabled) {
+  background: var(--tr-sunk);
+}
+
+.tr-option:focus-visible {
+  outline: 2px solid var(--tr-accent);
+  outline-offset: 1px;
+}
+
+.tr-option:disabled {
+  cursor: default;
+}
+
+.tr-option[data-picked="right"] {
+  border-color: var(--tr-good);
+  background: var(--tr-good-bg);
+  color: var(--tr-good);
+  font-weight: 600;
+}
+
+.tr-option[data-picked="wrong"] {
+  border-color: var(--tr-stop);
+  background: var(--tr-stop-bg);
+  color: var(--tr-stop);
+}
+
+.tr-option:disabled:not([data-picked]) {
+  opacity: 0.45;
+}
+
+.tr-reply {
+  margin: 0.4rem 0 0 !important;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--tr-line);
+  font-size: 0.82rem;
+}
+
+.tr-reply[data-tone="right"] {
+  border-left-color: var(--tr-good);
+}
+
+.tr-reply[data-tone="wrong"] {
+  border-left-color: var(--tr-stop);
+}
+
+/* --- the takeaway -------------------------------------------------------- */
+
+.tr-lesson {
+  margin-top: 1rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--tr-line);
+  border-left: 3px solid var(--tr-accent);
+  border-radius: 0.5rem;
+  background: var(--tr-accent-bg);
+  color: var(--tr-ink);
+}
+
+.tr-foot {
+  margin-top: 0.9rem;
+}
+
+.tr-btn {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--tr-line);
+  border-radius: 0.5rem;
+  background: var(--tr-surface);
+  color: var(--tr-ink);
+  font: inherit;
+  font-size: 0.8rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  cursor: pointer;
+}
+
+.tr-btn:hover:not(:disabled) {
+  background: var(--tr-sunk);
+}
+
+.tr-btn:focus-visible {
+  outline: 2px solid var(--tr-accent);
+  outline-offset: 1px;
+}
+
+.tr-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tr-btn[data-tone="primary"] {
+  border-color: var(--tr-accent);
+  background: var(--tr-accent-bg);
+  color: var(--tr-accent);
+  font-weight: 600;
+  font-family: inherit;
+}
+
+/* --- the close ----------------------------------------------------------- */
+
+.tr-tally {
+  margin: 0.9rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tr-tally li {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--tr-line);
+  border-radius: 0.5rem;
+  background: var(--tr-sunk);
+  font-size: 0.78rem;
+}
+
+.tr-tally b {
+  color: var(--tr-ink);
+  font-size: 1rem;
+  margin-right: 0.3rem;
+}
+
+.tr-close {
+  margin-top: 1rem !important;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--tr-line);
+  color: var(--tr-ink);
+}

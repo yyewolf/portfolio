@@ -18,7 +18,7 @@ frontmatter and inherits the depth from it.
 
 | Depth | Phases | Lessons | Shipped |
 |---|---|---|---|
-| Core | 1 to 4 | 1 to 18 | 1 to 4 |
+| Core | 1 to 4 | 1 to 18 | 1 to 8 |
 | Practical | 5 to 9 | 19 to 37 | none |
 | Deep dive | 10 to 13 | 38 to 51 | none |
 
@@ -66,6 +66,9 @@ Lesson 8 is the one that carries the most weight in this phase. Noisy and
 misleading events, teaching observe then compare then act instead of event then
 response, and covering idempotency, eventual consistency and level-based
 reconciliation.
+
+All five are shipped. Their interactives are described at the bottom of this
+file.
 
 Phase 3, workloads
 
@@ -255,6 +258,69 @@ then the word Kubernetes. The UI then re-skins itself in place: desired state
 becomes a Deployment, servers become Pods, and the player becomes a controller.
 The last beat is an "automate it" button. The loop starts running itself, the
 player kills a pod, and it comes back.
+
+## Phase 2's four interactives
+
+Phase 2 is the phase where the reader stops being handed a simulation and starts
+being shown the real thing, so all four pieces are built out of real API paths,
+real key layouts, real `kubectl` output and real event text. None of them is a
+world the reader operates; three are things they open up, and the fourth is a
+terminal they read.
+
+**Lesson 5, the request path** (`RequestPath.astro`). Six requests, six gates,
+and the reader picks a request and watches it stop where it stops. Server
+rendered, like the cluster map, because it is a labelled diagram rather than a
+simulation: it works with JavaScript off, Pagefind indexes every outcome, and
+the requests are real buttons. The gate order is the load-bearing part, and the
+two requests that matter most are the one mutating admission *changes* and the
+one validating admission refuses, because together they explain why that gate
+runs last.
+
+**Lesson 6, the store browser** (`StoreBrowser.astro`). Eight keys from a
+cluster where the reader has applied one Deployment. Two of the eight were
+written by a person, which is the entire argument, so the author of each key is
+on the row. The Secret's row exists to land the backup point, and the Lease row
+exists so that "the revision moves all day on an idle cluster" is something the
+reader sees rather than something the prose asserts.
+
+**Lesson 7, the controller cascade** (`src/scripts/courses/cascade/`). Five
+loops, one world, and the reader edits records and watches which loop notices.
+Three rules hold it up:
+
+- *A controller does at most one thing per sweep.* That is what makes the
+  cascade legible; a loop that fixed everything at once would look like an
+  orchestrator, which is the exact idea the panel exists to kill.
+- *No loop calls another.* Every `reconcile` in `engine.ts` takes the world and
+  reads it. If one ever takes a hint about what changed, the panel stops being
+  an honest picture.
+- *The pause switches are the point.* Stopping the ReplicaSet controller and
+  deleting a pod has to leave the pod gone, with nothing covering for it. Any
+  change that lets another loop pick up the slack removes the only thing this
+  interactive can show that prose cannot.
+
+The deployment controller does replace one ReplicaSet with another one pod at a
+time — add, wait for it to run, then remove — even though rollout mechanics are
+lesson 11's. Not for completeness: a version that zeroes the old set in one move
+lets deletions outrun creations, and the reader watches availability collapse
+during an operation the track keeps calling safe. The knobs stay out of it; the
+behaviour cannot.
+
+**Lesson 8, the event triage** (`src/scripts/courses/triage/`). Five feeds, five
+questions, and a second command per round that tells the reader what is actually
+true. It is deliberately not the lesson 2 game rebuilt: there the world is
+hidden and the reader is the loop, here nothing is hidden and the reader is a
+person at a terminal. The failure being drilled is not "you could not see the
+state", it is "you could, and you answered from the feed anyway".
+
+So the read is recorded **at the moment the reader answers**, never at the end of
+the round: pressing describe after choosing says nothing about how the choice was
+made. A right answer from a guess still clears the round, because the closing
+screen's claim is about habit rather than correctness, and punishing the guess in
+the moment would turn it into a quiz.
+
+The three traps are one per failure mode, and each needs its round: a count of
+847 that is one problem (aggregation), an empty feed hiding a three-hour outage
+(expiry), and a stale warning above a healthy pod (ordering by time).
 
 ## The simulation engine
 

@@ -1,0 +1,200 @@
+---
+track: kubernetes
+order: 6
+phase: 2
+title: etcd, the cluster's memory
+description: One database holds everything the cluster believes. Everything else can be thrown away and rebuilt.
+minutes: 13
+tags: [fundamentals, architecture, storage]
+modes: [inspect]
+draft: false
+---
+
+import StoreBrowser from "@components/courses/StoreBrowser.astro";
+
+The API server answers questions. It does not remember anything.
+
+Behind it is <Term>etcd</Term>, and that is where the whole of the cluster's
+memory lives: every object you have written, every object anything else has
+written, and every report of what is currently happening.
+
+## It is a key-value store
+
+Not a relational database, and nothing Kubernetes-specific. etcd is a general
+key-value store with ordering guarantees, and Kubernetes uses it the way you
+would use any such thing: object paths as keys, serialized objects as values.
+
+Here is what is actually in there after you have applied a single Deployment.
+
+<StoreBrowser />
+
+Two things in that list are worth sitting with.
+
+There is no privileged back channel. Everything in there that you did not write
+was written by a program making a request to the API server exactly as you did,
+and passing the same six gates.
+
+The key layout is also not an interface. It is an implementation detail of the API
+server and it has changed before. Nothing should ever read these keys directly,
+and the one time you will see them is in the error messages of somebody who tried.
+
+## Revisions are a clock
+
+Every write to the store, of any key, increments a single counter. That counter
+is the store's revision. It is global rather than per-key, and it only ever goes
+up.
+
+That is where `resourceVersion` came from last lesson. An object's version is the
+revision at which it was last written, which is why a Service you have not
+touched in a week has a much smaller number than a node reporting in every ten
+seconds.
+
+One counter for the whole store is what makes the interesting question askable:
+
+```text
+"give me everything that has changed since revision 41822"
+```
+
+A per-key version could not answer that, because you would have to ask
+per key and you do not know which keys to ask about. A single ordering over
+every write in the cluster means one number is a complete description of how much
+of history you have already seen. Watch is built directly on this.
+
+The history does not last forever, though. Old revisions are compacted away,
+because otherwise the store would grow forever, and a watcher that asks to resume
+from a revision that has been compacted gets told its version is too old and has
+to start over with a full list. That costs nothing, because nothing was relying
+on having seen every entry: a full list gives you the current state, which is all
+anybody wanted.
+
+## Quorum, and what a majority buys
+
+etcd is normally run as several members that agree with each other. A write is
+only a write once a majority of them have it.
+
+| Members | Majority | Can lose |
+|---|---|---|
+| 1 | 1 | 0 |
+| 3 | 2 | 1 |
+| 4 | 3 | 1 |
+| 5 | 3 | 2 |
+
+Four members tolerate exactly as many failures as three do, and cost more, and
+make the majority harder to reach. This is why every etcd cluster you meet has an
+odd number of members, and why the usual answers are three and five.
+
+The failure mode is the interesting part. Lose the majority and etcd stops accepting writes.
+Which means the API server can no longer accept a change, which means:
+
+- You cannot create, update or delete anything.
+- No controller can record a decision, so nothing new gets repaired.
+- Every container that was already running keeps running, because nothing on a
+  node needed to ask permission to keep doing what it was doing.
+
+That is the split between deciding and doing, showing up as an outage shape. A cluster
+that has lost its memory is frozen, not dead. It stops changing but it keeps
+serving traffic the entire time.
+
+## Everything else is derivable
+
+Of every component in the cluster, this is the only one holding anything you
+cannot recreate.
+
+Lose the API server and you start another one. Lose the controllers and they read
+the store and carry on. Lose a whole node and its work gets placed elsewhere.
+None of them hold anything that matters, because all of them keep it here.
+
+Lose this and the cluster has forgotten what it was for. The containers are still
+running and nothing knows why, or what should replace them when they stop.
+
+So the backup story is short:
+
+```bash
+etcdctl snapshot save snapshot.db
+```
+
+That file is the cluster. Not the applications' data, which lives in whatever
+storage the applications were given, but everything the cluster believes about
+itself. Restoring it is how a control plane comes back from the dead.
+
+Which also means it is a file, containing every Secret, that gets copied to
+convenient places.
+
+etcd can be told to encrypt at rest. You hand the API server an encryption
+configuration naming a provider and a key, and it encrypts the values of the
+resources you list before writing them:
+
+```yaml
+resources:
+  - resources: ["secrets"]
+    providers:
+      - aescbc:
+          keys:
+            - name: key1
+              secret: <32 bytes, base64>
+      - identity: {}
+```
+
+It comes with conditions. It is off unless you turn it on. It
+only applies to objects written after you turn it on, so existing Secrets stay
+readable until something rewrites them. And the key lives on the control plane,
+next to the thing it protects, so you are "only" defending against a stolen
+disk or a leaked snapshot. Anyone that is able to reach the API Server and 
+authenticate against it can still read them.
+
+## What not to put in it
+
+etcd is tuned for a modest amount of small objects, read constantly and written
+rarely, and it holds all of them in memory. It is not a database for your
+application, it is not a place to keep large blobs, and a cluster that gets slow
+for no obvious reason is often a cluster where something is writing to it far
+harder than the designers imagined.
+
+The practical limits are real, and smaller than most people guess. As of
+writing, the defaults are:
+
+| Limit | Default | Set by |
+|---|---|---|
+| The whole store | 2 GiB, with 8 GiB the largest etcd suggests | `--quota-backend-bytes` |
+| Any single request, so any single object | 1.5 MiB | `--max-request-bytes` |
+| Data in one ConfigMap or Secret | 1 MiB | Kubernetes itself, not etcd |
+
+Managed control planes often raise the first one, and you cannot see or change
+it on most of them. The second is why a large object gets refused with a message
+about the request being too large rather than anything about your object.
+
+Filling the store is worth knowing about because of how it fails. etcd raises a
+no-space alarm and goes read-only, and it stays read-only after you delete
+things: somebody has to compact the history, defragment the members and clear
+the alarm by hand. Until they do, you have the frozen cluster from earlier in
+this lesson, reached by a different route.
+
+## It does not have to be etcd
+
+Anything that speaks the etcd v3 API and honours those can take etcd's place.
+That is not theoretical. [kine](https://github.com/k3s-io/kine) implements that
+API on top of SQLite, Postgres, MySQL or NATS, and it is what k3s runs by
+default: the whole cluster's memory is a file on one machine. 
+
+You can also split the store rather than replace it. Events are high-churn and
+disposable, so stock Kubernetes will send them somewhere else entirely:
+
+```text
+--etcd-servers-overrides=/events#https://events-etcd:2379
+```
+
+etcd relies on one Raft group, every write funnelled through one leader, and
+the keyspace held in memory: past a certain size that is not a database you can
+grow your way out of. Google has published that GKE's largest clusters no longer
+run etcd at all, using a Spanner-backed store that speaks the same API, which is
+what let them take a single cluster to 65,000 nodes.
+
+So etcd is the default, and it is what you should assume you are running. It is
+still a component. The thing Kubernetes actually depends on is the contract.
+
+## Where this goes next
+
+You now have the api and the database. What is missing is anything that *does*
+something, and that is the entire remainder of the system: programs sitting on
+the other side of the API server, watching what you write, and quietly making it
+true.

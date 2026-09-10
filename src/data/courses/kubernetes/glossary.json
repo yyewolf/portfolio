@@ -147,10 +147,14 @@
   {
     "term": "Controller",
     "introducedIn": 7,
-    "short": "A process running one reconciliation loop for one kind of object.",
+    "short": "A loop that watches one kind of object, compares it against what exists, and closes the gap.",
     "related": [
-      "Reconciliation"
-    ]
+      "Reconciliation",
+      "Control loop",
+      "Idempotent",
+      "Owner reference"
+    ],
+    "long": "It is handed the name of an object to look at, never a description of what happened to it, so it always reads the current state before deciding. That is what makes retrying free and a missed notification harmless."
   },
   {
     "term": "Pod",
@@ -333,6 +337,138 @@
       "Control loop",
       "Desired state",
       "Actual state"
+    ]
+  },
+  {
+    "term": "API server",
+    "introducedIn": 5,
+    "short": "The one component everything talks to, and the only way in or out of the cluster's state.",
+    "long": "An HTTP API over the objects. It authenticates, authorises, defaults, validates and stores; it does not run, schedule or repair anything. Controllers and nodes reach it the same way you do.",
+    "related": [
+      "Object",
+      "etcd",
+      "Control plane",
+      "Watch"
+    ]
+  },
+  {
+    "term": "kubectl",
+    "introducedIn": 5,
+    "short": "The command-line client for the API server.",
+    "long": "A convenience over HTTP requests. `kubectl get pods -v=8` prints the calls it makes, and anything it can do can be done with curl and a credential.",
+    "related": [
+      "API server",
+      "Manifest"
+    ]
+  },
+  {
+    "term": "Admission control",
+    "introducedIn": 5,
+    "short": "The gates that can change or refuse an object after you are authorised but before it is stored.",
+    "long": "Mutating admission fills in defaults and applies namespace policy, so what gets stored is not always what you sent. Validating admission runs after that, because it has to judge the finished object.",
+    "related": [
+      "API server",
+      "Object"
+    ]
+  },
+  {
+    "term": "resourceVersion",
+    "introducedIn": 5,
+    "short": "An opaque marker of when an object was last written.",
+    "long": "It is the store's revision at the time of the write, not a version of your app, and that counter only ever increases across the whole cluster. The field is still documented as opaque: send it back with an update and the write is refused if anything changed in the meantime, but do not do arithmetic on it.",
+    "related": [
+      "API server",
+      "etcd",
+      "Watch"
+    ]
+  },
+  {
+    "term": "Watch",
+    "introducedIn": 5,
+    "short": "A long-lived request that reports changes to a set of objects as they happen.",
+    "long": "Not a message queue. It can drop you and be resumed from a version, or refuse to resume and make you list everything again, which is safe only because nothing treats an entry as an instruction.",
+    "related": [
+      "API server",
+      "resourceVersion",
+      "Controller"
+    ]
+  },
+  {
+    "term": "etcd",
+    "introducedIn": 6,
+    "short": "The key-value store holding every object in the cluster.",
+    "long": "The only component with state that cannot be recreated. It is run as an odd number of members that agree by majority; lose the majority and the cluster stops changing while the running containers carry on.",
+    "related": [
+      "API server",
+      "Object",
+      "resourceVersion",
+      "Quorum"
+    ]
+  },
+  {
+    "term": "Quorum",
+    "introducedIn": 6,
+    "short": "The majority of etcd members that must agree before a write counts.",
+    "long": "Three members tolerate one failure and five tolerate two. An even number buys nothing over the odd number below it, which is why cluster sizes are odd.",
+    "related": [
+      "etcd"
+    ]
+  },
+  {
+    "term": "Idempotent",
+    "introducedIn": 7,
+    "short": "Running it again changes nothing beyond what running it once did.",
+    "long": "A reconcile pass reads what should exist, reads what does exist, and closes the gap. Doing that a hundred times has the same effect as doing it once, which is what lets the system retry anything, at any time, without bookkeeping.",
+    "related": [
+      "Reconciliation",
+      "Controller",
+      "Control loop"
+    ]
+  },
+  {
+    "term": "Owner reference",
+    "introducedIn": 7,
+    "short": "A note on an object saying which object it was created for.",
+    "long": "The only link between a Deployment and its ReplicaSet, or a ReplicaSet and its pods. It records a uid rather than a name, so a recreated parent does not adopt the old one's children, and the garbage collector uses it to delete downwards when a parent goes.",
+    "related": [
+      "Controller",
+      "Object",
+      "Deployment",
+      "ReplicaSet"
+    ]
+  },
+  {
+    "term": "Event",
+    "introducedIn": 8,
+    "short": "An object recording that something happened, addressed to nobody and deleted within the hour.",
+    "long": "Repeats of the same thing about the same object are folded into one record with a counter, so a large count is a duration rather than a magnitude. Nothing in the cluster reads events to decide anything; they exist so a person can reconstruct the past.",
+    "related": [
+      "Object",
+      "Condition",
+      "Level-triggered"
+    ]
+  },
+  {
+    "term": "Level-triggered",
+    "introducedIn": 8,
+    "short": "Acting on how things currently are, rather than on being told that they changed.",
+    "long": "The edge-triggered alternative acts on the change itself, which makes a lost, duplicated or reordered notification into a wrong outcome. Reading the current state instead makes all three harmless, which is why every loop in Kubernetes works this way.",
+    "related": [
+      "Reconciliation",
+      "Controller",
+      "Idempotent",
+      "Event"
+    ]
+  },
+  {
+    "term": "Condition",
+    "introducedIn": 8,
+    "short": "A claim about an object right now, with a reason and the time it last changed.",
+    "long": "Available, Progressing, Ready and their kin. Unlike events they do not expire, do not accumulate, and carry a machine-readable reason, which is what makes them the thing to read and the thing to alert on.",
+    "related": [
+      "Actual state",
+      "Event",
+      "Object"
     ]
   }
 ]

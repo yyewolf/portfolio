@@ -1,0 +1,397 @@
+---
+// Lesson 5's request-path inspector.
+//
+// Server-rendered, for the same reasons as ClusterMap.astro: it is a labelled
+// diagram rather than a simulation, so the gates and every outcome are real
+// HTML. That means it works with JavaScript off, Pagefind indexes the text, and
+// the request list is keyboard-navigable because the entries are real buttons.
+//
+// The script only *collapses* the six request walkthroughs into one at a time
+// and steps the gates with a delay. With no JavaScript the reader gets the gate
+// track plus all six walkthroughs listed underneath, which is longer and
+// complete.
+//
+// Ordering is the thing this diagram exists to teach, so the gate list is the
+// real one: authentication, authorization, mutating admission, schema
+// validation, validating admission, storage. Validating admission runs *after*
+// defaulting because it has to judge the object that would actually be stored.
+import "@styles/request.css";
+
+type Verdict = "pass" | "changed" | "stop";
+
+type Step = {
+  gate: string;
+  verdict: Verdict;
+  /** Shown on the gate when it is the one that ended the request. */
+  code?: string;
+  note: string;
+};
+
+type Request = {
+  id: string;
+  /** What the reader would have typed, or what the client actually sent. */
+  label: string;
+  wire: string;
+  who: string;
+  /** One line, read before any gate runs. */
+  premise: string;
+  steps: Step[];
+  /** The point the walkthrough exists to make. */
+  outcome: string;
+};
+
+const GATES = [
+  { key: "authn", name: "Authentication", asks: "who is this?" },
+  { key: "authz", name: "Authorization", asks: "are they allowed?" },
+  { key: "mutate", name: "Mutating admission", asks: "should it be changed?" },
+  { key: "schema", name: "Schema validation", asks: "is it well-formed?" },
+  {
+    key: "validate",
+    name: "Validating admission",
+    asks: "should it be refused?",
+  },
+  { key: "store", name: "Storage", asks: "write it down" },
+];
+
+const requests: Request[] = [
+  {
+    id: "apply",
+    label: "You apply a Deployment",
+    wire: "POST /apis/apps/v1/namespaces/shop/deployments",
+    who: "you, from your kubeconfig",
+    premise:
+      "The ordinary case, so you can see what all six gates do when none of them objects.",
+    steps: [
+      {
+        gate: "Authentication",
+        verdict: "pass",
+        note: "Your kubeconfig holds a client certificate. The API server reads a username out of its subject and a set of groups out of the rest, and that is the whole of what it now knows about you.",
+      },
+      {
+        gate: "Authorization",
+        verdict: "pass",
+        note: "One of your groups is bound to a role that allows create on deployments in this namespace. The question asked here is narrow: this user, this verb, this kind, this namespace.",
+      },
+      {
+        gate: "Mutating admission",
+        verdict: "changed",
+        note: "Your file did not mention a rollout strategy, a grace period, or an image pull policy. The stored object has all three. Defaults are applied here, not by whatever reads the object later.",
+      },
+      {
+        gate: "Schema validation",
+        verdict: "pass",
+        note: "replicas is a number, the container has a name and an image, and no field is one the Deployment schema has never heard of.",
+      },
+      {
+        gate: "Validating admission",
+        verdict: "pass",
+        note: "Nothing in the namespace objects to the object as it now stands. This is the last chance to say no.",
+      },
+      {
+        gate: "Storage",
+        verdict: "pass",
+        note: "Written, and given a version number. The response comes back as 201 Created and not one container has been started.",
+      },
+    ],
+    outcome:
+      "Six gates, and the only one that touched a machine was the last, which touched a database. Creating an object is the end of this story, not the beginning of a deployment.",
+  },
+  {
+    id: "expired",
+    label: "The same command, with an expired certificate",
+    wire: "POST /apis/apps/v1/namespaces/shop/deployments",
+    who: "an identity the server cannot establish",
+    premise:
+      "Same file, same verb, same namespace. Only the credential has changed.",
+    steps: [
+      {
+        gate: "Authentication",
+        verdict: "stop",
+        code: "401",
+        note: "The certificate is past its notAfter, so the server cannot establish who is asking. It does not read the body, does not consider whether such a user could create Deployments, and does not say what it would have done. There is nobody to answer about.",
+      },
+    ],
+    outcome:
+      "A 401 is the shortest path through this diagram. Nothing downstream of the first gate ever learns the request happened.",
+  },
+  {
+    id: "sa",
+    label: "A pod tries to delete a Deployment",
+    wire: "DELETE /apis/apps/v1/namespaces/shop/deployments/web",
+    who: "a pod, using the token mounted inside it",
+    premise:
+      "Every pod can reach the API server, and most of them carry a credential. This one has been talked into using it.",
+    steps: [
+      {
+        gate: "Authentication",
+        verdict: "pass",
+        note: "The token is real and it names an identity belonging to the shop namespace. This gate has done its job correctly: the caller is exactly who the token says.",
+      },
+      {
+        gate: "Authorization",
+        verdict: "stop",
+        code: "403",
+        note: "Nothing grants that identity delete on deployments. Being known and being allowed are two different questions asked by two different gates, and this is why they are separate.",
+      },
+    ],
+    outcome:
+      "A pod holding a valid credential got exactly as far as its permissions allowed, which was nowhere.",
+  },
+  {
+    id: "typo",
+    label: "A typo: replicas is quoted",
+    wire: "POST /apis/apps/v1/namespaces/shop/deployments",
+    who: "you, from your kubeconfig",
+    premise:
+      "The file says replicas: \"three\". Everything else about it is fine.",
+    steps: [
+      {
+        gate: "Authentication",
+        verdict: "pass",
+        note: "Unchanged. Who you are does not depend on what you sent.",
+      },
+      {
+        gate: "Authorization",
+        verdict: "pass",
+        note: "Still allowed to create Deployments here. Permission is checked against the kind and the verb, not against the contents.",
+      },
+      {
+        gate: "Mutating admission",
+        verdict: "pass",
+        note: "Nothing to default that has not been given.",
+      },
+      {
+        gate: "Schema validation",
+        verdict: "stop",
+        code: "422",
+        note: "replicas is declared as a 32-bit integer and \"three\" is a string. The request is rejected as a whole; there is no half-written Deployment left behind, and no controller is ever handed a malformed one.",
+      },
+    ],
+    outcome:
+      "Bad objects fail at the door rather than three components later. That is most of what one door buys you.",
+  },
+  {
+    id: "defaulted",
+    label: "A pod that never said what it needs",
+    wire: "POST /api/v1/namespaces/shop/pods",
+    who: "you, from your kubeconfig",
+    premise:
+      "The pod names an image and nothing else. The namespace has a policy about pods like that.",
+    steps: [
+      {
+        gate: "Authentication",
+        verdict: "pass",
+        note: "Unchanged.",
+      },
+      {
+        gate: "Authorization",
+        verdict: "pass",
+        note: "Allowed to create pods here.",
+      },
+      {
+        gate: "Mutating admission",
+        verdict: "changed",
+        note: "A policy in this namespace says a container that does not state a CPU request gets one. Your file did not state one. The object that continues down the path now does, and you never wrote that line.",
+      },
+      {
+        gate: "Schema validation",
+        verdict: "pass",
+        note: "Well-formed, including the field that was just added for you.",
+      },
+      {
+        gate: "Validating admission",
+        verdict: "pass",
+        note: "Judged as it now stands, with the added request counted.",
+      },
+      {
+        gate: "Storage",
+        verdict: "pass",
+        note: "Written. Reading it back gives you the object with the extra field, not the one you sent.",
+      },
+    ],
+    outcome:
+      "What you submitted and what got stored are not the same document. This is the single most surprising thing about the request path, and it is why reading an object back is worth doing.",
+  },
+  {
+    id: "quota",
+    label: "A Deployment the namespace cannot afford",
+    wire: "POST /apis/apps/v1/namespaces/shop/deployments",
+    who: "you, from your kubeconfig",
+    premise:
+      "Ten replicas, each asking for a CPU, into a namespace with a budget that is already mostly spent.",
+    steps: [
+      {
+        gate: "Authentication",
+        verdict: "pass",
+        note: "Unchanged.",
+      },
+      {
+        gate: "Authorization",
+        verdict: "pass",
+        note: "You are allowed to create Deployments. Whether this particular one is a good idea is not a question this gate can ask.",
+      },
+      {
+        gate: "Mutating admission",
+        verdict: "changed",
+        note: "The usual defaults are filled in.",
+      },
+      {
+        gate: "Schema validation",
+        verdict: "pass",
+        note: "Perfectly well-formed. It is a valid object that happens to be unaffordable.",
+      },
+      {
+        gate: "Validating admission",
+        verdict: "stop",
+        code: "403",
+        note: "The namespace's budget allows eight CPUs and seven are already committed. This gate runs after defaulting precisely so it can count the object that would really be stored, rather than the shorter one you sent.",
+      },
+    ],
+    outcome:
+      "Allowed and acceptable are different tests. The first is about you, the second is about the object, and the second one cannot run until the object is finished.",
+  },
+];
+
+const stepFor = (r: Request, gate: string): Step | undefined =>
+  r.steps.find((s) => s.gate === gate);
+
+/** Everything after the gate that stopped the request is never reached. */
+const gateState = (r: Request, gate: string): string => {
+  const s = stepFor(r, gate);
+  if (s) return s.verdict;
+  return "skipped";
+};
+---
+
+<div class="rp not-prose my-8" data-request-path>
+  <div class="rp-picker">
+    <p class="rp-picker-head">Send something to the API server</p>
+    <ul class="rp-requests">
+      {
+        requests.map((r) => (
+          <li>
+            <button
+              type="button"
+              class="rp-request"
+              data-request={r.id}
+              aria-pressed="false"
+            >
+              <span class="rp-request-label">{r.label}</span>
+              <code class="rp-request-wire">{r.wire}</code>
+            </button>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+
+  <ul class="rp-walks" data-rp-walks>
+    {
+      requests.map((r) => (
+        <li class="rp-walk" data-walk={r.id}>
+          <p class="rp-walk-head">
+            <span class="rp-walk-label">{r.label}</span>
+            <span class="rp-walk-who">{r.who}</span>
+          </p>
+          <p class="rp-premise">{r.premise}</p>
+
+          <ol class="rp-gates">
+            {GATES.map((g) => {
+              const s = stepFor(r, g.name);
+              const state = gateState(r, g.name);
+              return (
+                <li class="rp-gate" data-state={state}>
+                  <div class="rp-gate-head">
+                    <span class="rp-gate-name">{g.name}</span>
+                    <span class="rp-gate-asks">{g.asks}</span>
+                    {s?.code && <span class="rp-gate-code">{s.code}</span>}
+                  </div>
+                  {s ? (
+                    <p class="rp-gate-note">{s.note}</p>
+                  ) : (
+                    <p class="rp-gate-note rp-gate-unreached">Never reached.</p>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+
+          <p class="rp-outcome">{r.outcome}</p>
+        </li>
+      ))
+    }
+  </ul>
+
+  <p class="rp-hint" data-rp-hint hidden>
+    Pick a request to follow it through the gates.
+  </p>
+</div>
+
+<script>
+  // Progressive enhancement only. Every walkthrough above is already in the
+  // page, which is what a reader with no JavaScript and what Pagefind both get.
+  // This collapses the list to one at a time and reveals the gates in order, so
+  // that the sequence is something the reader watches rather than reads.
+  //
+  // Arrow-function consts rather than hoisted declarations, because TS
+  // narrowing does not reach those (AGENTS.md gotcha 4).
+  const setup = (): void => {
+    const root = document.querySelector<HTMLElement>("[data-request-path]");
+    if (!root) return;
+
+    const hint = root.querySelector<HTMLElement>("[data-rp-hint]");
+    const walks = Array.from(root.querySelectorAll<HTMLElement>("[data-walk]"));
+    const buttons = Array.from(
+      root.querySelectorAll<HTMLButtonElement>("[data-request]"),
+    );
+    if (walks.length === 0 || buttons.length === 0) return;
+
+    root.dataset.enhanced = "yes";
+    if (hint) hint.hidden = false;
+
+    // One token per reveal run. A reader clicking through requests faster than
+    // the animation would otherwise leave two runs stepping the same list.
+    let run = 0;
+
+    const reveal = (walk: HTMLElement): void => {
+      const mine = (run += 1);
+      const gates = Array.from(walk.querySelectorAll<HTMLElement>(".rp-gate"));
+      for (const g of gates) g.dataset.shown = "no";
+
+      const reduced = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+
+      gates.forEach((g, i) => {
+        if (reduced) {
+          g.dataset.shown = "yes";
+          return;
+        }
+        window.setTimeout(() => {
+          if (run !== mine) return;
+          g.dataset.shown = "yes";
+        }, i * 260);
+      });
+    };
+
+    const show = (id: string | null): void => {
+      for (const w of walks) w.hidden = w.dataset.walk !== id;
+      for (const b of buttons)
+        b.setAttribute("aria-pressed", String(b.dataset.request === id));
+      if (hint) hint.hidden = id !== null;
+      const open = walks.find((w) => w.dataset.walk === id);
+      if (open) reveal(open);
+    };
+
+    for (const b of buttons) {
+      b.addEventListener("click", () => {
+        const open = b.getAttribute("aria-pressed") === "true";
+        show(open ? null : (b.dataset.request ?? null));
+      });
+    }
+
+    show(null);
+  };
+
+  document.addEventListener("astro:page-load", setup);
+</script>
