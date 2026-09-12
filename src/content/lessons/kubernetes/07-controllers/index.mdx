@@ -13,13 +13,13 @@ draft: false
 import ControllerCascade from "@components/courses/ControllerCascade.astro";
 import ClusterMap from "@components/courses/ClusterMap.astro";
 
-You should already know what a <Term>controller</Term> is, because you played one 
-earlier. This lesson is about how the real ones are put together, and about the one
-thing that explains the whole design.
+You already know what a <Term>controller</Term> is, because you played one
+earlier. This lesson is about how the real ones are put together, and about the
+one thing that explains the whole design.
 
 ## The shape of the loop
 
-Strip a controller down and it is this:
+Strip a controller down and it's this:
 
 ```text
 loop forever:
@@ -30,17 +30,17 @@ loop forever:
     if that failed, put the name back on the queue
 ```
 
-That is the whole thing. Notice what's not in it: no memory of what it did 
-last time, and no description of what just changed.
+That's the whole thing. Notice what's not in it: no memory of what it did last
+time, and no description of what just changed.
 
-## It is handed a name, not a change
+## It gets handed a name, not a change
 
-This is the thing. A controller's watch tells it *which* object is worth
-looking at. It does not tell it what happened to that object, and the controller
-does not care.
+This is the important bit. A controller's watch tells it *which* object is worth
+looking at. It doesn't tell it what happened to that object, and the controller
+doesn't care.
 
-So the queue does not hold events, it holds names. Which has consequences that
-look like small engineering details and are not:
+So the queue doesn't hold events, it holds names. That has consequences that look
+like small engineering details and really aren't:
 
 | Because the queue holds names | You get |
 |---|---|
@@ -49,36 +49,35 @@ look like small engineering details and are not:
 | The object is read fresh at the top of the loop | Arriving late is the same as arriving on time |
 | Nothing depends on a change being delivered | A missed watch entry costs nothing |
 
-That last row is the one that makes the system survivable.
+That last row is what makes the system survivable.
 
-There is a second habit that comes from the same place: every controller
+There's a second habit that comes from the same place. Every controller
 periodically walks *every* object it looks after, even when nothing has happened
 at all. If a watch broke, if an entry was missed, if a previous pass quietly
-failed, the sweep catches it. The correction arrives late rather than never.
+failed, the sweep catches it. The correction just arrives late instead of never.
 
 ## Reconcile has to be safe to run twice
 
-Given all that, a controller has to be written so that running it again is
-harmless. Not "cheap", harmless. It will run again, on an object it has already
-handled, having been given no indication that this is a repeat.
+So a controller has to be written so that running it again is harmless. Not
+"cheap", harmless. It will run again, on an object it has already handled, with
+no indication that this is a repeat.
 
 Which means a reconcile pass is never allowed to think in terms of *doing* a
 thing. It reads what should exist, reads what does exist, and closes the gap it
-finds, which is usually no gap at all. Running that a hundred times has the same
-effect as running it once, and that property has a name: it is
-<Term>idempotent</Term>.
+finds, which is usually no gap at all. Running that a hundred times does the same
+as running it once, and that property has a name: it's <Term>idempotent</Term>.
 
-If you have ever wondered why Kubernetes has no "create this once" primitive,
-this is why. Nothing in the system is allowed to need one.
+If you've ever wondered why Kubernetes has no "create this once" primitive, this
+is why. Nothing in the system is allowed to need one.
 
-## Reading is local, writing is not
+## Reading is local, writing isn't
 
-A controller does not ask the API server every time it wants to look at
-something. It keeps a local copy of the objects it cares about, kept current by
-a watch, and reads from that. Otherwise a few dozen controllers in a cluster of
-any size would flatten the API server between them.
+A controller doesn't ask the API server every time it wants to look at something.
+It keeps a local copy of the objects it cares about, kept current by a watch, and
+reads from that. Otherwise a few dozen controllers in a cluster of any size would
+flatten the API server between them.
 
-The local copy is very slightly behind, and that is fine, because writes are not
+The local copy is very slightly behind, and that's fine, because writes aren't
 local. When a controller does decide to change something it sends a request like
 anyone else, carrying the `resourceVersion` it read. If its copy was stale, the
 write comes back as a conflict.
@@ -89,16 +88,16 @@ Operation cannot be fulfilled on deployments.apps "web": the object has been
 modified; please apply your changes to the latest version and try again
 ```
 
-At which point the controller does not reconcile the conflict, or merge, or
-retry the write. It puts the name back on the queue and starts again from a
-fresh read. A conflict is not an error condition here so much as the system
-telling a loop to go around one more time.
+At which point the controller doesn't reconcile the conflict, or merge, or retry
+the write. It puts the name back on the queue and starts again from a fresh read.
+A conflict isn't really an error here, it's the system telling a loop to go
+around one more time.
 
 ## Nobody is in charge
 
-There is no component that knows how a Deployment becomes a running container.
-There is a chain of loops, each of which knows exactly one step and reads only
-the layer below it.
+There's no component that knows how a Deployment becomes a running container.
+There's a chain of loops, each of which knows exactly one step and reads only the
+layer below it.
 
 Run it and watch. Then stop one of the loops and break something, which is the
 part worth doing.
@@ -107,24 +106,23 @@ part worth doing.
 
 Each loop only knows its own layer. The deployment controller has never heard of
 a pod. The ReplicaSet controller has never heard of a Deployment. The scheduler
-does not know why a pod exists and does not ask.
+doesn't know why a pod exists and doesn't ask.
 
-Stopping one loop does not make another cover for it. Stop the ReplicaSet
+Stopping one loop doesn't make another cover for it. Stop the ReplicaSet
 controller and delete a pod, and the pod stays gone. Nothing else notices,
-because nothing else was watching for that. The system does not degrade
-gracefully into somebody else's job, it just stops making progress on that one
-thing, and starts again the moment the loop does.
+because nothing else was watching for that. The system doesn't degrade gracefully
+into somebody else's job, it just stops making progress on that one thing, and
+starts again the moment the loop does.
 
-And settled is the normal state rather than a special one. Most of the time every
-loop looks, finds nothing to do, and goes back to sleep. Work is the exception. A
-cluster at rest is not idle, it is being continuously re-checked and found
-correct.
+And settled is the normal state, not a special one. Most of the time every loop
+looks, finds nothing to do, and goes back to sleep. Work is the exception. A
+cluster at rest isn't idle, it's being continuously re-checked and found correct.
 
 ## Deleting is a loop too
 
 When the deployment controller creates a ReplicaSet, it stamps it with a note
 saying which object it made it for. That note is an
-<Term>owner reference</Term>, and it is the only link between the two.
+<Term>owner reference</Term>, and it's the only link between the two.
 
 ```yaml
 metadata:
@@ -141,40 +139,40 @@ Then the pods have no owner either, so it removes those. The cascade runs
 backwards, at the same speed and by the same mechanism as it ran forwards.
 
 The `uid` in there is doing real work. Delete a Deployment called `web` and
-create a new one with the same name, and the children of the old one are not
-adopted by the new one, because the identity that was recorded was the old
-object's, not its name.
+create a new one with the same name, and the children of the old one don't get
+adopted by the new one, because what got recorded was the old object's identity,
+not its name.
 
 ## Where they actually run
 
-Most of the built-in controllers are not separate programs. They are compiled
-into one binary, the controller manager, and started as goroutines inside it.
-That is an implementation convenience and nothing more: they still communicate
-only through objects in the API server.
+Most of the built-in controllers aren't separate programs. They're compiled into
+one binary, the controller manager, and started as goroutines inside it. That's
+an implementation convenience and nothing more: they still only communicate
+through objects in the API server.
 
 Run several copies for availability and only one of them is active. They elect a
 leader by competing to write to a single object, and the others wait. Two
-controllers reconciling the same objects at once is not a disaster, since they
-are idempotent, but it is wasteful and it makes the logs a nightmare.
+controllers reconciling the same objects at once isn't a disaster, since they're
+idempotent, but it's wasteful and it makes the logs a nightmare.
 
 <ClusterMap upTo={7} />
 
 ## When two loops want different things
 
 A controller is stubborn by construction. It has one idea of what should be true
-and it will keep writing until reality agrees.
+and it'll keep writing until reality agrees.
 
-So the failure mode you eventually meet is two of them with different ideas about
-the same field. Something scales your Deployment up because it is busy, your
-manifest says three, and whichever ran last wins for a few seconds. The result is
-a value that oscillates forever, with both loops working perfectly.
+So the failure you eventually meet is two of them with different ideas about the
+same field. Something scales your Deployment up because it's busy, your manifest
+says three, and whichever ran last wins for a few seconds. You get a value that
+oscillates forever, with both loops working perfectly.
 
-There is no arbitration for this in the system, and there is no error message.
-The fix is always to stop one of them caring about that field, and the reason it
-is worth knowing about now is that the symptom looks like a bug and is not one.
+There's no arbitration for this in the system and there's no error message. The
+fix is always to stop one of them caring about that field, and it's worth knowing
+about now because the symptom looks like a bug and really isn't one.
 
 ## Where this goes next
 
-All of this depends on a controller never needing to be told what happened. What
-is left is the stream of things that look exactly like being told what happened,
-and why nothing in the cluster is allowed to listen.
+All of this depends on a controller never needing to be told what happened.
+What's left is the stream of things that look exactly like being told what
+happened, and why nothing in the cluster is allowed to listen.

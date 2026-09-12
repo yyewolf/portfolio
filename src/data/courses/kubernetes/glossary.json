@@ -164,6 +164,7 @@
     "related": [
       "Container",
       "Node",
+      "Init container",
       "Deployment"
     ]
   },
@@ -469,6 +470,26 @@
       "Actual state",
       "Event",
       "Object"
+    ]
+  },
+  {
+    "term": "Init container",
+    "introducedIn": 9,
+    "short": "A container that runs to completion before a pod's ordinary containers are started.",
+    "long": "Init containers run in order, each one finishing before the next begins, and the pod does not start until the last has exited successfully. Each is a separate image, so setup tooling never has to be installed into the application's image. They run again every time the pod starts.",
+    "related": [
+      "Pod",
+      "Container"
+    ]
+  },
+  {
+    "term": "CrashLoopBackOff",
+    "introducedIn": 9,
+    "short": "A container keeps exiting and is being restarted with a growing delay between attempts.",
+    "long": "Not a phase and not an error from Kubernetes: it is the node reporting that it has restarted this container several times and is now waiting longer each time before trying again. The pod itself is untouched, with the same name, address and node it had before.",
+    "related": [
+      "Pod",
+      "Container"
     ]
   }
 ]

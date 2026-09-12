@@ -2,22 +2,182 @@
 track: kubernetes
 order: 9
 phase: 3
-minutes: 10
-tags: [workloads, scheduling]
 title: Pods
-description: "One or more containers that share a network namespace and a lifecycle, and why the unit is not the container."
-modes: []
-draft: true
+description: The smallest thing you can ask the cluster to run, and why it isn't a container.
+minutes: 17
+tags: [workloads, fundamentals]
+modes: [operate]
+draft: false
 ---
 
-A <Term>node</Term> is a single machine in the cluster. On it runs a
-<Term>kubelet</Term>, the agent responsible for actually starting work.
+import PodPacking from "@components/courses/PodPacking.astro";
 
-The unit of work is the <Term>pod</Term>: one or more
-<Term term="Container">containers</Term> that share a network namespace and
-storage. Containers inside a pod reach each other over localhost.
+Every lesson so far has used the word pod without ever saying what one is. Phase
+2 was about how the cluster remembers what you want. This phase is about what
+actually runs, and it all sits on this one record.
 
-Deciding which node a pod lands on is the <Term>scheduler</Term>'s job. It
-filters out nodes that cannot fit the pod, then ranks what is left.
+## There is no container object
 
-> Placeholder body.
+You can't hand the cluster a container. There's no kind for it, no path in the
+API for it, and nothing that stores one.
+
+The smallest thing you can write down is a <Term>pod</Term>, and a pod holds
+containers:
+
+```yaml
+kind: Pod
+metadata:
+  name: web
+spec:
+  containers:
+    - name: web
+      image: shop/web:2.9
+```
+
+A pod is only a wrapper that holds containers. It kinda looks like a docker
+compose file, but it really isn't. A pod can hold several containers, and when it
+does they all share the exact same lifecycle.
+
+Most pods have exactly one container in them.
+
+## What the containers in a pod share
+
+Four things.
+
+They share a network namespace: one IP for the pod, one set of ports, and
+`127.0.0.1` in one container is the whole pod. So two containers in a pod just
+reach each other, with no address to configure. They also can't both bind 8080.
+
+They share the pod's directories. A pod declares storage in a `volumes` entry and
+any of its containers can mount it, so one writes a file and another reads it.
+That directory belongs to the pod. Nothing outside the pod can get to it.
+
+They share a node. A pod goes on one machine, in one piece.
+
+They share a lifetime. They start together, they die together, and they get
+copied together. Run the pod three times and you've run every container in it
+three times.
+
+They don't share everything though. Each container has its own filesystem from
+its own image, so they can't see each other's files unless it's through one of
+those directories. Each gets its own process table, so `ps` in one shows nothing
+of the other. And CPU and memory are set per container, not per pod.
+
+## A pod is not a compose file
+
+If you've used Docker Compose, a pod looks like the same idea. A few containers
+declared together in one file, all coming up together, all able to find each
+other by name. So people translate one compose file into one pod, and that's
+wrong.
+
+A compose file is basically your whole app on one machine:
+
+```yaml
+services:
+  web:        # the site, and you want three of it
+  api:        # four of it
+  worker:     # more of it when the queue is long
+  postgres:   # exactly one, and it must keep its disk
+  redis:      # exactly one
+  logs:       # one alongside each api, tailing its log directory
+```
+
+Six services, one file, one `docker compose up`. That isn't one pod with six
+containers in it. Most of those services become their own pod with a single
+container inside, and maybe one pair of them belongs together.
+
+Look at the comments to see why. Nearly every service wants a different number of
+copies, and a pod can't do that, because the pod is the thing that gets copied.
+Compose doesn't care: `docker compose up --scale api=4` scales one service and
+leaves the rest alone.
+
+Compose gives a project a network and some names. A pod gives its containers one
+address. That sounds like the same favour but it really isn't.
+
+## So what goes in one?
+
+Four applications. For each one you decide which processes share a pod. It's much
+easier to remember the rule once you've broken it, so break it here instead of on
+something serving traffic.
+
+<PodPacking />
+
+## Containers that run in front
+
+A pod can also declare <Term term="Init container">init containers</Term>. They
+run before the ordinary ones, in order, and each one has to finish before the
+next starts. The pod doesn't start until the last of them exits successfully. In
+the manifest they're just an `initContainers` list next to `containers`.
+
+That's useful for two reasons. Each one is its own image, so the tool that
+fetches config or waits for a database doesn't have to be baked into your app's
+image. And they're part of the pod, so they run again every time the pod starts,
+wherever it starts, without anything having to remember.
+
+## Containers restart, pods don't move
+
+A container inside a pod can be restarted in place. The kubelet sees the process
+is gone and starts it again from the same image. The pod itself doesn't change:
+same name, same IP, same node, just a higher restart count. That's
+<Term>CrashLoopBackOff</Term>, and the backoff is simply the delay growing
+between attempts so a container that dies instantly doesn't become a busy loop.
+
+That's something that happens to you though, it isn't something you do. There's
+no `kubectl restart`. The kubelet restarts a container when its process exits,
+and that's the only trigger there is. If you actually want one restarted you go
+in and make the process exit, with `kubectl exec` and a kill, or you delete the
+whole pod and let something else make a new one. The second isn't a restart at
+all, it's a different pod with a different name and a different address. And the
+`kubectl rollout restart` you might have seen is that second thing, done in bulk.
+
+Lesson 4 said there's no real command for restarting something. This is what that
+meant.
+
+A pod never gets moved though. When it's placed, the name of its node is written
+into the object, and that field never changes again. There's no code anywhere
+that reschedules a pod onto another machine.
+
+So when a node dies, its pods die with it. They don't come back somewhere else.
+Something notices they're gone and creates new pods with new names and new
+addresses, and the old objects get deleted. You never get the same pod back, so
+don't keep anything valuable inside one.
+
+## Reading a pod's status
+
+```text
+NAME                 READY   STATUS             RESTARTS   AGE
+web-7d4f9c-2xk9      1/1     Running            0          4d
+web-7d4f9c-lm4x      0/1     CrashLoopBackOff   7          3m
+report-28492-qq81    0/1     Completed          0          2h
+```
+
+That STATUS column isn't a field. A pod's `status.phase` is one of five words:
+Pending, Running, Succeeded, Failed or Unknown. `kubectl` prints something more
+specific whenever a container has something more specific to say, which is why
+two of those three lines aren't phases at all.
+
+Pending means no node has taken it yet. The object was accepted and stored, and
+the scheduler either hasn't got to it or can't place it anywhere. A pod can sit
+there forever and there's nothing wrong with the pod.
+
+Once a node has it, the column moves on even though the phase hasn't.
+`status.phase` stays Pending until a container is actually running, so it covers
+the image pull too, but by then the column is already showing
+`ContainerCreating`. Add init containers and you get `Init:0/2` while they run
+and `PodInitializing` just after. Three different words for a pod whose phase
+never changed once.
+
+READY counts containers, it isn't a verdict on your app. `1/1` says one container
+is up and reporting itself ready, and it says nothing about whether the thing
+inside it can serve a request.
+
+## You'll hardly ever write one
+
+All of this was one record, for one set of containers, on one machine. You wrote
+a few by hand in the exercise and they all have the problem you spent lesson 2
+fixing: if it goes away, it's gone, and nothing is watching. You saw that in
+lesson 7 too, when you paused the ReplicaSet controller and the pod you deleted
+stayed deleted.
+
+So you don't create pods. You describe the pod you want copies of, and you hand
+that description to something whose whole job is keeping those copies there.

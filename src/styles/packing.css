@@ -1,0 +1,457 @@
+/* ---------------------------------------------------------------------------
+ * Lesson 9's pod packing. Everything is scoped under `.pk`, which sits inside a
+ * `not-prose` wrapper so the article's typography plugin keeps its hands off
+ * the panels. The markup is built at runtime by
+ * src/scripts/courses/packing/packing.ts, so Astro's scoped styles cannot reach
+ * it and these rules are global on purpose.
+ *
+ * The layout has one job the other panels do not: the arrangement the reader is
+ * building has to stay visible while they build it, so the process list and the
+ * pods sit in one column on a phone and side by side once there is room.
+ * ------------------------------------------------------------------------ */
+
+.pk {
+  --pk-line: #e5e7eb;
+  --pk-surface: #ffffff;
+  --pk-sunk: #f9fafb;
+  --pk-ink: #111827;
+  --pk-ink2: #4b5563;
+  --pk-muted: #9ca3af;
+  --pk-accent: #2563eb;
+  --pk-accent-bg: #eff6ff;
+  --pk-good: #047857;
+  --pk-good-bg: #ecfdf5;
+  --pk-bad: #b45309;
+  --pk-bad-bg: #fffbeb;
+  --pk-key: #7c3aed;
+
+  font-family: inherit;
+  color: var(--pk-ink2);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+html.dark .pk {
+  --pk-line: #1f2937;
+  --pk-surface: #030712;
+  --pk-sunk: #0b1120;
+  --pk-ink: #f9fafb;
+  --pk-ink2: #9ca3af;
+  --pk-muted: #6b7280;
+  --pk-accent: #60a5fa;
+  --pk-accent-bg: #0b1f38;
+  --pk-good: #6ee7b7;
+  --pk-good-bg: #04241c;
+  --pk-bad: #fcd34d;
+  --pk-bad-bg: #241a04;
+  --pk-key: #c4b5fd;
+}
+
+.pk *,
+.pk *::before,
+.pk *::after {
+  box-sizing: border-box;
+}
+
+/* global.css styles the bare `header` element as fixed site chrome. */
+.pk header {
+  position: static;
+  inset: auto;
+}
+
+.pk-shell {
+  border: 1px solid var(--pk-line);
+  border-radius: 0.9rem;
+  background: var(--pk-surface);
+  overflow: hidden;
+}
+
+.pk-head {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--pk-line);
+  background: var(--pk-sunk);
+}
+
+.pk-rail {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pk-rail li {
+  flex: 1;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--pk-line);
+  transition: background 0.25s ease;
+}
+
+.pk-rail li span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.pk-rail li[data-state="done"] {
+  background: var(--pk-good);
+}
+
+.pk-rail li[data-state="current"] {
+  background: var(--pk-accent);
+}
+
+.pk-body {
+  padding: 1.1rem 1rem 1.2rem;
+}
+
+.pk-intro p {
+  margin: 0 0 0.6rem;
+}
+
+.pk-kicker {
+  margin: 0 0 0.3rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pk-muted);
+}
+
+.pk-title {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--pk-ink);
+}
+
+.pk-brief {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  color: var(--pk-ink);
+}
+
+/* --- the processes ------------------------------------------------------- */
+
+.pk-procs {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: 1fr;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.pk-proc {
+  border: 1px solid var(--pk-line);
+  border-radius: 0.6rem;
+  background: var(--pk-sunk);
+  padding: 0.6rem 0.7rem;
+}
+
+.pk-proc-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.pk-proc-name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--pk-ink);
+}
+
+.pk-proc-image {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  color: var(--pk-muted);
+}
+
+.pk-proc-what {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.82rem;
+}
+
+.pk-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.pk-slot {
+  border: 1px solid var(--pk-line);
+  border-radius: 0.45rem;
+  background: var(--pk-surface);
+  color: var(--pk-ink2);
+  padding: 0.3rem 0.6rem;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.pk-slot:hover:not(:disabled) {
+  border-color: var(--pk-accent);
+}
+
+.pk-slot:focus-visible {
+  outline: 2px solid var(--pk-accent);
+  outline-offset: 2px;
+}
+
+.pk-slot[data-on="yes"] {
+  border-color: var(--pk-accent);
+  background: var(--pk-accent-bg);
+  color: var(--pk-accent);
+  font-weight: 600;
+}
+
+.pk-slot:disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+
+/* --- the arrangement ----------------------------------------------------- */
+
+.pk-pods {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 34rem) {
+  .pk-pods {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.pk-pod {
+  border: 1px dashed var(--pk-line);
+  border-radius: 0.6rem;
+  padding: 0.5rem 0.6rem;
+}
+
+.pk-pod-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pk-muted);
+}
+
+.pk-pod-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pk-pod-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  border: 1px solid var(--pk-line);
+  border-radius: 0.4rem;
+  background: var(--pk-surface);
+  padding: 0.25rem 0.45rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  color: var(--pk-ink);
+}
+
+.pk-pod-list li[data-init="yes"] {
+  background: var(--pk-sunk);
+  border-style: dashed;
+}
+
+.pk-tag {
+  font-family: inherit;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pk-muted);
+}
+
+.pk-empty,
+.pk-left {
+  margin: 0.45rem 0 0;
+  font-size: 0.78rem;
+  color: var(--pk-muted);
+}
+
+.pk-left[data-ready="yes"] {
+  color: var(--pk-good);
+}
+
+/* --- what happened ------------------------------------------------------- */
+
+.pk-findings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pk-finding {
+  padding: 0.5rem 0.7rem;
+  border-left: 3px solid var(--pk-line);
+  border-radius: 0 0.4rem 0.4rem 0;
+  font-size: 0.83rem;
+}
+
+.pk-finding[data-tone="bad"] {
+  border-left-color: var(--pk-bad);
+  background: var(--pk-bad-bg);
+}
+
+.pk-finding[data-tone="good"] {
+  border-left-color: var(--pk-good);
+  background: var(--pk-good-bg);
+}
+
+/* --- the manifests ------------------------------------------------------- */
+
+.pk-written {
+  margin-top: 1.1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--pk-line);
+}
+
+.pk-written-head {
+  margin: 0 0 0.5rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pk-muted);
+}
+
+.pk-files {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: 1fr;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 42rem) {
+  .pk-files {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.pk-file {
+  border: 1px solid var(--pk-line);
+  border-radius: 0.5rem;
+  background: var(--pk-sunk);
+  overflow: hidden;
+}
+
+.pk-file-name {
+  margin: 0;
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid var(--pk-line);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  color: var(--pk-muted);
+}
+
+.pk-yaml {
+  margin: 0;
+  padding: 0.55rem 0.6rem;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--pk-ink2);
+  background: none;
+}
+
+.pk-yaml code {
+  font: inherit;
+  background: none;
+  white-space: pre;
+}
+
+.pk-key {
+  color: var(--pk-key);
+  font-weight: 600;
+}
+
+.pk-dash {
+  color: var(--pk-muted);
+}
+
+.pk-note {
+  margin: 0.6rem 0 0;
+  font-size: 0.8rem;
+  color: var(--pk-muted);
+}
+
+/* --- controls ------------------------------------------------------------ */
+
+.pk-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.pk-btn {
+  border: 1px solid var(--pk-line);
+  border-radius: 0.5rem;
+  background: var(--pk-surface);
+  color: var(--pk-ink);
+  padding: 0.45rem 0.9rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pk-btn:hover:not(:disabled) {
+  border-color: var(--pk-accent);
+}
+
+.pk-btn:focus-visible {
+  outline: 2px solid var(--pk-accent);
+  outline-offset: 2px;
+}
+
+.pk-btn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.pk-btn[data-tone="primary"] {
+  border-color: var(--pk-accent);
+  background: var(--pk-accent);
+  color: #fff;
+}
+
+html.dark .pk-btn[data-tone="primary"] {
+  color: #04121f;
+}
+
+html.dark .pk-btn[data-tone="primary"]:disabled {
+  color: #04121f;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pk-rail li,
+  .pk-slot {
+    transition: none;
+  }
+}

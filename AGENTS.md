@@ -79,6 +79,8 @@ a track in batches.
 | `src/components/courses/ControllerCascade.astro` | Mounts the cascade. Styles in `src/styles/cascade.css`, under `.cs`. |
 | `src/scripts/courses/triage/` | The lesson 8 triage: `rounds.ts` (feeds and answers as data), `triage.ts` (runner and view). |
 | `src/components/courses/EventTriage.astro` | Mounts the triage. Styles in `src/styles/triage.css`, under `.tr`. |
+| `src/scripts/courses/packing/` | The lesson 9 packing: `rounds.ts` (four applications as data), `engine.ts` (the four pod rules), `packing.ts` (runner and view). |
+| `src/components/courses/PodPacking.astro` | Mounts the packing. Styles in `src/styles/packing.css`, under `.pk`. |
 | `src/pages/courses/` | The four routes. |
 
 Routes: `/courses`, `/courses/<track>`, `/courses/<track>/glossary`,
@@ -139,6 +141,75 @@ grep -c '^\*\*' src/content/lessons/<track>/*/index.mdx  # expect 0
 
 The same applies to strings inside the interactives, which are prose the reader
 sees and are easy to forget because they live in `.ts` and `.astro` files.
+
+### The register, which is the part that actually drifts
+
+Those four rules are mechanical and easy to keep. The voice is neither, and every
+lesson written by an agent so far has drifted the same direction: away from
+talking and towards writing. The track is a person explaining something, not an
+essay about it.
+
+Here is the same paragraph both ways. The first is what lesson 9 shipped with,
+the second is the author rewriting it:
+
+> One container inside a wrapper that exists to hold containers, which looks like
+> ceremony for nothing. Almost every pod in almost every cluster is exactly this
+> shape. The wrapper is not there for that case: it is there for what has to be
+> true when there are two.
+
+> A pod is only a wrapper that holds containers, it kinda looks like a docker
+> compose but it really isn't. A Pod can hold multiple containers but are meant
+> to all share the exact same lifecycle.
+
+Everything worth knowing is in that diff.
+
+**Say the thing. Do not build up to it.** This is the big one. The first version
+spends its last sentence gesturing at the answer ("what has to be true when there
+are two") so the reader can feel it arrive. The second just says the answer:
+shared lifecycle. Withholding is the house tic of the drifted lessons, and it
+reads as clever rather than clear. After drafting a paragraph, ask whether you
+said it or set it up.
+
+**Contractions are normal.** It's, that's, isn't, doesn't, really isn't. Lessons
+1 to 4 have them and lessons 5 to 9 have none, which is most of why the later
+ones sound stiffer.
+
+**Casual qualifiers carry the register**: basically, simply, kinda, just, really,
+pretty much, the coolest part. Lesson 3 closes an argument with "And the coolest
+part about it, is that it's simply a consequence of the design", and that
+sentence is doing real work. Count them:
+
+```bash
+# casual markers per lesson; 1 and 3 are the reference at roughly ten per
+# thousand words, and anything near zero has drifted
+grep -o -i '\bbasically\|\bsimply\b\|\bkinda\b\|\bjust\b\|\breally\b\|\bpretty much\b' \
+  src/content/lessons/kubernetes/*/index.mdx | cut -d: -f1 | uniq -c
+```
+
+**Comma splices are fine.** "A pod is only a wrapper that holds containers, it
+kinda looks like a docker compose but it really isn't." Do not go correcting
+those into semicolons.
+
+**No constructed sentence shapes.** The colon reveal ("is not there for that
+case: it is there for"), the negation pivot ("Not a defect to be engineered away,
+it is the cost of"), the balanced pair for rhythm ("almost every pod in almost
+every cluster"). Parallelism is fine when it is the shortest way to say two
+things and wrong when it is there for the sound of it.
+
+**Shorter.** Lesson 1 is 396 words of prose and lesson 3 is 599. Lessons 6 to 9
+run 1200 to 1400. Length is not the goal on either side, but a lesson that has
+doubled the reference is usually explaining the same thing twice.
+
+One caveat, so this does not get read as licence: the author's example has a
+grammar slip in it ("A Pod can hold multiple containers but are meant to"). Copy
+the register, not the typos. Casual is the target, sloppy is not.
+
+### Rewriting a drifted lesson
+
+Go paragraph by paragraph and ask two questions. Did I say it, or did I lead up
+to saying it? And would I say this sentence out loud to someone? If the answer to
+the second is no, it is usually because of a construction, and the fix is almost
+always to delete the construction and keep the claim.
 
 ## Estimating `minutes`
 
@@ -479,6 +550,52 @@ are prose *and* an interactive, unlike lesson 2 where the game is the lesson, so
 finishing the panel is not finishing the lesson. Adding a `complete: true`
 dispatch would tick them off early. Clicking **Next** is how they get completed.
 
+## Lesson 9's packing
+
+One section, because it is the first interactive in the track that judges an
+arrangement rather than a choice from a list, and the thing that makes it work is
+easy to undo.
+
+**`rounds.ts` does not know what a good answer is, and `engine.ts` does not know
+what the intended one is.** A round is data about four processes: how many of
+each the system needs, which of them reach each other on `127.0.0.1`, which share
+a directory, which exit when they are done, and what ports they bind.
+`evaluate()` turns any arrangement into consequences, and a round is cleared by
+producing no bad ones. There is no answer key anywhere, which is the whole point:
+a reader who finds an arrangement the author did not picture gets a truthful
+sentence about what it would do, not silence and not a canned "wrong".
+
+The four rules are the four things a pod actually is: it is copied whole, it is
+one network namespace, it owns its directories, and its containers are meant to
+outlast their own start-up. Adding a fifth means adding a check to `engine.ts`,
+never a string to a round.
+
+**Every arrangement has to produce at least one sentence.** Replay it outside the
+browser and walk all of them:
+
+```bash
+pnpm exec esbuild --bundle --platform=node --format=cjs <a harness importing
+  rounds.ts + engine.ts> --outfile=/tmp/pack.cjs
+# then assert, over every placement of every round: exactly two arrangements
+# pass per round (the intended one and its Pod A/Pod B mirror), no arrangement
+# comes back with zero findings, and every passing one includes a `good`
+# finding rather than merely lacking a bad one
+```
+
+Four rounds, 4 / 4 / 8 / 64 arrangements. That last number is why this is
+checked by replay and not by reading it.
+
+**Findings are cleared the moment a slot changes.** `packing.ts` drops
+`this.findings` on every placement click. Leaving them up would let the reader
+read a consequence of an arrangement they have already moved on from, which is
+the exact habit lesson 8 spent a whole panel arguing against.
+
+**A single-container pod is only called self-contained when it is.** The
+`entangled()` check in `evaluate()` suppresses the "on its own, nothing else's
+lifetime tied to them" finding for a container that needs another pod's directory
+or another pod's loopback. Without it, splitting the API from its log shipper
+produced a failure and two compliments in the same list.
+
 ## Holding content back
 
 Both phase 1 interactives are the answer to something the prose gives away, so
@@ -567,7 +684,7 @@ for f in dist/courses/kubernetes/*/index.html; do
   case "$f" in *glossary*) continue ;; esac    # glossary page has no sidebar panel
   echo "$(basename $(dirname $f)) $(grep -o 'data-term="' $f | wc -l)"
 done
-# expected today: 3 8 11 15 20 22 25 28 across the eight published lessons
+# expected today: 3 8 11 15 20 22 25 28 31 across the nine published lessons
 ```
 
 ---
@@ -585,13 +702,17 @@ done
 >   that is what git is for.
 > - Keep claims verifiable. If you did not run it, do not assert it passes.
 
-**Last verified:** 2026-09-10 — `pnpm build` clean, 9 pages indexed (8 published
-lessons plus the glossary; five more lessons are `draft: true`), no `[courses]`
-warnings, sidebar term counts 3 / 8 / 11 / 15 / 20 / 22 / 25 / 28, lint at
-baseline 73 with nothing added. Lesson 2's levels and lesson 7's cascade both
-verified by replaying their engines outside the browser; lesson 8's rounds
-checked for one right answer each, three choices each, and a reply on every
-choice.
+**Last verified:** 2026-09-12 — `pnpm build` clean, 10 pages indexed (9 published
+lessons plus the glossary; four more lessons are `draft: true`), no `[courses]`
+warnings, sidebar term counts 3 / 8 / 11 / 15 / 20 / 22 / 25 / 28 / 31, lint at
+baseline 73 with nothing added. Lesson 2's levels, lesson 7's cascade and lesson
+9's packing all verified by replaying their engines outside the browser; lesson
+8's rounds checked for one right answer each, three choices each, and a reply on
+every choice. Lesson 9's packing was replayed over all 80 arrangements across its
+four rounds. **Lessons 5 to 9 and the packing panel's strings have all been
+rewritten to the register** described in the prose voice section above: 24 to 51
+contractions each where there were none, and casual markers back in the range
+lessons 1 and 3 set.
 
 ### Done
 
@@ -608,19 +729,19 @@ choice.
   terminology mapping, a controller that repairs the system on its own, and a
   closing screen on eventual consistency.
 - `holdGlossary` frontmatter flag plus the `[data-hold]` reveal mechanism.
-- **Phases 1 and 2 complete: lessons 1 to 8 published**, each with its
-  interactive — the outage walk, the operator game, the cluster map, the object
-  assembly, the request path, the store browser, the controller cascade and the
-  event triage.
+- **Phases 1 and 2 complete, and phase 3 opened: lessons 1 to 9 published**,
+  each with its interactive: the outage walk, the operator game, the cluster map,
+  the object assembly, the request path, the store browser, the controller
+  cascade, the event triage and the pod packing.
 
 ### In progress
 
-- **Lessons 1 to 8 are written; everything after them is not.** Phase 3 onward
-  is planned in the roadmap and unwritten. Lessons 9, 10, 15, 19 and 22 exist as
-  `draft: true` files carrying prose from an earlier six-lesson version of the
-  track: they hold the right `order` and `phase` but the bodies need rewriting
-  rather than un-drafting, and their `<Term>` uses still point at the old lesson
-  numbering. Do not treat those bodies as reference material.
+- **Lessons 1 to 9 are written; everything after them is not.** The rest of
+  phase 3 onward is planned in the roadmap and unwritten. Lessons 10, 15, 19 and
+  22 exist as `draft: true` files carrying prose from an earlier six-lesson
+  version of the track: they hold the right `order` and `phase` but the bodies
+  need rewriting rather than un-drafting, and their `<Term>` uses still point at
+  the old lesson numbering. Do not treat those bodies as reference material.
 
 ### Not built
 
@@ -628,8 +749,7 @@ choice.
   `/courses` with several cards) are untested against real data.
 - No site-wide search — Pagefind covers courses only, see above.
 - No RSS or sitemap-specific handling for courses beyond Astro's defaults.
-- No quizzes, exercises, or code playgrounds outside lesson 1's outage walk
-  and lesson 2's game.
+- No quizzes, exercises, or code playgrounds outside the nine interactives.
 - Neither interactive is covered by tests. The outage walk's `stages.ts` is
   checked by the esbuild replay above, which covers the data invariants but not
   `walk.ts`'s rendering.

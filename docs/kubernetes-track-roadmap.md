@@ -18,15 +18,15 @@ frontmatter and inherits the depth from it.
 
 | Depth | Phases | Lessons | Shipped |
 |---|---|---|---|
-| Core | 1 to 4 | 1 to 18 | 1 to 8 |
+| Core | 1 to 4 | 1 to 18 | 1 to 9 |
 | Practical | 5 to 9 | 19 to 37 | none |
 | Deep dive | 10 to 13 | 38 to 51 | none |
 
-Lessons 9, 10, 15, 19 and 22 exist as `draft: true` files carrying prose from
-the earlier six-lesson version of the track. They are numbered for their new
-slots, but they need rewriting rather than just un-drafting. Their `<Term>` uses
-still point at the old lesson numbering, so expect `[courses]` warnings when
-they are published.
+Lessons 10, 15, 19 and 22 exist as `draft: true` files carrying prose from the
+earlier six-lesson version of the track. They are numbered for their new slots,
+but they need rewriting rather than just un-drafting. Their `<Term>` uses still
+point at the old lesson numbering, so expect `[courses]` warnings when they are
+published.
 
 ## Depth boundaries
 
@@ -82,6 +82,8 @@ Phase 3, workloads
 
 11 is split out from 10 deliberately. It is where the machinery gets explained
 and where the reader controls the rollout strategy.
+
+9 is shipped. Its interactive is described at the bottom of this file.
 
 Phase 4, networking
 
@@ -321,6 +323,46 @@ the moment would turn it into a quiz.
 The three traps are one per failure mode, and each needs its round: a count of
 847 that is one problem (aggregation), an empty feed hiding a three-hour outage
 (expiry), and a stale warning above a healthy pod (ordering by time).
+
+## Lesson 9, the packing exercise
+
+Four applications, and for each one the reader decides which processes share a
+pod. It is the first interactive in the track that judges something the reader
+built rather than something they picked off a list, and the design turns on one
+refusal: nothing anywhere records what a good answer looks like.
+
+A round is four facts per process. How many of it the system needs, which others
+it reaches on `127.0.0.1`, which directory it shares with which, whether it exits
+when it is done, and what port it binds. The engine turns an arrangement into
+consequences, and a round clears when it produces no bad ones. So the reader is
+never told they are wrong; they are told what they would have built.
+
+Each round is decided by one rule, and the temptation is the same one every time,
+which is that the processes belong to the same application so they feel like they
+belong in the same pod:
+
+1. A front end that needs three copies and a cache that needs one. The pod is the
+   thing that gets copied, so the two cannot be one pod whatever else is true.
+2. An API and the shipper tailing its log directory. That directory is something
+   the pod makes, and nothing outside the pod can reach it.
+3. An API that binds loopback only, the proxy that forwards to it, and a docs
+   site that also wants port 8080. The rule that puts the first two together is
+   the rule that keeps the third one out.
+4. A config fetch that has to finish before the worker starts, and a nightly
+   report that exits when it is done. Two things that exit, and only one of them
+   belongs inside somebody else's lifetime. This is where init containers appear,
+   and they appear as a slot rather than as a paragraph.
+
+The closing screen is the only place the rule is stated outright, and it is
+stated as the four questions the rounds asked rather than as advice.
+
+The lesson's compose section is the frame for all of this and has to stay a
+question. A reader arriving from Docker Compose reads a pod as a compose project
+with a Kubernetes accent, so the section puts six services up, says that most of
+them become a pod of their own, and stops. It deliberately does not say which
+pair in its list belongs together, because that is round 2 of the exercise. An
+earlier draft answered it in the prose and took the exercise's second round with
+it.
 
 ## The simulation engine
 

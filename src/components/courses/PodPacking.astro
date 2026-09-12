@@ -1,0 +1,50 @@
+---
+// Mount point for lesson 9's pod packing. The intro screen is server-rendered
+// so the lesson still says something without JavaScript, and so the opening
+// copy lives in one place. Everything after the start button is built at
+// runtime by src/scripts/courses/packing/packing.ts.
+//
+// This one runs before the lesson states the rule, on purpose. The prose above
+// it says what a pod is and what its containers share; it does not say how to
+// decide what goes in one, because that decision is the exercise and every
+// sentence the reader gets back is computed from the arrangement they built.
+import "@styles/packing.css";
+---
+
+<div data-packing>
+  <div class="pk not-prose my-8">
+    <div data-pk-stage>
+      <div class="pk-shell">
+        <div class="pk-body">
+          <div class="pk-intro">
+            <p>
+              Four applications. For each one, decide which processes share a pod,
+              then run it and see what you've built.
+            </p>
+            <div class="pk-foot">
+              <button
+                type="button"
+                class="pk-btn"
+                data-tone="primary"
+                data-go="start">Start</button
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <noscript>
+      <p class="pk-note mt-3">
+        This exercise needs JavaScript. The short version: two processes belong
+        in one pod when they have to be copied the same number of times, reached
+        at the same address, given the same directory, and started and stopped
+        together. Anything less than all four and they're two pods.
+      </p>
+    </noscript>
+  </div>
+</div>
+
+<script>
+  import "@scripts/courses/packing/packing";
+</script>
