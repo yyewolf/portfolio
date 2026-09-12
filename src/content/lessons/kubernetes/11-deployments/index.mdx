@@ -1,0 +1,144 @@
+---
+track: kubernetes
+order: 11
+phase: 3
+title: Deployments and rollouts
+description: The object you actually write, and why changing one word in it throws away every pod you had.
+minutes: 18
+tags: [workloads, rollouts]
+modes: [operate]
+draft: false
+---
+
+import ChangeDesk from "@components/courses/ChangeDesk.astro";
+
+## It looks identical
+
+A <Term>Deployment</Term> is a count and a pod template:
+
+```yaml
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: shop/web:2.9
+```
+
+Same fields as a ReplicaSet, same shape, `replicas` sitting outside the template
+in the same place. The difference isn't in the file at all, it's what the
+controller does with it.
+
+A Deployment doesn't make pods, it makes
+<Term term="ReplicaSet">ReplicaSets</Term>. One per version of the template, and
+it decides what each of their counts should be. Pods are somebody else's job a
+layer further down. That's basically the whole design, and everything else in
+this lesson falls out of it.
+
+## Changing it
+
+Five changes the team wants, over a week. Each one is a real ask and none of
+them is phrased as a question about the manifest.
+
+<ChangeDesk />
+
+## Why a Deployment never touches a pod
+
+It doesn't have to, and it can't do anything useful if it tries. It has two
+moves: create a ReplicaSet, and change a ReplicaSet's count.
+
+When you change `replicas`, the template hasn't moved, so the ReplicaSet it
+already has is still the right one. It just sets that set's count and walks
+away. The set adds or deletes pods to match, and every pod that was already
+running is untouched, because nothing about it has been asked to change.
+
+When you change anything inside the template, there is no set for that template
+yet, so it makes one. New set, count starting at zero. Then it raises the new
+set's count and lowers the old one's until the old one is empty. Every pod gets
+replaced, and not because a pod can't be edited: quite a lot of a running pod
+can be changed, and more of it every release. It's that pods belong to sets, and
+the pods you had belong to the set you're draining.
+
+That's also where the pod name comes from. `web-6c8f4b-k2r8s` is the Deployment,
+then the ReplicaSet, then the pod. The middle piece is a hash of the template,
+so the same template always lands on the same set and any change at all lands on
+a different one. A label and an image are the same size of event because the
+hash can't tell them apart.
+
+## Rolling updates
+
+It doesn't swap the two counts in one go, it walks them. Two numbers decide how
+far apart they're allowed to get:
+
+```yaml
+strategy:
+  rollingUpdate:
+    maxSurge: 25%
+    maxUnavailable: 25%
+```
+
+`maxSurge` is how many pods over the replica count it may run while both sets
+are up, which is what pays for new pods starting before old ones leave.
+`maxUnavailable` is how far under the count it's allowed to dip. Both default to
+25%, and with `maxUnavailable: 0` you never go below the count at all, at the
+price of needing room for the extra pods.
+
+A <Term>rollout</Term> is then just the two counts moving. Raise the new set by
+one, wait for that pod to report itself ready, lower the old set by one, repeat.
+Nothing gets retired on the strength of a pod having started.
+
+Which is why a bad release stalls instead of taking the site down. If the new
+pods never become ready, the new set can't grow past `maxSurge` and the old set
+can't shrink past `maxUnavailable`, so it stops with most of the old pods still
+serving and waits for a human. `kubectl rollout status` is the command that
+tells you it's waiting.
+
+## Going back
+
+The old ReplicaSet is still there. It's sitting at zero replicas with its
+template intact, which is the entire mechanism behind this:
+
+```bash
+kubectl rollout undo deployment/web
+```
+
+That's a rollout in the other direction. It raises the old set and lowers the
+new one, with the same two numbers governing it. Nothing gets rebuilt and no
+image gets pulled, because the thing you're going back to was never deleted.
+`revisionHistoryLimit` is how many of those empty sets it keeps, and it defaults
+to 10.
+
+## Reading one
+
+```text
+NAME   READY   UP-TO-DATE   AVAILABLE   AGE
+web    3/3     3            3           11d
+api    5/5     2            5           40s
+shop   3/4     1            3           6m
+```
+
+Those three middle columns look like the same number three times and they're
+really three different questions. READY is how many pods are up out of how many
+you asked for. UP-TO-DATE is how many of those belong to the newest set.
+AVAILABLE is how many have been up long enough to be trusted with traffic.
+
+`web` is just boring, which is what you want. All three agree.
+
+`api` is mid-rollout and fine. Five pods serving, two from the new set and three
+from the old one, nobody noticing.
+
+`shop` is the interesting line. It wants four, three are serving, and exactly
+one pod belongs to the new set. That pod isn't coming up, so the rollout stopped
+there. Nothing is going to fix itself and nothing is going to get worse either:
+three old pods taking traffic and one new one failing in a corner. A broken
+release looks like a stuck number, not like an outage.

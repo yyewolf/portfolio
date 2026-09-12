@@ -91,9 +91,18 @@ export function unlockedTerms(trackSlug: string, order: number): GlossaryTerm[] 
   return getGlossary(trackSlug).filter((term) => term.introducedIn <= order);
 }
 
+/**
+ * Normalise a term name for lookup. Collapsing internal whitespace is the part
+ * that matters: lesson prose is wrapped at 80 columns, so a multi-word <Term>
+ * regularly ends up with a newline inside it. MDX renders that as a single space
+ * and the reader sees nothing wrong, but a raw compare against the glossary
+ * misses, and the only symptom is a term that quietly loses its tooltip.
+ */
+const termKey = (name: string): string => name.trim().replace(/\s+/g, " ").toLowerCase();
+
 export function findTerm(trackSlug: string, name: string): GlossaryTerm | undefined {
-  const wanted = name.trim().toLowerCase();
-  return getGlossary(trackSlug).find((term) => term.term.toLowerCase() === wanted);
+  const wanted = termKey(name);
+  return getGlossary(trackSlug).find((term) => termKey(term.term) === wanted);
 }
 
 /**
@@ -103,9 +112,9 @@ export function findTerm(trackSlug: string, name: string): GlossaryTerm | undefi
  * lesson they appear in.
  */
 export function findTermAnywhere(name: string): GlossaryTerm | undefined {
-  const wanted = name.trim().toLowerCase();
+  const wanted = termKey(name);
   for (const mod of Object.values(glossaries)) {
-    const found = mod.default.find((term) => term.term.toLowerCase() === wanted);
+    const found = mod.default.find((term) => termKey(term.term) === wanted);
     if (found) return found;
   }
   return undefined;

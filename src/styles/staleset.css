@@ -1,0 +1,341 @@
+/* ---------------------------------------------------------------------------
+ * Lesson 10's stale set. Scoped under `.ss`, inside a `not-prose` wrapper so the
+ * article's typography plugin keeps its hands off it. Markup is built at runtime
+ * by src/scripts/courses/staleset/staleset.ts, so these rules are global and
+ * namespaced by hand.
+ *
+ * The one thing it has to get right is the disagreement: the set's template image
+ * and each pod's image are always both visible, and `[data-stale]` marks a pod
+ * whose image is not the template's. That mismatch has to read as a fact about
+ * the object rather than as an error state, because nothing in the world is
+ * trying to fix it.
+ * ------------------------------------------------------------------------ */
+
+.ss {
+  --ss-line: #e5e7eb;
+  --ss-surface: #ffffff;
+  --ss-sunk: #f9fafb;
+  --ss-ink: #111827;
+  --ss-ink2: #4b5563;
+  --ss-muted: #9ca3af;
+  --ss-accent: #2563eb;
+  --ss-good: #047857;
+  --ss-good-bg: #ecfdf5;
+  --ss-stale: #b45309;
+  --ss-stale-bg: #fffbeb;
+
+  font-family: inherit;
+  color: var(--ss-ink2);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+html.dark .ss {
+  --ss-line: #1f2937;
+  --ss-surface: #030712;
+  --ss-sunk: #0b1120;
+  --ss-ink: #f9fafb;
+  --ss-ink2: #9ca3af;
+  --ss-muted: #6b7280;
+  --ss-accent: #60a5fa;
+  --ss-good: #6ee7b7;
+  --ss-good-bg: #04241c;
+  --ss-stale: #fcd34d;
+  --ss-stale-bg: #241a04;
+}
+
+.ss *,
+.ss *::before,
+.ss *::after {
+  box-sizing: border-box;
+}
+
+/* global.css styles the bare `header` element as fixed site chrome. */
+.ss header {
+  position: static;
+  inset: auto;
+}
+
+.ss-shell {
+  border: 1px solid var(--ss-line);
+  border-radius: 0.9rem;
+  background: var(--ss-surface);
+  overflow: hidden;
+}
+
+.ss-head {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--ss-line);
+  background: var(--ss-sunk);
+}
+
+.ss-rail {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ss-rail li {
+  flex: 1;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--ss-line);
+  transition: background 0.25s ease;
+}
+
+.ss-rail li span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.ss-rail li[data-state="done"] {
+  background: var(--ss-good);
+}
+
+.ss-rail li[data-state="current"] {
+  background: var(--ss-accent);
+}
+
+.ss-body {
+  padding: 1.1rem 1rem 1.2rem;
+}
+
+.ss-intro p {
+  margin: 0 0 0.6rem;
+}
+
+.ss-kicker {
+  margin: 0 0 0.3rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ss-muted);
+}
+
+.ss-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--ss-ink);
+}
+
+.ss-ask {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  color: var(--ss-ink);
+}
+
+/* --- the world ----------------------------------------------------------- */
+
+.ss-world {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: 1fr;
+  align-items: start;
+}
+
+@media (min-width: 42rem) {
+  .ss-world {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  }
+}
+
+.ss-set,
+.ss-pods {
+  border: 1px solid var(--ss-line);
+  border-radius: 0.6rem;
+  background: var(--ss-sunk);
+  padding: 0.6rem 0.75rem 0.7rem;
+}
+
+.ss-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin: 0 0 0.45rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ss-muted);
+}
+
+.ss-count {
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-size: 0.72rem;
+}
+
+.ss-set-name {
+  margin: 0 0 0.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ss-ink);
+}
+
+.ss-fields {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+}
+
+.ss-fields div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem;
+  border-top: 1px solid var(--ss-line);
+  padding-top: 0.3rem;
+}
+
+.ss-fields dt {
+  font-size: 0.75rem;
+  color: var(--ss-muted);
+}
+
+.ss-fields dd {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ss-ink);
+}
+
+.ss-podlist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ss-podlist li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem;
+  border: 1px solid var(--ss-line);
+  border-radius: 0.4rem;
+  background: var(--ss-surface);
+  padding: 0.3rem 0.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+}
+
+.ss-pod-name {
+  color: var(--ss-ink);
+}
+
+.ss-pod-image {
+  color: var(--ss-muted);
+}
+
+/* A pod running something other than the template. Not an error. */
+.ss-podlist li[data-stale="yes"] {
+  border-color: var(--ss-stale);
+  background: var(--ss-stale-bg);
+}
+
+.ss-podlist li[data-stale="yes"] .ss-pod-image {
+  color: var(--ss-stale);
+  font-weight: 600;
+}
+
+/* --- what happened ------------------------------------------------------- */
+
+.ss-result {
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--ss-line);
+}
+
+.ss-happened {
+  margin: 0 0 0.5rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--ss-ink);
+}
+
+.ss-log {
+  margin: 0 0 0.6rem;
+  padding: 0.45rem 0.6rem;
+  border-left: 3px solid var(--ss-good);
+  border-radius: 0 0.4rem 0.4rem 0;
+  background: var(--ss-good-bg);
+  list-style: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.74rem;
+  color: var(--ss-ink);
+}
+
+.ss-log-empty {
+  margin: 0 0 0.6rem;
+  padding: 0.45rem 0.6rem;
+  border-left: 3px solid var(--ss-line);
+  border-radius: 0 0.4rem 0.4rem 0;
+  background: var(--ss-sunk);
+  font-size: 0.8rem;
+  color: var(--ss-muted);
+}
+
+.ss-note {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--ss-ink);
+}
+
+/* --- controls ------------------------------------------------------------ */
+
+.ss-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.ss-btn {
+  border: 1px solid var(--ss-line);
+  border-radius: 0.5rem;
+  background: var(--ss-surface);
+  color: var(--ss-ink);
+  padding: 0.45rem 0.9rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ss-btn:hover:not(:disabled) {
+  border-color: var(--ss-accent);
+}
+
+.ss-btn:focus-visible {
+  outline: 2px solid var(--ss-accent);
+  outline-offset: 2px;
+}
+
+.ss-btn[data-tone="primary"] {
+  border-color: var(--ss-accent);
+  background: var(--ss-accent);
+  color: #fff;
+}
+
+html.dark .ss-btn[data-tone="primary"] {
+  color: #04121f;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ss-rail li {
+    transition: none;
+  }
+}

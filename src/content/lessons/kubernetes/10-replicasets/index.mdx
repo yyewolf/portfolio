@@ -1,0 +1,73 @@
+---
+track: kubernetes
+order: 10
+phase: 3
+title: ReplicaSets
+description: Keeps a number of pods alive, and that is the entire feature list.
+minutes: 7
+tags: [workloads, controllers]
+modes: [visualize, operate]
+draft: false
+---
+
+import StaleSet from "@components/courses/StaleSet.astro";
+
+A <Term>ReplicaSet</Term> keeps a number of pods alive. That's the whole object.
+There's no second feature hiding behind it.
+
+```yaml
+kind: ReplicaSet
+metadata:
+  name: web-6c8f4b
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+        - name: web
+          image: shop/web:2.8
+```
+
+A number, and a <Term term="Pod template">pod template</Term>, which is just a
+pod without a name, since it's about to be three of them.
+
+Its controller counts the pods that belong to it, compares that against
+`replicas`, and creates or deletes one to close the gap. Two pods when it wants
+three, so it makes one. Four when it wants three, so it just deletes one. Then
+it goes back to sleep.
+
+You've done this job already, by hand, for about ten minutes in lesson 2.
+
+## It counts, it doesn't track
+
+Here's the part that really trips people up. The controller isn't keeping tabs
+on three particular pods. It counts how many exist and compares that to a
+number.
+
+So the pods are interchangeable, and they're interchangeable all the way down.
+Delete one and you don't get it back, you get a fourth pod with a new name and a
+new address. "Put that one back" isn't an operation that exists anywhere.
+There's nothing to put back. There's a count that's one short and a controller
+that fixes counts.
+
+Which pods are its own, then? Each one it creates gets an
+<Term>owner reference</Term> pointing at the set, and the count is a count of pods
+carrying that.
+
+## The thing it won't do
+
+<StaleSet />
+
+## So nobody writes one
+
+You can apply the YAML at the top of this lesson and it'll work just fine. Then
+the first time you ship a new version you'll be deleting pods one at a time,
+watching the count, hoping nothing busy happens while you're down to one.
+
+That isn't a gap in the object though, it's the object being exactly one thing.
+Keeping a count steady is all a ReplicaSet is for, and something that kept the
+count steady *and* made decisions about versions would be two objects welded
+together.
+
+So there are two objects, and this is the lower one. The other sits a layer up,
+and all it does is make these and decide what their counts should be.

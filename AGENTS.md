@@ -81,6 +81,10 @@ a track in batches.
 | `src/components/courses/EventTriage.astro` | Mounts the triage. Styles in `src/styles/triage.css`, under `.tr`. |
 | `src/scripts/courses/packing/` | The lesson 9 packing: `rounds.ts` (four applications as data), `engine.ts` (the four pod rules), `packing.ts` (runner and view). |
 | `src/components/courses/PodPacking.astro` | Mounts the packing. Styles in `src/styles/packing.css`, under `.pk`. |
+| `src/scripts/courses/staleset/` | The lesson 10 stale set: `acts.ts` (three steps as data), `engine.ts` (one ReplicaSet and its counting loop), `staleset.ts` (runner and view). |
+| `src/components/courses/StaleSet.astro` | Mounts the stale set. Styles in `src/styles/staleset.css`, under `.ss`. |
+| `src/scripts/courses/changes/` | The lesson 11 change desk: `rounds.ts` (five requests as data), `engine.ts` (the template rule, the pod names, the findings), `changes.ts` (runner and view). |
+| `src/components/courses/ChangeDesk.astro` | Mounts the change desk (lesson 11). Styles in `src/styles/changes.css`, under `.cd`. |
 | `src/pages/courses/` | The four routes. |
 
 Routes: `/courses`, `/courses/<track>`, `/courses/<track>/glossary`,
@@ -684,7 +688,7 @@ for f in dist/courses/kubernetes/*/index.html; do
   case "$f" in *glossary*) continue ;; esac    # glossary page has no sidebar panel
   echo "$(basename $(dirname $f)) $(grep -o 'data-term="' $f | wc -l)"
 done
-# expected today: 3 8 11 15 20 22 25 28 31 across the nine published lessons
+# expected today: 3 8 11 15 20 22 25 28 31 33 35 across the eleven published lessons
 ```
 
 ---
@@ -702,17 +706,19 @@ done
 >   that is what git is for.
 > - Keep claims verifiable. If you did not run it, do not assert it passes.
 
-**Last verified:** 2026-09-12 — `pnpm build` clean, 10 pages indexed (9 published
-lessons plus the glossary; four more lessons are `draft: true`), no `[courses]`
-warnings, sidebar term counts 3 / 8 / 11 / 15 / 20 / 22 / 25 / 28 / 31, lint at
-baseline 73 with nothing added. Lesson 2's levels, lesson 7's cascade and lesson
-9's packing all verified by replaying their engines outside the browser; lesson
-8's rounds checked for one right answer each, three choices each, and a reply on
-every choice. Lesson 9's packing was replayed over all 80 arrangements across its
-four rounds. **Lessons 5 to 9 and the packing panel's strings have all been
-rewritten to the register** described in the prose voice section above: 24 to 51
-contractions each where there were none, and casual markers back in the range
-lessons 1 and 3 set.
+**Last verified:** 2026-09-12 — `pnpm build` clean, 12 pages indexed (11
+published lessons plus the glossary; three more lessons are `draft: true`), no
+`[courses]` warnings, sidebar term counts 3 / 8 / 11 / 15 / 20 / 22 / 25 / 28 /
+31 / 33 / 35, lint at baseline 73 with nothing added. Lesson 2's levels, lesson
+7's cascade, lesson 9's packing, lesson 10's stale set and lesson 11's change desk
+all verified by replaying their engines outside the browser; lesson 8's rounds
+checked for one right answer each, three choices each, and a reply on every
+choice. Lesson 9's packing was replayed over all 80 arrangements across its four
+rounds, and the change desk over all 40 across its five. Published lesson minutes
+total 142.
+
+Not verified: no interactive has ever been looked at in a browser by an agent, and
+the change desk and the stale set are the two newest.
 
 ### Done
 
@@ -724,24 +730,33 @@ lessons 1 and 3 set.
 - `<Term>` tooltip + `validateTermRefs` forward-reference warnings.
 - Pagefind wired into `build`, scoped by `track` filter, dev fallback message.
 - localStorage progress: resume button, completion ticks, reset.
-- Kubernetes track: 34 glossary terms, official CNCF logo.
+- Kubernetes track: 49 glossary terms, official CNCF logo.
+- **`introducedIn` is the lesson that *explains* a term, not its first
+  mention.** The track names things informally well before defining them and
+  makes a virtue of it: lesson 9 opens by saying every lesson so far has used
+  the word pod without saying what one is. So `Pod` is 9 while lessons 1 to 8
+  are full of pods, and `Kubelet` is 40 while lessons 8 and 9 both lean on it.
+  Do not "fix" those by moving the number earlier; it only changes which
+  definitions the sidebar shows and which names a `<Term>` may wrap.
 - Lesson 2 built as a game: six levels, the reconciliation reveal, the
   terminology mapping, a controller that repairs the system on its own, and a
   closing screen on eventual consistency.
 - `holdGlossary` frontmatter flag plus the `[data-hold]` reveal mechanism.
-- **Phases 1 and 2 complete, and phase 3 opened: lessons 1 to 9 published**,
-  each with its interactive: the outage walk, the operator game, the cluster map,
-  the object assembly, the request path, the store browser, the controller
-  cascade, the event triage and the pod packing.
+- **Phases 1 and 2 complete, and phase 3 is three of five: lessons 1 to 11
+  published**, each with its interactive: the outage walk, the operator game, the
+  cluster map, the object assembly, the request path, the store browser, the
+  controller cascade, the event triage, the pod packing, the stale set and the
+  change desk.
 
 ### In progress
 
-- **Lessons 1 to 9 are written; everything after them is not.** The rest of
-  phase 3 onward is planned in the roadmap and unwritten. Lessons 10, 15, 19 and
-  22 exist as `draft: true` files carrying prose from an earlier six-lesson
-  version of the track: they hold the right `order` and `phase` but the bodies
-  need rewriting rather than un-drafting, and their `<Term>` uses still point at
-  the old lesson numbering. Do not treat those bodies as reference material.
+- **Lessons 1 to 11 are written; everything after them is not.** The rest of
+  phase 3 onward is planned in the roadmap and unwritten. Lessons 15, 19 and 22
+  exist as `draft: true` files carrying prose from an earlier six-lesson version
+  of the track: they hold the right `order` and `phase` but the bodies need
+  rewriting rather than un-drafting, and their `<Term>` uses still point at the
+  old lesson numbering. Do not treat those bodies as reference material.
+- Lesson 12, Jobs and CronJobs, is next, then 13 closes phase 3.
 
 ### Not built
 
@@ -749,7 +764,7 @@ lessons 1 and 3 set.
   `/courses` with several cards) are untested against real data.
 - No site-wide search — Pagefind covers courses only, see above.
 - No RSS or sitemap-specific handling for courses beyond Astro's defaults.
-- No quizzes, exercises, or code playgrounds outside the nine interactives.
+- No quizzes, exercises, or code playgrounds outside the eleven interactives.
 - Neither interactive is covered by tests. The outage walk's `stages.ts` is
   checked by the esbuild replay above, which covers the data invariants but not
   `walk.ts`'s rendering.
@@ -762,6 +777,12 @@ lessons 1 and 3 set.
   triage round data are checked by the esbuild replays described above, which
   cover the model and the data but not `cascade.ts`'s painting or `triage.ts`'s
   read accounting.
+- The change desk's engine is replayed over all 40 arrangements (see below), which
+  covers the rule, the names and the findings but not `changes.ts`'s rendering. The
+  stale set's three acts are replayed the same way, covering the loop but not its
+  view. **Nobody has looked at either rendered panel in a browser**, so their
+  layouts, the change desk's template tint, the stale set's stale-pod marking and
+  both dark palettes are unverified by eye.
 - No per-lesson "last updated" date; the schema has no date field at all.
 
 ### Gotchas learned
@@ -794,9 +815,78 @@ Each of these cost a real debugging cycle. Full explanations are inline above.
    viewport would park the rail behind it.
 8. Statically importing `/pagefind/pagefind.js` fails `astro check` — the file
    only exists after a build. Keep the path in a variable.
+9. **A multi-word `<Term>` whose text wraps across a line break used to lose its
+   tooltip, silently.** Prose is wrapped at 80 columns, so
+   `<Term>desired\nstate</Term>` happens naturally. `TERM_TAG` matches across
+   newlines, so the captured name was `"desired\nstate"`, and both `findTerm`
+   and `findTermAnywhere` compared it raw: the validator cried about a term that
+   is in the glossary, and `Term.astro` fell through to the bare slot, so the
+   reader got plain text with no underline and no hover and nothing failed. Fixed
+   by `termKey()` in `courses.ts`, which collapses internal whitespace before
+   comparing. The reason it went unnoticed for nine lessons is that it only bites
+   terms of two or more words that happen to land on a wrap, and the page still
+   looks fine.
+10. **`validateTermRefs` only sees `<Term>` tags, so a glossary word used as plain
+    prose is invisible to it.** That is how lesson 7 came to use "Deployment" nine
+    times and "ReplicaSet" three times while the glossary put them in phase 3, with
+    a clean build. Usually that is fine and intended (see `introducedIn` above),
+    but it means the build cannot tell you when a lesson has started *explaining* a
+    term early rather than merely naming it. The audit worth running by hand when a
+    phase lands is: strip fenced code and `<Term>` tags from every published
+    lesson's body, then for each glossary term find the lowest `order` whose prose
+    matches it and compare against `introducedIn`. It reports about fifteen hits on
+    the Kubernetes track, nearly all of them common English words (service, event,
+    volume, label, condition, secret) or the deliberate cases, so read it as a list
+    to think about rather than a list to fix.
 
 ### Log
 
+- **2026-09-12** — **Phase 3 reordered bottom up, and lesson 10 split into two.**
+  Was 10 Deployments / 11 "ReplicaSets and rolling updates", now 10 ReplicaSets /
+  11 Deployments and rollouts. The old split cut across an object and a different
+  object's feature, since a ReplicaSet cannot do a rolling update, and it forced
+  lesson 10 to withhold a word lesson 7 had already used three times with
+  ReplicaSet objects on screen in its cascade. Phase 3 stays five lessons, so
+  nothing past it renumbers. New lesson 10 is short: a ReplicaSet is a count and a
+  template, it counts rather than tracks, and its interactive is the stale set,
+  three steps proving that editing its template does nothing to the pods it has
+  already made. Lesson 11 keeps the change desk and gains the mechanism it was
+  missing: a template change creates a new ReplicaSet and drains the old one, which
+  is also where the middle segment of a pod name comes from, plus `maxSurge` and
+  `maxUnavailable`, why a bad release stalls, and `rollout undo` working because the
+  old set is still sitting there at zero. Glossary: `ReplicaSet` 11 to 10,
+  `Deployment` 10 to 11, `Rollout` 10 to 11, `Pod template` stays at 10 where the
+  ReplicaSet lesson introduces it. Both lessons had their callbacks cut back on
+  request; six references to earlier lessons in a 446-word draft read as a recap.
+- **2026-09-12** — **Lesson 10 written: phase 3 is two lessons of five.** Deployments
+  as a count and a pod template, why a pod is never edited (the API server refuses
+  most of its spec), rollout and `rollout undo` as facts rather than machinery, and
+  the three middle columns of `kubectl get deploy` as three different questions
+  with a stalled release as the interesting line. It ships without the word
+  ReplicaSet, because that term is `introducedIn: 11` and the split is deliberate;
+  the lesson closes by pointing at the unexplained middle segment of a pod name and
+  handing it to 11. Its interactive is the change desk: five change requests, and
+  the reader edits a spec instead of operating a world. Designed in the roadmap.
+  Three glossary terms touched, `Pod template` added, and `Deployment` and
+  `Rollout` rewritten now that a lesson explains them. Two things fixed on the way
+  through: `findTerm`/`findTermAnywhere` now collapse whitespace in a name, because
+  a `<Term>` wrapped across a line break was silently losing its tooltip (gotcha 9),
+  and the random parts of generated pod names now use Kubernetes' own vowel-free
+  alphabet, which also corrected four example names in lessons 8 and 9 that used
+  excluded characters.
+- **2026-09-12** — Lesson 10's central argument corrected. It shipped claiming a
+  pod's spec is "pretty much immutable", with a changed memory limit as the
+  example of what the API server refuses, which is exactly the thing in-place
+  vertical scaling now allows; the image and all metadata were already editable
+  too. The claim had spread to five places: the lesson, the engine's header
+  comment, the closing screen, the noscript fallback, and the `Deployment` and
+  `Pod template` glossary entries. All of them now make the argument about the
+  Deployment instead, which is both true and durable: creating and deleting pods
+  is the only thing a Deployment does to one, so it replaces pods even for fields
+  it could have patched. The change desk's engine needed no change, because
+  `inTemplate` was always a fact about the Deployment's behaviour. In-place resize
+  is noted in the roadmap as lesson 24's to explain. Lesson 10 is 17 minutes:
+  788 words, two code blocks and five interactive rounds.
 - **2026-09-10** — **Phase 2 finished: lessons 5 to 8 written and built.** The
   API server (six gates, watch, `resourceVersion`), etcd (revisions as a clock,
   quorum, the store as the only thing that cannot be rebuilt), controllers (the

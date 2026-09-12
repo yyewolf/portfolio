@@ -1,0 +1,481 @@
+/* ---------------------------------------------------------------------------
+ * Lesson 10's change desk. Everything is scoped under `.cd`, which sits inside a
+ * `not-prose` wrapper so the article's typography plugin keeps its hands off the
+ * panels. The markup is built at runtime by
+ * src/scripts/courses/changes/changes.ts, so Astro's scoped styles cannot reach
+ * it and these rules are global on purpose.
+ *
+ * The one thing this stylesheet has to get right is the template block. The
+ * lesson is that a Deployment holds a description of a pod inside it and a count
+ * of them outside, and `[data-tmpl]` tints exactly the lines that are inside, so
+ * the reader can see the wall rather than be told where it is.
+ * ------------------------------------------------------------------------ */
+
+.cd {
+  --cd-line: #e5e7eb;
+  --cd-surface: #ffffff;
+  --cd-sunk: #f9fafb;
+  --cd-ink: #111827;
+  --cd-ink2: #4b5563;
+  --cd-muted: #9ca3af;
+  --cd-accent: #2563eb;
+  --cd-accent-bg: #eff6ff;
+  --cd-good: #047857;
+  --cd-good-bg: #ecfdf5;
+  --cd-bad: #b45309;
+  --cd-bad-bg: #fffbeb;
+  --cd-key: #7c3aed;
+  --cd-tmpl: #f5f3ff;
+  --cd-tmpl-edge: #c4b5fd;
+
+  font-family: inherit;
+  color: var(--cd-ink2);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+html.dark .cd {
+  --cd-line: #1f2937;
+  --cd-surface: #030712;
+  --cd-sunk: #0b1120;
+  --cd-ink: #f9fafb;
+  --cd-ink2: #9ca3af;
+  --cd-muted: #6b7280;
+  --cd-accent: #60a5fa;
+  --cd-accent-bg: #0b1f38;
+  --cd-good: #6ee7b7;
+  --cd-good-bg: #04241c;
+  --cd-bad: #fcd34d;
+  --cd-bad-bg: #241a04;
+  --cd-key: #c4b5fd;
+  --cd-tmpl: #140f26;
+  --cd-tmpl-edge: #5b4a8a;
+}
+
+.cd *,
+.cd *::before,
+.cd *::after {
+  box-sizing: border-box;
+}
+
+/* global.css styles the bare `header` element as fixed site chrome. */
+.cd header {
+  position: static;
+  inset: auto;
+}
+
+.cd-shell {
+  border: 1px solid var(--cd-line);
+  border-radius: 0.9rem;
+  background: var(--cd-surface);
+  overflow: hidden;
+}
+
+.cd-head {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--cd-line);
+  background: var(--cd-sunk);
+}
+
+.cd-rail {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cd-rail li {
+  flex: 1;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--cd-line);
+  transition: background 0.25s ease;
+}
+
+.cd-rail li span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.cd-rail li[data-state="done"] {
+  background: var(--cd-good);
+}
+
+.cd-rail li[data-state="current"] {
+  background: var(--cd-accent);
+}
+
+.cd-body {
+  padding: 1.1rem 1rem 1.2rem;
+}
+
+.cd-intro p {
+  margin: 0 0 0.6rem;
+}
+
+.cd-kicker {
+  margin: 0 0 0.3rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cd-muted);
+}
+
+.cd-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--cd-ink);
+}
+
+/* The request, as it would arrive in a message. */
+.cd-brief {
+  margin: 0 0 1rem;
+  padding: 0.55rem 0.8rem;
+  border-left: 3px solid var(--cd-line);
+  border-radius: 0 0.4rem 0.4rem 0;
+  background: var(--cd-sunk);
+  font-size: 0.92rem;
+  font-style: normal;
+  color: var(--cd-ink);
+}
+
+.cd-brief-plain {
+  margin: 0 0 0.7rem;
+  font-size: 0.95rem;
+  color: var(--cd-ink);
+}
+
+.cd-prompt {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cd-muted);
+}
+
+/* --- the edits ----------------------------------------------------------- */
+
+.cd-edits {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0 0 1.1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.cd-edit {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  width: 100%;
+  border: 1px solid var(--cd-line);
+  border-radius: 0.55rem;
+  background: var(--cd-surface);
+  padding: 0.5rem 0.7rem;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.cd-edit:hover:not(:disabled) {
+  border-color: var(--cd-accent);
+}
+
+.cd-edit:focus-visible {
+  outline: 2px solid var(--cd-accent);
+  outline-offset: 2px;
+}
+
+.cd-edit:disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.cd-box {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.15rem;
+  border: 1px solid var(--cd-muted);
+  border-radius: 0.25rem;
+  background: var(--cd-surface);
+}
+
+.cd-edit[data-on="yes"] {
+  border-color: var(--cd-accent);
+  background: var(--cd-accent-bg);
+}
+
+.cd-edit[data-on="yes"] .cd-box {
+  border-color: var(--cd-accent);
+  background: var(--cd-accent);
+  box-shadow: inset 0 0 0 2px var(--cd-accent-bg);
+}
+
+.cd-edit-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.55rem;
+}
+
+.cd-edit-label {
+  font-size: 0.87rem;
+  color: var(--cd-ink);
+}
+
+.cd-edit-field {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.7rem;
+  color: var(--cd-muted);
+}
+
+/* --- the spec and the pods ----------------------------------------------- */
+
+.cd-panels {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: 1fr;
+  align-items: start;
+}
+
+@media (min-width: 46rem) {
+  .cd-panels {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  }
+}
+
+.cd-spec,
+.cd-pods {
+  border: 1px solid var(--cd-line);
+  border-radius: 0.6rem;
+  background: var(--cd-sunk);
+  overflow: hidden;
+}
+
+.cd-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.4rem 0.7rem;
+  border-bottom: 1px solid var(--cd-line);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  color: var(--cd-muted);
+}
+
+.cd-hint {
+  font-family: inherit;
+  font-size: 0.68rem;
+  color: var(--cd-tmpl-edge);
+}
+
+.cd-yaml {
+  margin: 0;
+  padding: 0.5rem 0;
+  overflow-x: auto;
+  list-style: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  line-height: 1.65;
+  color: var(--cd-ink2);
+}
+
+.cd-yaml li {
+  display: flex;
+  white-space: pre;
+}
+
+/* The template, as a block you can see the edges of. */
+.cd-yaml li[data-tmpl="yes"] {
+  background: var(--cd-tmpl);
+  box-shadow: inset 2px 0 0 var(--cd-tmpl-edge);
+}
+
+.cd-yaml li[data-changed="yes"] .cd-line {
+  color: var(--cd-ink);
+  font-weight: 600;
+}
+
+.cd-gutter {
+  flex: none;
+  width: 1.4rem;
+  padding-left: 0.5rem;
+  color: var(--cd-accent);
+  font-weight: 700;
+}
+
+.cd-line {
+  padding-right: 0.7rem;
+}
+
+.cd-key {
+  color: var(--cd-key);
+  font-weight: 600;
+}
+
+.cd-dash {
+  color: var(--cd-muted);
+}
+
+.cd-podlist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  list-style: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.74rem;
+  color: var(--cd-ink);
+}
+
+.cd-podlist li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem;
+  border: 1px solid var(--cd-line);
+  border-radius: 0.4rem;
+  background: var(--cd-surface);
+  padding: 0.28rem 0.5rem;
+}
+
+.cd-podlist li[data-state="new"] {
+  border-color: var(--cd-good);
+  background: var(--cd-good-bg);
+}
+
+.cd-podlist li[data-state="gone"] {
+  border-style: dashed;
+  background: none;
+  color: var(--cd-muted);
+  text-decoration: line-through;
+}
+
+.cd-tag {
+  font-family: inherit;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cd-muted);
+  text-decoration: none;
+}
+
+.cd-podlist li[data-state="new"] .cd-tag {
+  color: var(--cd-good);
+}
+
+/* --- what happened ------------------------------------------------------- */
+
+.cd-findings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cd-finding {
+  padding: 0.5rem 0.7rem;
+  border-left: 3px solid var(--cd-line);
+  border-radius: 0 0.4rem 0.4rem 0;
+  background: var(--cd-sunk);
+  font-size: 0.83rem;
+}
+
+.cd-finding[data-tone="bad"] {
+  border-left-color: var(--cd-bad);
+  background: var(--cd-bad-bg);
+}
+
+.cd-finding[data-tone="good"] {
+  border-left-color: var(--cd-good);
+  background: var(--cd-good-bg);
+}
+
+.cd-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.95em;
+  color: var(--cd-ink);
+  background: none;
+  padding: 0;
+}
+
+.cd-note {
+  margin: 0.9rem 0 0;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--cd-line);
+  font-size: 0.88rem;
+  color: var(--cd-ink);
+}
+
+/* --- controls ------------------------------------------------------------ */
+
+.cd-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.cd-btn {
+  border: 1px solid var(--cd-line);
+  border-radius: 0.5rem;
+  background: var(--cd-surface);
+  color: var(--cd-ink);
+  padding: 0.45rem 0.9rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cd-btn:hover:not(:disabled) {
+  border-color: var(--cd-accent);
+}
+
+.cd-btn:focus-visible {
+  outline: 2px solid var(--cd-accent);
+  outline-offset: 2px;
+}
+
+.cd-btn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.cd-btn[data-tone="primary"] {
+  border-color: var(--cd-accent);
+  background: var(--cd-accent);
+  color: #fff;
+}
+
+html.dark .cd-btn[data-tone="primary"] {
+  color: #04121f;
+}
+
+html.dark .cd-btn[data-tone="primary"]:disabled {
+  color: #04121f;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cd-rail li,
+  .cd-edit {
+    transition: none;
+  }
+}

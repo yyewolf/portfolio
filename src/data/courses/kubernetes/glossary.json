@@ -170,31 +170,48 @@
   },
   {
     "term": "Deployment",
-    "introducedIn": 10,
-    "short": "An object that keeps a stated number of identical pods running, and updates them safely.",
-    "long": "A deployment owns replicasets. Changing the pod template creates a new replicaset and shifts pods over gradually, which is what makes a rollout a rollout.",
+    "introducedIn": 11,
+    "short": "The object you write to run an application: a description of a pod, and how many of it.",
+    "long": "Two parts: the pod template, and everything else. Change the template and every pod is replaced, because creating and deleting pods is the only thing a Deployment does to them. Change the replica count and the pods you have carry on untouched. It owns replicasets, which is how it keeps the previous template around to roll back to.",
     "related": [
+      "Pod template",
       "ReplicaSet",
       "Pod",
       "Rollout"
     ]
   },
   {
-    "term": "Rollout",
+    "term": "Pod template",
     "introducedIn": 10,
-    "short": "Replacing pods with a new version incrementally, so the service stays up.",
+    "short": "The description of a pod held inside another object, rather than a pod of its own.",
+    "long": "A whole pod spec with no name, because it is about to be several pods. Its one property worth remembering is that a change to it is never applied to the pods already made from it. Whatever holds the template answers by building new pods and retiring the old ones, even for a field that could have been edited on a pod directly.",
     "related": [
-      "Deployment"
+      "Pod",
+      "Deployment",
+      "Rollout"
     ]
   },
   {
-    "term": "ReplicaSet",
+    "term": "Rollout",
     "introducedIn": 11,
-    "short": "Keeps a fixed number of identical pods alive.",
+    "short": "Replacing every pod in a set with a new one, a few at a time, so the set keeps serving.",
     "related": [
       "Deployment",
-      "Pod"
-    ]
+      "Pod template"
+    ],
+    "long": "Triggered by the pod template reading differently, whatever changed in it. An image and a label cost exactly the same. If the new pods never become ready the rollout stops where it is rather than carrying on, so a broken release looks like a stuck count."
+  },
+  {
+    "term": "ReplicaSet",
+    "introducedIn": 10,
+    "short": "Keeps a stated number of identical pods alive, and nothing else.",
+    "related": [
+      "Deployment",
+      "Pod",
+      "Pod template",
+      "Owner reference"
+    ],
+    "long": "A count and a pod template. It counts rather than tracks, so the pods are interchangeable and replacing one means a new pod with a new name. Changing its template does nothing to the pods it has already made, which is the reason deployments exist."
   },
   {
     "term": "StatefulSet",

@@ -1,0 +1,50 @@
+---
+// Mount point for lesson 10's stale set. The intro is server-rendered so the
+// lesson still says something with JavaScript off, and so the opening copy lives
+// in one place. Everything after the start button is built at runtime by
+// src/scripts/courses/staleset/staleset.ts.
+//
+// It runs before the prose says what a deployment is for, because "a ReplicaSet
+// will not update its own pods" is the reason deployments exist and the reader
+// should watch it rather than be told it.
+import "@styles/staleset.css";
+---
+
+<div data-staleset>
+  <div class="ss not-prose my-8">
+    <div data-ss-stage>
+      <div class="ss-shell">
+        <div class="ss-body">
+          <div class="ss-intro">
+            <p>
+              One set, three pods, and a new image to get onto them. Three steps,
+              and the first one is the surprise.
+            </p>
+            <div class="ss-foot">
+              <button
+                type="button"
+                class="ss-btn"
+                data-tone="primary"
+                data-go="start">Start</button
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <noscript>
+      <p class="ss-note mt-3">
+        This needs JavaScript. The short version: changing a ReplicaSet's template
+        does nothing to the pods it has already made. The new template is only
+        ever read when it creates a pod, so a pod gets the new image by being a new
+        pod, and getting a whole set onto a new version by hand means deleting them
+        and hoping.
+      </p>
+    </noscript>
+  </div>
+</div>
+
+<script>
+  import "@scripts/courses/staleset/staleset";
+</script>

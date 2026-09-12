@@ -18,15 +18,16 @@ frontmatter and inherits the depth from it.
 
 | Depth | Phases | Lessons | Shipped |
 |---|---|---|---|
-| Core | 1 to 4 | 1 to 18 | 1 to 9 |
+| Core | 1 to 4 | 1 to 18 | 1 to 11 |
 | Practical | 5 to 9 | 19 to 37 | none |
 | Deep dive | 10 to 13 | 38 to 51 | none |
 
-Lessons 10, 15, 19 and 22 exist as `draft: true` files carrying prose from the
+Lessons 15, 19 and 22 exist as `draft: true` files carrying prose from the
 earlier six-lesson version of the track. They are numbered for their new slots,
 but they need rewriting rather than just un-drafting. Their `<Term>` uses still
 point at the old lesson numbering, so expect `[courses]` warnings when they are
-published.
+published. The old lesson 10 draft was one of these; it has been replaced by the
+Deployments lesson now sitting at 11.
 
 ## Depth boundaries
 
@@ -75,15 +76,25 @@ Phase 3, workloads
 | # | Lesson | Modes |
 |---|---|---|
 | 9 | Pods | operate |
-| 10 | Deployments | operate |
-| 11 | ReplicaSets and rolling updates | visualize, operate |
+| 10 | ReplicaSets | visualize, operate |
+| 11 | Deployments and rollouts | operate |
 | 12 | Jobs and CronJobs | operate |
 | 13 | DaemonSets and StatefulSets | visualize |
 
-11 is split out from 10 deliberately. It is where the machinery gets explained
-and where the reader controls the rollout strategy.
+Phase 3 runs bottom up: the thing, then keep a count of the thing, then change
+which thing safely. The original plan had Deployments at 10 and "ReplicaSets and
+rolling updates" at 11, and that was wrong twice over. It cut across an object
+and a different object's feature, because a ReplicaSet cannot do a rolling
+update; and it made lesson 10 withhold a word lesson 7 had already used three
+times while its cascade put ReplicaSet objects on screen.
 
-9 is shipped. Its interactive is described at the bottom of this file.
+Bottom up also buys the Deployments lesson its mechanism. It can say that a
+template change makes a new ReplicaSet and drains the old one, which is what
+turns "every pod got replaced" from a rule into a consequence, and it explains
+the middle segment of a pod name instead of pointing at it.
+
+9, 10 and 11 are shipped. Their interactives are described at the bottom of this
+file.
 
 Phase 4, networking
 
@@ -121,6 +132,17 @@ Phase 6, scheduling and resources
 them schedule by hand before revealing that there is a scheduler. 24 wants a
 capacity bar simulation: scheduling reads requests, limits constrain runtime,
 CPU gets throttled and memory gets OOMKilled.
+
+24 also owns in-place resize, which is the one place the track should say that a
+running container's CPU and memory can be changed without restarting it, along
+with `resizePolicy` and why a memory limit going down is the awkward direction.
+Lesson 10 deliberately does not explain it. It mentions in one clause that the
+field is editable, because its own argument used to be "a pod cannot be edited"
+and that was already wrong and getting wronger. The durable version of lesson
+10's claim is about the Deployment rather than the pod: creating and deleting
+pods is the only thing a Deployment does to one, so it replaces pods even for
+fields it could have patched. That survives whatever the API server opens up
+next, and it is the claim every string in the change desk now makes.
 
 Phase 7, reliability
 
@@ -363,6 +385,90 @@ them become a pod of their own, and stops. It deliberately does not say which
 pair in its list belongs together, because that is round 2 of the exercise. An
 earlier draft answered it in the prose and took the exercise's second round with
 it.
+
+## Lesson 10, the stale set
+
+Three steps against one ReplicaSet, and the panel exists to show one fact that no
+paragraph lands as well: editing a ReplicaSet's template does nothing at all to
+the pods it has already made. The reader changes the image and watches the
+controller run and do nothing, deletes one pod and watches the replacement arrive
+on the new image, then has to delete the rest by hand to finish the job.
+
+That is the whole argument for lesson 11, which is why the panel has to let the
+reader sit in the middle state where the set and its pods disagree and nothing
+anywhere is working to fix it. A version that animated the pods over to the new
+image would be a deployment, which is exactly the thing this object is not.
+
+Two rules hold it up:
+
+- *`reconcile` never reads a pod's image.* It counts, compares against `replicas`,
+  and creates or deletes one pod. The real controller does not look either, and
+  the moment this one does the lesson is gone.
+- *A pod records the image it was made with, and is never updated.* That is what
+  lets the set and its pods disagree, and the disagreement is the subject.
+
+The set is named `web-6c8f4b`, which is the string lesson 7 already put in front
+of the reader in its owner reference example. Pods belong to the set by owner
+reference rather than by selector, because selectors are lesson 15.
+
+It is much smaller than the change desk on purpose. Three acts, one world, no
+scoring, and the reader is never wrong about anything.
+
+## Lesson 11, the change desk
+
+Five change requests against one Deployment that keeps its history across the
+rounds, and the reader edits the spec rather than operating a world. The rule the
+whole panel exists to teach is that `spec.template` is a box: change anything
+inside it and every pod is replaced, change anything outside it and the running
+pods never notice. A label and an image cost exactly the same, which is the part
+nobody expects.
+
+The requests are ordered so each one is decided by one thing, and none of them is
+phrased as a question about the template:
+
+1. Five instead of three. The count is outside the template, so nothing that was
+   running is touched. The warm-up, and it establishes the baseline.
+2. Ship 2.9. The image is inside, so all five are replaced, and that is correct
+   rather than a mistake. This is where the word rollout earns itself.
+3. Debug logging, and back down to three. Both kinds of change in one apply, and
+   the engine attributes them separately because the reader cannot.
+4. A team label for a dashboard, on the pods. The load-bearing round. Either you
+   put it on the Deployment and the dashboard still cannot see it, or you put it
+   on the template and a cosmetic label costs you every pod.
+5. Just restart it. There is no restart field. The reader has to reach for a
+   template annotation, which is exactly what `kubectl rollout restart` does, and
+   it pays off lesson 9's closing claim that the restart you have seen is a
+   different pod in bulk.
+
+Three things hold it up:
+
+- *Nothing records which edits are right.* A round declares what the team asked
+  for as a **state the spec has to end up in**, never an edit to pick, so two
+  routes to the same spec are both correct and an arrangement nobody pictured
+  still gets a truthful account. `engine.ts` computes consequences from which
+  fields were touched and has no opinion about which button that was.
+- *The only rule is `inTemplate`.* One function, one `startsWith`. Any version
+  that weighs a change by how important it looks destroys the lesson, because the
+  lesson is that nothing weighs it.
+- *The pod name is the proof.* Its middle segment is a hash of the template
+  fields computed in `engine.ts`, not a string in `rounds.ts`, so it moves exactly
+  when the template moves and the reader can check that against the diff they can
+  see. By the time this panel runs the reader knows that segment is the
+  ReplicaSet's name, so the closing screen says so rather than teasing it.
+
+Two details worth not undoing. An unasked change is only a failure when it
+reaches something running, which means the template or the count; labelling the
+Deployment as well as its pods is normal and clears the round, and an earlier
+version failed it. And the rollout finding loses its approving tone whenever
+anything bad is in the same list, because a rollout the reader was asked for is
+still a good thing to have done and praising it next to a mistake is how a panel
+ends up congratulating play it never checked.
+
+The manifest is rendered with the template block tinted, which is the one thing
+the panel can do that no sentence about it matches: the reader sees where the
+walls are. `selector` is rendered because a Deployment without one is not a
+Deployment, and nothing anywhere discusses it, since labels and selectors are
+lesson 15.
 
 ## The simulation engine
 

@@ -1,0 +1,52 @@
+---
+// Mount point for lesson 10's change desk. The intro screen is server-rendered
+// so the lesson still says something without JavaScript, and so the opening copy
+// lives in one place. Everything after the start button is built at runtime by
+// src/scripts/courses/changes/changes.ts.
+//
+// This runs after the prose has said what a Deployment holds and before the prose
+// says what happens when you change part of it, because that consequence is the
+// exercise. The five requests are a real week's worth of asks and none of them is
+// phrased as a question about the template.
+import "@styles/changes.css";
+---
+
+<div data-changes>
+  <div class="cd not-prose my-8">
+    <div data-cd-stage>
+      <div class="cd-shell">
+        <div class="cd-body">
+          <div class="cd-intro">
+            <p>
+              Five things the team asks for over one week, against one Deployment
+              that's already serving. Make each change, apply it, and see what it
+              did to the pods that were running.
+            </p>
+            <div class="cd-foot">
+              <button
+                type="button"
+                class="cd-btn"
+                data-tone="primary"
+                data-go="start">Start</button
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <noscript>
+      <p class="cd-note mt-3">
+        This exercise needs JavaScript. The short version: a Deployment holds a
+        description of a pod and a count of how many. Change anything in the
+        description and every pod is replaced, because creating and deleting pods
+        is the only thing a Deployment does to one. Change anything else and the
+        pods carry on untouched. A label and an image are the same size of event.
+      </p>
+    </noscript>
+  </div>
+</div>
+
+<script>
+  import "@scripts/courses/changes/changes";
+</script>
