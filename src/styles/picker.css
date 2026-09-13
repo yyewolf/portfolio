@@ -1,0 +1,253 @@
+/* ---------------------------------------------------------------------------
+ * Lesson 14's workload picker. Scoped under `.pw`, inside a `not-prose` wrapper
+ * so the article's typography plugin keeps its hands off it. Markup is built at
+ * runtime by src/scripts/courses/picker/picker.ts, so these rules are global and
+ * namespaced by hand.
+ * ------------------------------------------------------------------------ */
+
+.pw {
+  --pw-line: #e5e7eb;
+  --pw-surface: #ffffff;
+  --pw-sunk: #f9fafb;
+  --pw-ink: #111827;
+  --pw-ink2: #4b5563;
+  --pw-muted: #9ca3af;
+  --pw-accent: #2563eb;
+  --pw-good: #047857;
+  --pw-good-bg: #ecfdf5;
+  --pw-bad: #b45309;
+  --pw-bad-bg: #fffbeb;
+
+  font-family: inherit;
+  color: var(--pw-ink2);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+html.dark .pw {
+  --pw-line: #1f2937;
+  --pw-surface: #030712;
+  --pw-sunk: #0b1120;
+  --pw-ink: #f9fafb;
+  --pw-ink2: #9ca3af;
+  --pw-muted: #6b7280;
+  --pw-accent: #60a5fa;
+  --pw-good: #6ee7b7;
+  --pw-good-bg: #04241c;
+  --pw-bad: #fcd34d;
+  --pw-bad-bg: #241a04;
+}
+
+.pw *,
+.pw *::before,
+.pw *::after {
+  box-sizing: border-box;
+}
+
+/* global.css styles the bare `header` element as fixed site chrome. */
+.pw header {
+  position: static;
+  inset: auto;
+}
+
+.pw p {
+  margin: 0;
+}
+
+.pw-shell {
+  border: 1px solid var(--pw-line);
+  border-radius: 0.9rem;
+  background: var(--pw-surface);
+  overflow: hidden;
+}
+
+.pw-head {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--pw-line);
+  background: var(--pw-sunk);
+}
+
+.pw-rail {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pw-rail li {
+  flex: 1;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--pw-line);
+  transition: background 0.25s ease;
+}
+
+.pw-rail li span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.pw-rail li[data-state="done"] {
+  background: var(--pw-good);
+}
+
+.pw-rail li[data-state="current"] {
+  background: var(--pw-accent);
+}
+
+.pw-body {
+  padding: 1.1rem 1rem 1.2rem;
+}
+
+.pw-kicker {
+  margin-bottom: 0.3rem !important;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pw-muted);
+}
+
+.pw-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--pw-ink);
+}
+
+.pw-setup {
+  margin-bottom: 0.7rem !important;
+  font-size: 0.95rem;
+  color: var(--pw-ink);
+}
+
+.pw-ask {
+  margin-bottom: 0.4rem !important;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pw-muted);
+}
+
+.pw-options {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pw-options li + li {
+  margin-top: 0.45rem;
+}
+
+.pw-option {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--pw-line);
+  border-radius: 0.5rem;
+  background: var(--pw-surface);
+  color: var(--pw-ink);
+  font: inherit;
+  font-size: 0.87rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pw-option:hover:not(:disabled) {
+  border-color: var(--pw-accent);
+}
+
+.pw-option:focus-visible,
+.pw-btn:focus-visible {
+  outline: 2px solid var(--pw-accent);
+  outline-offset: 2px;
+}
+
+.pw-option:disabled {
+  cursor: default;
+}
+
+.pw-option[data-picked="right"] {
+  border-color: var(--pw-good);
+  background: var(--pw-good-bg);
+  font-weight: 600;
+}
+
+.pw-option[data-picked="wrong"] {
+  border-color: var(--pw-bad);
+  background: var(--pw-bad-bg);
+}
+
+.pw-option:disabled:not([data-picked]) {
+  opacity: 0.45;
+}
+
+.pw-reply {
+  margin: 0.4rem 0 0 !important;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--pw-line);
+  font-size: 0.83rem;
+  color: var(--pw-ink);
+}
+
+.pw-reply[data-tone="right"] {
+  border-left-color: var(--pw-good);
+}
+
+.pw-reply[data-tone="wrong"] {
+  border-left-color: var(--pw-bad);
+}
+
+.pw-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92em;
+  color: var(--pw-ink);
+  background: none;
+  padding: 0;
+}
+
+.pw-note {
+  font-size: 0.88rem;
+}
+
+.pw-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.pw-btn {
+  border: 1px solid var(--pw-line);
+  border-radius: 0.5rem;
+  background: var(--pw-surface);
+  color: var(--pw-ink);
+  padding: 0.45rem 0.9rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pw-btn:hover:not(:disabled) {
+  border-color: var(--pw-accent);
+}
+
+.pw-btn[data-tone="primary"] {
+  border-color: var(--pw-accent);
+  background: var(--pw-accent);
+  color: #fff;
+}
+
+html.dark .pw-btn[data-tone="primary"] {
+  color: #04121f;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pw-rail li {
+    transition: none;
+  }
+}

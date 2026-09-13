@@ -235,18 +235,30 @@
     ]
   },
   {
+    "term": "DaemonSet",
+    "introducedIn": 13,
+    "short": "Runs one copy of a pod on every node, or every node that matches.",
+    "long": "It has no replica count, the number of nodes is the count. Its pods are pinned to their node, come and go with it, and aren't evicted by a drain, which is why it's used for things about the machine: log shippers, metrics agents, network plugins.",
+    "related": [
+      "Node",
+      "Pod",
+      "StatefulSet"
+    ]
+  },
+  {
     "term": "StatefulSet",
     "introducedIn": 13,
-    "short": "Like a deployment, but each pod keeps a stable identity and its own storage.",
-    "long": "Pods are numbered and started in order, and each one gets its own persistent volume claim that survives a restart.",
+    "short": "Runs pods that each keep a name, a place in an order, and a disk of their own.",
+    "long": "Pods are named db-0, db-1 and so on, created in order and removed in reverse, and a replacement comes back under the old name. Each pod gets its own disk from `volumeClaimTemplates`, which outlives the pod and is reattached to whichever pod takes that name next. If a node stops answering, it won't replace that node's pod until it's sure the old one is gone, because two pods with one name is worse than none.",
     "related": [
       "Deployment",
+      "DaemonSet",
       "PersistentVolumeClaim"
     ]
   },
   {
     "term": "ClusterIP",
-    "introducedIn": 15,
+    "introducedIn": 16,
     "short": "The default service type: reachable only from inside the cluster.",
     "related": [
       "Service",
@@ -255,7 +267,7 @@
   },
   {
     "term": "Label",
-    "introducedIn": 15,
+    "introducedIn": 16,
     "short": "A key/value tag attached to an object, used for grouping and selection.",
     "related": [
       "Selector"
@@ -263,7 +275,7 @@
   },
   {
     "term": "Selector",
-    "introducedIn": 15,
+    "introducedIn": 16,
     "short": "A label query that decides which pods an object applies to.",
     "related": [
       "Service",
@@ -272,7 +284,7 @@
   },
   {
     "term": "Service",
-    "introducedIn": 15,
+    "introducedIn": 16,
     "short": "A stable name and address for a changing set of pods.",
     "long": "Pods come and go with new IPs. A service gives them one virtual IP and DNS name, and load balances across whichever pods currently match its selector.",
     "related": [
@@ -283,7 +295,7 @@
   },
   {
     "term": "Ingress",
-    "introducedIn": 17,
+    "introducedIn": 18,
     "short": "Rules for routing external HTTP traffic to services inside the cluster.",
     "long": "An ingress object is inert on its own. An ingress controller watches those objects and configures a real proxy to match.",
     "related": [
@@ -293,7 +305,7 @@
   },
   {
     "term": "ConfigMap",
-    "introducedIn": 19,
+    "introducedIn": 20,
     "short": "Non-secret configuration data, kept outside the container image.",
     "long": "Mount it as files or inject it as environment variables. The same image can then run in staging and production unchanged.",
     "related": [
@@ -303,7 +315,7 @@
   },
   {
     "term": "Secret",
-    "introducedIn": 19,
+    "introducedIn": 20,
     "short": "Like a ConfigMap, but for sensitive values and handled more carefully.",
     "long": "Base64 encoding is not encryption. Secrets are only as private as the cluster's RBAC and encryption-at-rest settings make them.",
     "related": [
@@ -312,7 +324,7 @@
   },
   {
     "term": "Volume",
-    "introducedIn": 21,
+    "introducedIn": 22,
     "short": "A directory made available to a pod's containers.",
     "related": [
       "ConfigMap",
@@ -321,7 +333,7 @@
   },
   {
     "term": "PersistentVolume",
-    "introducedIn": 22,
+    "introducedIn": 23,
     "short": "A piece of storage in the cluster, with a lifetime independent of any pod.",
     "related": [
       "PersistentVolumeClaim",
@@ -330,7 +342,7 @@
   },
   {
     "term": "PersistentVolumeClaim",
-    "introducedIn": 22,
+    "introducedIn": 23,
     "short": "A pod's request for storage of a given size and access mode.",
     "long": "The claim is what a workload references. Kubernetes binds it to a matching volume, provisioning one on demand if a StorageClass says how.",
     "related": [
@@ -340,7 +352,7 @@
   },
   {
     "term": "StorageClass",
-    "introducedIn": 22,
+    "introducedIn": 23,
     "short": "A named recipe for provisioning storage automatically.",
     "related": [
       "PersistentVolumeClaim"
@@ -348,7 +360,7 @@
   },
   {
     "term": "Scheduler",
-    "introducedIn": 23,
+    "introducedIn": 24,
     "short": "The control plane component that picks which node a new pod should run on.",
     "long": "It filters nodes that cannot fit the pod, then scores the rest on resource fit, spread, and affinity rules.",
     "related": [
@@ -359,7 +371,7 @@
   },
   {
     "term": "Kubelet",
-    "introducedIn": 40,
+    "introducedIn": 41,
     "short": "The agent on each node that starts and supervises the node's pods.",
     "related": [
       "Node",

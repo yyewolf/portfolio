@@ -55,7 +55,7 @@ a track in batches.
 | `src/content/lessons/<track>/<slug>/index.mdx` | One lesson. Folder allows colocated images. |
 | `src/data/courses/<track>/glossary.json` | Every term for the track. |
 | `src/data/courses/<track>/phases.json` | Phase titles, depth tier, accent colour, optional summary. |
-| `docs/kubernetes-track-roadmap.md` | The 51-lesson plan for the Kubernetes track, and the game designs. |
+| `docs/kubernetes-track-roadmap.md` | The 52-lesson plan for the Kubernetes track, and the game designs. |
 | `src/lib/courses.ts` | All queries, gating, and the `<Term>` validator. |
 | `src/layouts/CourseLayout.astro` | Two-column shell: content + sticky sidebar. |
 | `src/components/courses/Term.astro` | Inline term with hover/focus tooltip. |
@@ -87,6 +87,10 @@ a track in batches.
 | `src/components/courses/ChangeDesk.astro` | Mounts the change desk (lesson 11). Styles in `src/styles/changes.css`, under `.cd`. |
 | `src/scripts/courses/runsheet/` | The lesson 12 run sheet: `rounds.ts` (five tasks and their worlds as data), `engine.ts` (Deployment, Job, CronJob and time zone simulations, findings, manifests), `runsheet.ts` (runner, view and timeline). |
 | `src/components/courses/RunSheet.astro` | Mounts the run sheet. Styles in `src/styles/runsheet.css`, under `.rs`. |
+| `src/scripts/courses/sameevent/` | The lesson 13 board: `engine.ts` (nodes, the three controllers, the actions and their report), `sameevent.ts` (runner and view). |
+| `src/components/courses/SameEvent.astro` | Mounts the board. Styles in `src/styles/sameevent.css`, under `.se`. |
+| `src/scripts/courses/picker/` | The lesson 14 recap: `rounds.ts` (six workloads and a reply for every choice), `picker.ts` (runner and view). |
+| `src/components/courses/PickWorkload.astro` | Mounts the picker. Styles in `src/styles/picker.css`, under `.pw`. |
 | `src/pages/courses/` | The four routes. |
 
 Routes: `/courses`, `/courses/<track>`, `/courses/<track>/glossary`,
@@ -643,6 +647,49 @@ pnpm exec esbuild <a harness importing runsheet/rounds.ts + engine.ts> --bundle 
 Like lessons 7 to 11 it doesn't dispatch `lesson:reveal`; clicking Next completes
 the lesson.
 
+## Lesson 13's board
+
+Free play, like the cascade, and it keeps the cascade's rule: **no controller
+reads the action.** `act()` changes the world and writes one `happened` sentence,
+then `settle()` runs the three reconcilers against the world until a whole pass
+changes nothing. The three report columns are just whatever they did, so a
+sequence nobody scripted still gets an honest account.
+
+**The StatefulSet waiting is the behaviour everything else is there to frame.** A
+`db` pod that exists in any state blocks its own replacement, and cutting a node
+off leaves its `db` pod Terminating rather than gone. Loosen that check and the
+StatefulSet column does exactly what the Deployment column next to it does, and
+the one thing the board shows that the prose doesn't disappears without any
+error. The Deployment column has to replace its pod in the same action, because
+the contrast is the point.
+
+**Disks only ever get added.** `volumes` never shrinks, so scaling down and back
+up reattaches `data-db-N` to the returning `db-N`.
+
+Replay it outside the browser:
+
+```bash
+pnpm exec esbuild <a harness importing sameevent/engine.ts> --bundle \
+  --platform=node --format=cjs --outfile=/tmp/se.cjs
+# then random-walk `options(w)` (200 walks of 40 actions each) and assert after
+# every action: no pod on a node that doesn't exist, never two db-N, never two
+# logs pods on one node, every db pod has its disk, the disk count never shrinks,
+# a fresh settle does nothing, `happened` is never empty, and with no unreachable
+# node web and db are at `replicas` and logs has exactly one pod per node
+```
+
+## Lesson 14's picker
+
+The phase 3 recap, and the one lesson whose job is restating the others. So the
+don't-restate rule points the other way here: the lesson body stacks the objects
+and tabulates them, and the rule that decides every round (is it supposed to
+finish, and does it matter which machine or which copy) lives only on the closing
+screen and in the noscript. Put it in the prose and the six rounds are answered
+before they start. Rounds are checked for exactly one right choice and a reply on
+every choice, the triage's contract.
+
+Neither 13 nor 14 dispatches `lesson:reveal`.
+
 ## Holding content back
 
 Both phase 1 interactives are the answer to something the prose gives away, so
@@ -731,7 +778,7 @@ for f in dist/courses/kubernetes/*/index.html; do
   case "$f" in *glossary*) continue ;; esac    # glossary page has no sidebar panel
   echo "$(basename $(dirname $f)) $(grep -o 'data-term="' $f | wc -l)"
 done
-# expected today: 3 8 11 15 20 22 25 28 31 33 35 37 across the twelve published lessons
+# expected today: 3 8 11 15 20 22 25 28 31 33 35 37 39 39 across the fourteen published lessons
 ```
 
 ---
@@ -749,19 +796,22 @@ done
 >   that is what git is for.
 > - Keep claims verifiable. If you did not run it, do not assert it passes.
 
-**Last verified:** 2026-09-13 — `pnpm build` clean, 13 pages indexed (12
+**Last verified:** 2026-09-13 — `pnpm build` clean, 15 pages indexed (14
 published lessons plus the glossary; three more lessons are `draft: true`), no
 `[courses]` warnings, sidebar term counts 3 / 8 / 11 / 15 / 20 / 22 / 25 / 28 /
-31 / 33 / 35 / 37, lint at baseline 73 with nothing added. Lesson 2's levels,
+31 / 33 / 35 / 37 / 39 / 39, lint at baseline 73 with nothing added. Lesson 2's levels,
 lesson 7's cascade, lesson 9's packing, lesson 10's stale set, lesson 11's change
 desk and lesson 12's run sheet all verified by replaying their engines outside the
 browser; lesson 8's rounds checked for one right answer each, three choices each,
 and a reply on every choice. Lesson 9's packing was replayed over all 80
 arrangements across its four rounds, the change desk over all 40 across its five,
-and the run sheet over all 16 across its five. Published lesson minutes total 160.
+and the run sheet over all 16 across its five. Lesson 13's board was random-walked
+over 8,000 actions and lesson 14's picker rounds checked for one right choice and
+a reply each. Published lesson minutes total 187.
 
 Not verified: no interactive has ever been looked at in a browser by an agent, and
-the run sheet, the change desk and the stale set are the three newest.
+the picker, the board, the run sheet, the change desk and the stale set are the
+five newest.
 
 ### Done
 
@@ -773,33 +823,33 @@ the run sheet, the change desk and the stale set are the three newest.
 - `<Term>` tooltip + `validateTermRefs` forward-reference warnings.
 - Pagefind wired into `build`, scoped by `track` filter, dev fallback message.
 - localStorage progress: resume button, completion ticks, reset.
-- Kubernetes track: 51 glossary terms, official CNCF logo.
+- Kubernetes track: 52 glossary terms, official CNCF logo.
 - **`introducedIn` is the lesson that *explains* a term, not its first
   mention.** The track names things informally well before defining them and
   makes a virtue of it: lesson 9 opens by saying every lesson so far has used
   the word pod without saying what one is. So `Pod` is 9 while lessons 1 to 8
-  are full of pods, and `Kubelet` is 40 while lessons 8 and 9 both lean on it.
+  are full of pods, and `Kubelet` is 41 while lessons 8 and 9 both lean on it.
   Do not "fix" those by moving the number earlier; it only changes which
   definitions the sidebar shows and which names a `<Term>` may wrap.
 - Lesson 2 built as a game: six levels, the reconciliation reveal, the
   terminology mapping, a controller that repairs the system on its own, and a
   closing screen on eventual consistency.
 - `holdGlossary` frontmatter flag plus the `[data-hold]` reveal mechanism.
-- **Phases 1 and 2 complete, and phase 3 is four of five: lessons 1 to 12
-  published**, each with its interactive: the outage walk, the operator game, the
-  cluster map, the object assembly, the request path, the store browser, the
-  controller cascade, the event triage, the pod packing, the stale set, the
-  change desk and the run sheet.
+- **Phases 1 to 3 complete: lessons 1 to 14 published**, each with its
+  interactive: the outage walk, the operator game, the cluster map, the object
+  assembly, the request path, the store browser, the controller cascade, the
+  event triage, the pod packing, the stale set, the change desk, the run sheet,
+  the side-by-side board and the workload picker.
 
 ### In progress
 
-- **Lessons 1 to 12 are written; everything after them is not.** The rest of
-  phase 3 onward is planned in the roadmap and unwritten. Lessons 15, 19 and 22
+- **Lessons 1 to 14 are written; everything after them is not.** The rest of
+  phase 3 onward is planned in the roadmap and unwritten. Lessons 16, 20 and 23
   exist as `draft: true` files carrying prose from an earlier six-lesson version
   of the track: they hold the right `order` and `phase` but the bodies need
   rewriting rather than un-drafting, and their `<Term>` uses still point at the
   old lesson numbering. Do not treat those bodies as reference material.
-- Lesson 13, DaemonSets and StatefulSets, is next and closes phase 3.
+- Lesson 15, Pod networking, is next and opens phase 4.
 
 ### Not built
 
@@ -807,7 +857,7 @@ the run sheet, the change desk and the stale set are the three newest.
   `/courses` with several cards) are untested against real data.
 - No site-wide search — Pagefind covers courses only, see above.
 - No RSS or sitemap-specific handling for courses beyond Astro's defaults.
-- No quizzes, exercises, or code playgrounds outside the twelve interactives.
+- No quizzes, exercises, or code playgrounds outside the fourteen interactives.
 - Neither interactive is covered by tests. The outage walk's `stages.ts` is
   checked by the esbuild replay above, which covers the data invariants but not
   `walk.ts`'s rendering.
@@ -824,11 +874,13 @@ the run sheet, the change desk and the stale set are the three newest.
   covers the rule, the names and the findings but not `changes.ts`'s rendering. The
   stale set's three acts are replayed the same way, covering the loop but not its
   view. The run sheet's engine is replayed over all 16 combinations, which covers
-  the simulations and findings but not `runsheet.ts`'s timeline. **Nobody has
-  looked at any of the three rendered panels in a browser**, so their layouts, the
-  change desk's template tint, the stale set's stale-pod marking, the run sheet's
-  bar positions and narrow-screen timeline, and all three dark palettes are
-  unverified by eye.
+  the simulations and findings but not `runsheet.ts`'s timeline. The lesson 13
+  board's engine is random-walked (below), which covers the controllers but not
+  `sameevent.ts`'s grid. **Nobody has looked at any of the five newest rendered
+  panels in a browser**, so their layouts, the change desk's template tint, the
+  stale set's stale-pod marking, the run sheet's bar positions and narrow-screen
+  timeline, the board's card layout under 44rem, the picker, and all five dark
+  palettes are unverified by eye.
 - No per-lesson "last updated" date; the schema has no date field at all.
 
 ### Gotchas learned
@@ -886,6 +938,21 @@ Each of these cost a real debugging cycle. Full explanations are inline above.
     to think about rather than a list to fix.
 
 ### Log
+
+- **2026-09-13** — **Phase 3 finished, with a recap, and the track is now 52
+  lessons.** Lesson 13 is DaemonSets and StatefulSets: no count and one pod per
+  node, pinned and left alone by drains; numbered pods created in order, disks
+  from `volumeClaimTemplates` that follow the name, `serviceName`, how both roll
+  out (ControllerRevisions, DaemonSet node by node, StatefulSet from the top with
+  `partition`), and what a StatefulSet doesn't do for a database. Its interactive
+  is the side-by-side board. Lesson 14 is a recap asked for because phase 3 is a
+  lot of objects in a row: how they stack, one table, and a six-round picker.
+  Glossary gains `DaemonSet` at 13 and `StatefulSet` is rewritten. Adding 14 moved
+  everything after it back one: `introducedIn` from 14 up bumped, the three drafts
+  moved to 16, 20 and 23, the roadmap's tables and per-lesson notes renumbered,
+  code comments naming selectors' lesson now say 16, and the cluster map's
+  `covered` numbers shifted. Log entries below this one keep the numbers they were
+  written with. Lesson 13 is 15 minutes and lesson 14 is 12.
 
 - **2026-09-13** — **Lesson 12 written: phase 3 is four lessons of five.** Jobs
   (count completions rather than running pods, back-off, `backoffLimit`,

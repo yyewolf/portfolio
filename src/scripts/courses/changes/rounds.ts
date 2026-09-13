@@ -13,7 +13,7 @@
 //
 // Vocabulary: lesson 10 owns Deployment and rollout. It may not say ReplicaSet,
 // which is lesson 11, so the middle segment of a pod name is shown changing and
-// never named. Selectors are lesson 15, so `selector` is rendered in the
+// never named. Selectors are lesson 16, so `selector` is rendered in the
 // manifest as part of the given and never discussed.
 
 /**

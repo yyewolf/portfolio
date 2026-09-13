@@ -1,0 +1,482 @@
+/* ---------------------------------------------------------------------------
+ * Lesson 13's side-by-side board. Scoped under `.se`, inside a `not-prose`
+ * wrapper so the article's typography plugin keeps its hands off it. Markup is
+ * built at runtime by src/scripts/courses/sameevent/sameevent.ts, so these rules
+ * are global and namespaced by hand.
+ *
+ * Nodes run down, workloads run across. Below 44rem each node becomes a card and
+ * every cell labels itself, because three columns of pod names don't fit.
+ * ------------------------------------------------------------------------ */
+
+.se {
+  --se-line: #e5e7eb;
+  --se-surface: #ffffff;
+  --se-sunk: #f9fafb;
+  --se-ink: #111827;
+  --se-ink2: #4b5563;
+  --se-muted: #9ca3af;
+  --se-accent: #2563eb;
+  --se-good: #047857;
+  --se-good-bg: #ecfdf5;
+  --se-wait: #b45309;
+  --se-wait-bg: #fffbeb;
+
+  font-family: inherit;
+  color: var(--se-ink2);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+html.dark .se {
+  --se-line: #1f2937;
+  --se-surface: #030712;
+  --se-sunk: #0b1120;
+  --se-ink: #f9fafb;
+  --se-ink2: #9ca3af;
+  --se-muted: #6b7280;
+  --se-accent: #60a5fa;
+  --se-good: #6ee7b7;
+  --se-good-bg: #04241c;
+  --se-wait: #fcd34d;
+  --se-wait-bg: #241a04;
+}
+
+.se *,
+.se *::before,
+.se *::after {
+  box-sizing: border-box;
+}
+
+/* global.css styles the bare `header` element as fixed site chrome. */
+.se header {
+  position: static;
+  inset: auto;
+}
+
+.se p {
+  margin: 0;
+}
+
+.se-shell {
+  border: 1px solid var(--se-line);
+  border-radius: 0.9rem;
+  background: var(--se-surface);
+  overflow: hidden;
+}
+
+.se-intro {
+  padding: 1.1rem 1rem 1.2rem;
+}
+
+.se-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.3rem 1rem;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--se-line);
+  background: var(--se-sunk);
+}
+
+.se-title {
+  font-weight: 650;
+  color: var(--se-ink);
+}
+
+.se-sub,
+.se-limits {
+  font-size: 0.72rem;
+  color: var(--se-muted);
+}
+
+.se-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--se-line);
+}
+
+.se-limits {
+  margin-left: auto;
+}
+
+/* --- the board ----------------------------------------------------------- */
+
+.se-board {
+  padding: 0.4rem 1rem 0.9rem;
+}
+
+.se-row {
+  display: grid;
+  grid-template-columns: 7.5rem repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  align-items: start;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--se-line);
+}
+
+.se-row-head {
+  border-top: 0;
+  align-items: end;
+}
+
+.se-colhead {
+  font-size: 0.72rem;
+  color: var(--se-muted);
+}
+
+.se-colhead b {
+  color: var(--se-ink);
+  font-weight: 650;
+}
+
+.se-spec {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.68rem;
+}
+
+.se-node {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.se-node-name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--se-ink);
+}
+
+.se-node-state {
+  font-size: 0.7rem;
+  color: var(--se-good);
+}
+
+.se-row[data-state="Unreachable"] .se-node-state {
+  color: var(--se-wait);
+  font-weight: 600;
+}
+
+.se-row[data-state="gone"] .se-node-state {
+  color: var(--se-muted);
+}
+
+.se-row[data-state="gone"] .se-node-name {
+  color: var(--se-muted);
+  text-decoration: line-through;
+}
+
+.se-node-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.se-mini {
+  border: 1px solid var(--se-line);
+  border-radius: 0.35rem;
+  background: var(--se-surface);
+  color: var(--se-ink);
+  padding: 0.1rem 0.4rem;
+  font: inherit;
+  font-size: 0.68rem;
+  cursor: pointer;
+}
+
+.se-mini:hover:not(:disabled) {
+  border-color: var(--se-accent);
+}
+
+.se-mini:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.se-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.se-pod {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.3rem;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--se-line);
+  border-radius: 0.35rem;
+  background: var(--se-surface);
+  color: var(--se-ink);
+  padding: 0.2rem 0.45rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.7rem;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+button.se-pod:hover {
+  border-color: var(--se-accent);
+}
+
+.se-pod:focus-visible,
+.se-mini:focus-visible,
+.se-btn:focus-visible {
+  outline: 2px solid var(--se-accent);
+  outline-offset: 2px;
+}
+
+.se-pod-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.se-pod-tag {
+  flex: none;
+  font-family: inherit;
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--se-muted);
+}
+
+.se-pod[data-fresh="yes"] {
+  border-color: var(--se-good);
+  background: var(--se-good-bg);
+}
+
+.se-pod[data-fresh="yes"] .se-pod-tag {
+  color: var(--se-good);
+}
+
+.se-pod[data-status="Terminating"] {
+  border-color: var(--se-wait);
+  background: var(--se-wait-bg);
+}
+
+.se-pod[data-status="Terminating"] .se-pod-tag {
+  color: var(--se-wait);
+}
+
+.se-pod[data-status="Unknown"] {
+  border-style: dashed;
+  color: var(--se-ink2);
+}
+
+.se-pod[data-gone="yes"] {
+  border-style: dashed;
+  background: none;
+  color: var(--se-muted);
+  cursor: default;
+}
+
+.se-pod[data-gone="yes"] .se-pod-name {
+  text-decoration: line-through;
+}
+
+.se-empty {
+  font-size: 0.7rem;
+  color: var(--se-muted);
+}
+
+.se-disks {
+  margin-top: 0.4rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--se-line);
+}
+
+.se-disks-head {
+  margin-bottom: 0.35rem !important;
+  font-size: 0.72rem;
+  color: var(--se-muted);
+}
+
+.se-disklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.se-disklist li {
+  display: flex;
+  gap: 0.4rem;
+  border: 1px solid var(--se-line);
+  border-radius: 0.35rem;
+  background: var(--se-sunk);
+  padding: 0.15rem 0.45rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.68rem;
+  color: var(--se-ink);
+}
+
+.se-disk-to {
+  color: var(--se-muted);
+}
+
+.se-disklist li[data-attached="no"] {
+  border-style: dashed;
+}
+
+/* --- the report ---------------------------------------------------------- */
+
+.se-report {
+  padding: 0.85rem 1rem 1rem;
+  border-top: 1px solid var(--se-line);
+  background: var(--se-sunk);
+}
+
+.se-hint {
+  font-size: 0.85rem;
+}
+
+.se-happened {
+  font-size: 0.9rem;
+  color: var(--se-ink);
+}
+
+.se-dids {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.7rem;
+}
+
+.se-did {
+  border: 1px solid var(--se-line);
+  border-radius: 0.5rem;
+  background: var(--se-surface);
+  padding: 0.45rem 0.6rem;
+}
+
+.se-did-head {
+  margin-bottom: 0.25rem !important;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--se-muted);
+}
+
+.se-did-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.7rem;
+  color: var(--se-good);
+}
+
+.se-did-list li + li {
+  margin-top: 0.15rem;
+}
+
+.se-wait {
+  font-size: 0.78rem;
+  color: var(--se-wait);
+}
+
+.se-idle {
+  font-size: 0.78rem;
+  color: var(--se-muted);
+}
+
+.se-note {
+  font-size: 0.88rem;
+}
+
+/* --- controls ------------------------------------------------------------ */
+
+.se-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+.se-btn {
+  border: 1px solid var(--se-line);
+  border-radius: 0.5rem;
+  background: var(--se-surface);
+  color: var(--se-ink);
+  padding: 0.4rem 0.8rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.se-btn:hover:not(:disabled) {
+  border-color: var(--se-accent);
+}
+
+.se-btn:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.se-btn[data-tone="primary"] {
+  border-color: var(--se-accent);
+  background: var(--se-accent);
+  color: #fff;
+}
+
+html.dark .se-btn[data-tone="primary"] {
+  color: #04121f;
+}
+
+@media (max-width: 44rem) {
+  .se-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.4rem;
+  }
+
+  .se-row-head {
+    display: none;
+  }
+
+  .se-node {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.2rem 0.5rem;
+  }
+
+  .se-node-acts {
+    margin: 0 0 0 auto;
+  }
+
+  .se-cell::before {
+    content: attr(data-label);
+    font-size: 0.66rem;
+    color: var(--se-muted);
+  }
+
+  .se-dids {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .se-limits {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .se-pod {
+    transition: none;
+  }
+}

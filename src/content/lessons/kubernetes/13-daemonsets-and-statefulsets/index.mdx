@@ -1,0 +1,135 @@
+---
+track: kubernetes
+order: 13
+phase: 3
+title: DaemonSets and StatefulSets
+description: Two workloads where it does matter which machine a pod is on, or which pod it is.
+minutes: 15
+tags: [workloads, state]
+modes: [visualize]
+draft: false
+---
+
+import SameEvent from "@components/courses/SameEvent.astro";
+
+A ReplicaSet counts pods, and it really doesn't care what they're called or where
+they run. For most things that's exactly right. Two kinds of workload need one
+of those to matter, and each one gets its own object.
+
+## One on every node
+
+A <Term>DaemonSet</Term> runs one pod on every node:
+
+```yaml
+kind: DaemonSet
+metadata:
+  name: logs
+spec:
+  selector:
+    matchLabels:
+      app: logs
+  template:
+    metadata:
+      labels:
+        app: logs
+    spec:
+      containers:
+        - name: shipper
+          image: shop/log-shipper:4.2
+```
+
+There's no `replicas`. The count is however many nodes you have, and it changes
+when they do. Its controller walks the nodes, and any node without one of its
+pods gets one, pinned to that node.
+
+That's for stuff that's about the machine rather than your app: something
+shipping the node's log files, a metrics agent reading its CPU and disk, the
+network plugin that hands pods their addresses. Look in `kube-system` on pretty
+much any cluster and you'll find a few you never installed.
+
+Put a `nodeSelector` in the template and it only counts the nodes that match, so
+a GPU driver installer runs on the GPU nodes and nowhere else.
+
+DaemonSet pods also stay put where other pods get pushed off. `kubectl drain`
+refuses to empty a node that has them unless you pass `--ignore-daemonsets`,
+because evicting one is pointless, it'd just be put straight back on the same
+node.
+
+## Pods with names
+
+A <Term>StatefulSet</Term> is basically a Deployment with two extra fields:
+
+```yaml
+kind: StatefulSet
+metadata:
+  name: db
+spec:
+  serviceName: db
+  replicas: 3
+  selector:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 20Gi
+```
+
+The pods aren't called `db-6c8f4b-k2r8s`. They're `db-0`, `db-1` and `db-2`, and
+those names are the whole point. `db-0` is made first, and `db-1` doesn't start
+until `db-0` is running and ready. Scaling down goes the other way, highest
+number first. And when `db-1` goes away, the pod that replaces it is `db-1`
+again.
+
+`volumeClaimTemplates` gives each pod its own disk, named after it: `data-db-0`,
+`data-db-1`, `data-db-2`. The disk belongs to the name rather than to the pod,
+so a new `db-1` gets `data-db-1` back with everything that was on it. Scaling
+down doesn't delete disks either. Take the set down to two and `data-db-2` just
+sits there until a `db-2` comes back for it.
+
+`serviceName` gives every pod a DNS name of its own, like `db-0.db`, and that's
+why the stable names matter. A Postgres replica that's been told to follow
+`db-0` needs `db-0` to still mean the same database tomorrow.
+
+## The same thing, three times
+
+<SameEvent />
+
+## Updating them
+
+Both of them roll out when you change the template too, they just don't make
+ReplicaSets to do it. They keep their old templates in ControllerRevision objects
+instead, and that's what `kubectl rollout undo` goes back to.
+
+By default a DaemonSet doesn't start the new pod next to the old one, since two
+log shippers on one node would fight over the same files. It deletes the pod on
+one node, waits for the replacement to be ready, and moves to the next. That's
+`maxUnavailable: 1`, and you can raise it to go faster.
+
+A StatefulSet updates one pod at a time, from the highest number down, waiting
+for each to be ready before the next. Set `partition: 2` under `rollingUpdate`
+and only pods numbered 2 and up get the new template, which makes `db-2` a
+canary you can watch before letting the rest go.
+
+## What it won't do for you
+
+A StatefulSet gives a database stable names and disks that stick around. It
+doesn't copy data between pods, pick a primary, or fail over when one dies.
+That's still the database's job, and wiring it up is the hard part, which is why
+most people run databases on top of something that already knows how, or just
+outside the cluster.

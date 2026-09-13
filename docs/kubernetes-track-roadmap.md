@@ -1,6 +1,6 @@
 # Kubernetes track roadmap
 
-The full plan for the `kubernetes` course track: 51 lessons in 13 phases, across
+The full plan for the `kubernetes` course track: 52 lessons in 13 phases, across
 three depths. It ships in batches, so this file is the plan of record and
 `src/content/lessons/kubernetes/` is what has actually gone out.
 
@@ -18,11 +18,11 @@ frontmatter and inherits the depth from it.
 
 | Depth | Phases | Lessons | Shipped |
 |---|---|---|---|
-| Core | 1 to 4 | 1 to 18 | 1 to 12 |
-| Practical | 5 to 9 | 19 to 37 | none |
-| Deep dive | 10 to 13 | 38 to 51 | none |
+| Core | 1 to 4 | 1 to 19 | 1 to 14 |
+| Practical | 5 to 9 | 20 to 38 | none |
+| Deep dive | 10 to 13 | 39 to 52 | none |
 
-Lessons 15, 19 and 22 exist as `draft: true` files carrying prose from the
+Lessons 16, 20 and 23 exist as `draft: true` files carrying prose from the
 earlier six-lesson version of the track. They are numbered for their new slots,
 but they need rewriting rather than just un-drafting. Their `<Term>` uses still
 point at the old lesson numbering, so expect `[courses]` warnings when they are
@@ -33,7 +33,7 @@ Deployments lesson now sitting at 11.
 
 The original sketch cut the depths at lessons 15, 35 and 51. Those land
 mid-phase, so the boundaries moved to phase edges instead: 1 to 4, 5 to 9, and
-10 to 13. The tier descriptions are unchanged, and Core comes out at 18 lessons
+10 to 13. The tier descriptions are unchanged, and Core comes out at 19 lessons
 (roughly three hours) rather than 15.
 
 ## The lessons
@@ -80,6 +80,7 @@ Phase 3, workloads
 | 11 | Deployments and rollouts | operate |
 | 12 | Jobs and CronJobs | operate |
 | 13 | DaemonSets and StatefulSets | visualize |
+| 14 | Picking a workload | operate |
 
 Phase 3 runs bottom up: the thing, then keep a count of the thing, then change
 which thing safely. The original plan had Deployments at 10 and "ReplicaSets and
@@ -93,20 +94,20 @@ template change makes a new ReplicaSet and drains the old one, which is what
 turns "every pod got replaced" from a rule into a consequence, and it explains
 the middle segment of a pod name instead of pointing at it.
 
-9 to 12 are shipped. Their interactives are described at the bottom of this
+9 to 14 are shipped. Their interactives are described at the bottom of this
 file.
 
 Phase 4, networking
 
 | # | Lesson | Modes |
 |---|---|---|
-| 14 | Pod networking | visualize |
-| 15 | Services | operate |
-| 16 | DNS | operate |
-| 17 | Ingress and the Gateway API | operate |
-| 18 | Network policies | operate |
+| 15 | Pod networking | visualize |
+| 16 | Services | operate |
+| 17 | DNS | operate |
+| 18 | Ingress and the Gateway API | operate |
+| 19 | Network policies | operate |
 
-18 is a puzzle. Allow frontend to backend and frontend to database, deny
+19 is a puzzle. Allow frontend to backend and frontend to database, deny
 internet to database, and the reader writes the policy.
 
 ### Practical
@@ -115,25 +116,25 @@ Phase 5, storage and configuration
 
 | # | Lesson | Modes |
 |---|---|---|
-| 19 | Configuration | operate |
-| 20 | Why containers lose their data | visualize |
-| 21 | Volumes | visualize |
-| 22 | Persistent volumes and claims | operate, inspect |
+| 20 | Configuration | operate |
+| 21 | Why containers lose their data | visualize |
+| 22 | Volumes | visualize |
+| 23 | Persistent volumes and claims | operate, inspect |
 
 Phase 6, scheduling and resources
 
 | # | Lesson | Modes |
 |---|---|---|
-| 23 | How does Kubernetes choose a node? | operate |
-| 24 | Requests and limits | visualize, operate |
-| 25 | Taints, tolerations and affinity | operate |
+| 24 | How does Kubernetes choose a node? | operate |
+| 25 | Requests and limits | visualize, operate |
+| 26 | Taints, tolerations and affinity | operate |
 
-23 hands the reader three nodes of different sizes and several pods, and lets
-them schedule by hand before revealing that there is a scheduler. 24 wants a
+24 hands the reader three nodes of different sizes and several pods, and lets
+them schedule by hand before revealing that there is a scheduler. 25 wants a
 capacity bar simulation: scheduling reads requests, limits constrain runtime,
 CPU gets throttled and memory gets OOMKilled.
 
-24 also owns in-place resize, which is the one place the track should say that a
+25 also owns in-place resize, which is the one place the track should say that a
 running container's CPU and memory can be changed without restarting it, along
 with `resizePolicy` and why a memory limit going down is the awkward direction.
 Lesson 10 deliberately does not explain it. It mentions in one clause that the
@@ -148,25 +149,25 @@ Phase 7, reliability
 
 | # | Lesson | Modes |
 |---|---|---|
-| 26 | Kubernetes will break | operate |
-| 27 | Probes | operate |
-| 28 | Rolling updates and availability | operate |
-| 29 | Autoscaling | visualize |
+| 27 | Kubernetes will break | operate |
+| 28 | Probes | operate |
+| 29 | Rolling updates and availability | operate |
+| 30 | Autoscaling | visualize |
 
-26 destroys pods, nodes, services and containers and watches the recovery, while
-making the point that none of it makes an application highly available. 27 is a
+27 destroys pods, nodes, services and containers and watches the recovery, while
+making the point that none of it makes an application highly available. 28 is a
 game built on one question: the process is alive, but should traffic reach it?
 
 Phase 8, security
 
 | # | Lesson | Modes |
 |---|---|---|
-| 30 | Who are you? | inspect |
-| 31 | ServiceAccounts and RBAC | operate, inspect |
-| 32 | Pod security | operate |
-| 33 | Network security | operate |
+| 31 | Who are you? | inspect |
+| 32 | ServiceAccounts and RBAC | operate, inspect |
+| 33 | Pod security | operate |
+| 34 | Network security | operate |
 
-31 hands the reader a compromised pod and asks what it can do. 33 is the
+32 hands the reader a compromised pod and asks what it can do. 34 is the
 distinction between RBAC and NetworkPolicy: whether a workload can call the API,
 against whether it can connect to another workload.
 
@@ -174,13 +175,13 @@ Phase 9, operating Kubernetes
 
 | # | Lesson | Modes |
 |---|---|---|
-| 34 | Debugging a broken pod | operate |
-| 35 | Debugging networking | operate |
-| 36 | Observability | inspect |
-| 37 | Resource problems | operate |
+| 35 | Debugging a broken pod | operate |
+| 36 | Debugging networking | operate |
+| 37 | Observability | inspect |
+| 38 | Resource problems | operate |
 
-34 and 35 give the reader a broken system and the real toolset (`get`,
-`describe`, `logs`, `exec`, `events`) without telling them where to look. 37 is
+35 and 36 give the reader a broken system and the real toolset (`get`,
+`describe`, `logs`, `exec`, `events`) without telling them where to look. 38 is
 OOMKilled, CPU throttling, Pending and Evicted, and working out which is which.
 
 ### Deep dive
@@ -189,14 +190,14 @@ Phase 10, what's actually underneath?
 
 | # | Lesson | Minutes | Modes |
 |---|---|---|---|
-| 38 | The control plane | 15 | inspect |
-| 39 | What actually happens when you create a pod? | 15 | visualize, inspect |
-| 40 | kubelet | 10 | inspect |
-| 41 | Container runtime and CRI | 10 | inspect |
-| 42 | CNI | 10 | visualize, inspect |
-| 43 | CSI | 10 | inspect |
+| 39 | The control plane | 15 | inspect |
+| 40 | What actually happens when you create a pod? | 15 | visualize, inspect |
+| 41 | kubelet | 10 | inspect |
+| 42 | Container runtime and CRI | 10 | inspect |
+| 43 | CNI | 10 | visualize, inspect |
+| 44 | CSI | 10 | inspect |
 
-39 is the flagship. One animation running from `kubectl` through the API server,
+40 is the flagship. One animation running from `kubectl` through the API server,
 etcd, the scheduler, back through the API server, then the kubelet, CRI, the
 runtime, CNI, and finally a process. Nothing in it is new by that point, which
 is what makes it work: it is the assembly, not the introduction.
@@ -205,30 +206,30 @@ Phase 11, Kubernetes isn't magic
 
 | # | Lesson | Modes |
 |---|---|---|
-| 44 | Operators | visualize |
-| 45 | Build your own controller | operate |
-| 46 | CRDs | operate, inspect |
+| 45 | Operators | visualize |
+| 46 | Build your own controller | operate |
+| 47 | CRDs | operate, inspect |
 
-45 is the payoff for lesson 2. A small simulated API, and the reader writes the
+46 is the payoff for lesson 2. A small simulated API, and the reader writes the
 loop they were performing by hand in their first ten minutes on the track.
 
 Phase 12, architecture and tradeoffs
 
 | # | Lesson | Modes |
 |---|---|---|
-| 47 | Kubernetes is a distributed system | visualize |
-| 48 | Kubernetes is complicated | visualize |
-| 49 | When Kubernetes is a bad idea | none |
-| 50 | Kubernetes vs the alternatives | none |
+| 48 | Kubernetes is a distributed system | visualize |
+| 49 | Kubernetes is complicated | visualize |
+| 50 | When Kubernetes is a bad idea | none |
+| 51 | Kubernetes vs the alternatives | none |
 
-50 is not a lesson where Kubernetes wins. It covers VMs, Docker Compose, Nomad,
+51 is not a lesson where Kubernetes wins. It covers VMs, Docker Compose, Nomad,
 serverless and managed platforms. Kubernetes is a tool, not a destination.
 
 Phase 13, the whole thing
 
 | # | Lesson | Minutes | Modes |
 |---|---|---|---|
-| 51 | You are the Kubernetes engineer | 30 | operate, inspect |
+| 52 | You are the Kubernetes engineer | 30 | operate, inspect |
 
 A broken cluster with the hints turned off: deploy, expose, configure, persist,
 secure, diagnose, scale, upgrade.
@@ -409,7 +410,7 @@ Two rules hold it up:
 
 The set is named `web-6c8f4b`, which is the string lesson 7 already put in front
 of the reader in its owner reference example. Pods belong to the set by owner
-reference rather than by selector, because selectors are lesson 15.
+reference rather than by selector, because selectors are lesson 16.
 
 It is much smaller than the change desk on purpose. Three acts, one world, no
 scoring, and the reader is never wrong about anything.
@@ -468,7 +469,7 @@ The manifest is rendered with the template block tinted, which is the one thing
 the panel can do that no sentence about it matches: the reader sees where the
 walls are. `selector` is rendered because a Deployment without one is not a
 Deployment, and nothing anywhere discusses it, since labels and selectors are
-lesson 15.
+lesson 16.
 
 ## Lesson 12, the run sheet
 
@@ -512,6 +513,52 @@ Two things hold it up:
   `backoffLimit`, a failed Job's `DURATION` counts to now, and a CronJob's Job is
   named after its scheduled minute since 1970. The timeline is only worth
   anything if a reader who later meets the real thing recognises it.
+
+## Lesson 13, the side-by-side board
+
+Free play, like the controller cascade. One cluster of three nodes running a
+Deployment, a DaemonSet and a StatefulSet, and the reader does things to the
+cluster: deletes a pod, adds a node, removes one, cuts one off and reconnects it,
+scales down and back up. After each action the board shows what each of the
+three controllers did about it, side by side.
+
+It's laid out nodes down and workloads across, because that layout makes the
+lesson without a sentence. The DaemonSet column has exactly one pod per Ready
+row, the StatefulSet column keeps its numbers and its disks, and the Deployment
+column is just names landing wherever there's room.
+
+The action worth building the whole board for is cutting a node off. The
+Deployment's pod there is evicted and replaced elsewhere straight away, the
+DaemonSet's pod just shows Unknown and nothing replaces it, and the StatefulSet
+waits, because its pod still exists as far as it can tell and it will not risk
+two pods with one name. Reconnecting or force-deleting is what lets it move.
+That's the at-most-one rule, and no paragraph lands it as well as watching the
+column next to it not care.
+
+Two rules hold it up:
+
+- *No controller reads the action.* `act()` changes the world and says what
+  happened, then `settle()` runs all three reconcilers against the world until a
+  pass changes nothing, so any sequence of actions gets an honest account.
+- *Disks are never deleted.* Scaling down and back up has to reattach the old
+  disk to the returning name.
+
+## Lesson 14, the workload picker
+
+The phase 3 recap. Phase 3 is five workload objects in a row, which is a lot to
+hold, so the phase closes on a short lesson that stacks them (which object
+writes which), puts them in one table, and then asks. Six workloads a team would
+really run, and for each one the reader picks what they'd write: a weekly-release
+front end, a log shipper on every machine, Postgres with replicas following
+`db-0`, a nightly report, a one-off chunked backfill, and a ten-minute debug
+shell.
+
+Wrong picks are spent, not fatal, and every reply is a consequence rather than a
+verdict. The wrong choices are the ones people really reach for: a Deployment
+sized to the node count instead of a DaemonSet, a Deployment with a sleep loop
+instead of a CronJob. The rule behind all six is stated once, on the closing
+screen, as two questions: is it supposed to finish, and does it matter which
+machine or which copy it is.
 
 ## The simulation engine
 

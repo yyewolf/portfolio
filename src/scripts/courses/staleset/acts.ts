@@ -13,7 +13,7 @@
 // is not.
 //
 // Vocabulary: lesson 10 owns ReplicaSet and pod template. Rollout is lesson 11,
-// so the word never appears. Selectors are lesson 15, so pods belong to the set
+// so the word never appears. Selectors are lesson 16, so pods belong to the set
 // by owner reference, which lesson 7 already taught.
 
 export interface Act {

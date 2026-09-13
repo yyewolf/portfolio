@@ -1,0 +1,46 @@
+---
+// Mount point for lesson 13's side-by-side board. The intro is server-rendered so
+// the lesson still says something without JavaScript, and so the opening copy
+// lives in one place. Everything after the button is built at runtime by
+// src/scripts/courses/sameevent/sameevent.ts.
+//
+// It runs after the prose has shown both objects, because the board is somewhere
+// to watch the difference rather than somewhere to learn the fields.
+import "@styles/sameevent.css";
+---
+
+<div data-sameevent>
+  <div class="se not-prose my-8">
+    <div data-se-stage>
+      <div class="se-shell">
+        <div class="se-intro">
+          <p>
+            Three nodes running a Deployment, a DaemonSet and a StatefulSet side by
+            side. Do something to the cluster and see what each of them does about
+            it.
+          </p>
+          <div class="se-foot">
+            <button type="button" class="se-btn" data-tone="primary" data-go="start"
+              >Open the cluster</button
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <noscript>
+      <p class="se-note mt-3">
+        This board needs JavaScript. The short version: delete a pod and the
+        Deployment makes one with a new name anywhere, the DaemonSet makes one on
+        the same node, and the StatefulSet brings back the same name with the same
+        disk. Add a node and only the DaemonSet reacts. Cut a node off and the
+        Deployment replaces its pod within minutes, while the StatefulSet waits,
+        because it won't risk two pods with one name.
+      </p>
+    </noscript>
+  </div>
+</div>
+
+<script>
+  import "@scripts/courses/sameevent/sameevent";
+</script>

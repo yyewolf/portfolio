@@ -19,7 +19,7 @@
 // 4. A CronJob doesn't know how long the last run is taking.
 // 5. The schedule is read on the controller's clock.
 //
-// Vocabulary: lesson 12 owns Job and CronJob. Labels and selectors are lesson 15,
+// Vocabulary: lesson 12 owns Job and CronJob. Labels and selectors are lesson 16,
 // so the Deployment in round 1 renders a selector and nothing discusses it.
 
 export type FieldId =

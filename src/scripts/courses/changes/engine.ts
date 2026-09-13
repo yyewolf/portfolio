@@ -318,7 +318,7 @@ const quoted = (v: string): string => (/^[\w.:/@+-]+$/.test(v) ? v : `"${v}"`);
  * spec, and the reader has to see how far down `replicas` is not.
  *
  * `selector` is rendered because a Deployment without one is not a Deployment.
- * Nothing in the lesson discusses it; labels and selectors are lesson 15.
+ * Nothing in the lesson discusses it; labels and selectors are lesson 16.
  */
 export const manifest = (spec: Spec): Line[] => {
   const lines: Line[] = [];

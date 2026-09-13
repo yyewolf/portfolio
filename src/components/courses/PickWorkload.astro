@@ -1,0 +1,41 @@
+---
+// Mount point for lesson 14's workload picker, the phase 3 recap. The intro is
+// server-rendered so the lesson still says something without JavaScript.
+// Everything after the start button is built at runtime by
+// src/scripts/courses/picker/picker.ts.
+import "@styles/picker.css";
+---
+
+<div data-picker>
+  <div class="pw not-prose my-8">
+    <div data-pw-stage>
+      <div class="pw-shell">
+        <div class="pw-body">
+          <p class="pw-setup">
+            Six things the team needs running. Pick what you'd write for each one. A
+            wrong pick tells you what it would actually do, so go ahead and try the
+            tempting ones.
+          </p>
+          <div class="pw-foot">
+            <button type="button" class="pw-btn" data-tone="primary" data-go="start"
+              >Start</button
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <noscript>
+      <p class="pw-note mt-3">
+        This needs JavaScript. The short version is two questions. Is it supposed to
+        finish? Then it's a Job, or a CronJob on a clock. Does it matter which
+        machine it's on or which copy it is? Then it's a DaemonSet or a
+        StatefulSet. Otherwise it's a Deployment.
+      </p>
+    </noscript>
+  </div>
+</div>
+
+<script>
+  import "@scripts/courses/picker/picker";
+</script>

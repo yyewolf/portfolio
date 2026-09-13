@@ -58,8 +58,7 @@ failed, the sweep catches it. The correction just arrives late instead of never.
 
 ## Reconcile has to be safe to run twice
 
-So a controller has to be written so that running it again is harmless. Not
-"cheap", harmless. It will run again, on an object it has already handled, with
+So a controller has to be written so that running it again is harmless. It will run again, on an object it has already handled, with
 no indication that this is a repeat.
 
 Which means a reconcile pass is never allowed to think in terms of *doing* a

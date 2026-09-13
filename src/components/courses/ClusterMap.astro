@@ -87,8 +87,8 @@ const parts: Part[] = [
     name: "Scheduler",
     role: "placement",
     side: "control",
-    metBy: 23,
-    covered: 23,
+    metBy: 24,
+    covered: 24,
     detail:
       "Decides which node a new copy goes on, by looking at what room is left and what the copy said it needs. It only decides. Something on the node does the starting.",
   },
@@ -97,8 +97,8 @@ const parts: Part[] = [
     name: "kubelet",
     role: "the agent on each machine",
     side: "node",
-    metBy: 40,
-    covered: 40,
+    metBy: 41,
+    covered: 41,
     detail:
       "The thing on every node that takes the list of what should be running here, makes it true, and reports back what is actually happening. It is the other half of every loop in the control plane.",
   },
@@ -107,8 +107,8 @@ const parts: Part[] = [
     name: "Container runtime",
     role: "actually runs things",
     side: "node",
-    metBy: 41,
-    covered: 41,
+    metBy: 42,
+    covered: 42,
     detail:
       "Starts and stops the containers, pulls the images. This is the part that was already there in lesson one, doing what `docker run` did.",
   },
@@ -117,8 +117,8 @@ const parts: Part[] = [
     name: "Networking",
     role: "addresses and names",
     side: "node",
-    metBy: 14,
-    covered: 14,
+    metBy: 15,
+    covered: 15,
     detail:
       "Gives every copy an address, and makes one stable name resolve to whichever copies are alive right now. Decided centrally, made real on every node, which is why it takes a phase of its own.",
   },

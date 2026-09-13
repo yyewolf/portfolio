@@ -1,0 +1,54 @@
+---
+track: kubernetes
+order: 14
+phase: 3
+title: Picking a workload
+description: Seven objects that all end in pods, side by side, and how to tell which one you want.
+minutes: 12
+tags: [workloads, recap]
+modes: [operate]
+draft: false
+---
+
+import PickWorkload from "@components/courses/PickWorkload.astro";
+
+That was a lot of objects for one phase, and nearly all of them end up doing the
+same thing, which is making pods. This lesson just puts them next to each other.
+
+## How they stack
+
+```text
+Deployment    ->  ReplicaSet  ->  Pod
+CronJob       ->  Job         ->  Pod
+DaemonSet     ->  Pod
+StatefulSet   ->  Pod
+```
+
+Every arrow is a controller reading the object on its left and writing the one
+on its right, with an <Term>owner reference</Term> pointing back. Delete
+something on the left and everything to its right goes with it. At the bottom
+it's always a pod, and the node running it has no idea which of these asked for
+it.
+
+## Side by side
+
+| Object | What it keeps | When one of its pods goes |
+|---|---|---|
+| Pod | One set of containers, on one node | Nothing replaces it |
+| ReplicaSet | A number of identical pods | A new pod, with a new name |
+| Deployment | One ReplicaSet per version of the template | A new pod, with a new name |
+| Job | Pods running until enough have exited 0 | A new pod, starting the work over |
+| CronJob | A Job every time the schedule fires | The Job deals with it |
+| DaemonSet | One pod per node | A new pod on the same node |
+| StatefulSet | Numbered pods, each with its own disk | The same name, with the same disk |
+
+Two of those you'll basically never write yourself. A bare pod has nothing
+looking after it, and a ReplicaSet is what a Deployment writes for you. The other
+five are real choices.
+
+## Which one
+
+<PickWorkload />
+
+That's workloads done. Every one of those pods got an IP address, and none of
+them get to keep it, which is where the next phase starts.
