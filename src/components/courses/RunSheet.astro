@@ -1,0 +1,53 @@
+---
+// Mount point for lesson 12's run sheet. The intro screen is server-rendered so
+// the lesson still says something without JavaScript, and so the opening copy
+// lives in one place. Everything after the start button is built at runtime by
+// src/scripts/courses/runsheet/runsheet.ts.
+//
+// It runs after the prose has said what a Job and a CronJob hold, and before
+// anything about what goes wrong with them, because every task starts from the
+// spec somebody would write first and the reader should watch it go wrong.
+import "@styles/runsheet.css";
+---
+
+<div data-runsheet>
+  <div class="rs not-prose my-8">
+    <div data-rs-stage>
+      <div class="rs-shell">
+        <div class="rs-body">
+          <div class="rs-intro">
+            <p>
+              Five things the team needs run, each with the spec somebody wrote first.
+              Run it as it is, see what the week does to it, then change what needs
+              changing until nothing bad comes back.
+            </p>
+            <div class="rs-foot">
+              <button
+                type="button"
+                class="rs-btn"
+                data-tone="primary"
+                data-go="start">Start</button
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <noscript>
+      <p class="rs-note mt-3">
+        This exercise needs JavaScript. The short version: a Deployment restarts
+        anything that exits, so finishing work belongs in a Job. A Job retries by
+        running your command again from the start, so the work has to be safe to
+        repeat, and a stuck process never counts as failing, so only
+        activeDeadlineSeconds ends it. A CronJob will start a run on top of one
+        that's still going unless concurrencyPolicy says not to, and reads its
+        schedule in UTC unless timeZone is set.
+      </p>
+    </noscript>
+  </div>
+</div>
+
+<script>
+  import "@scripts/courses/runsheet/runsheet";
+</script>

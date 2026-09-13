@@ -1,0 +1,138 @@
+---
+track: kubernetes
+order: 12
+phase: 3
+title: Jobs and CronJobs
+description: For work that's supposed to end, and why "it finished" and "it ran once" aren't the same promise.
+minutes: 18
+tags: [workloads, batch]
+modes: [operate]
+draft: false
+---
+
+import RunSheet from "@components/courses/RunSheet.astro";
+
+A lot of work is supposed to end. A database migration, the nightly backup, a
+batch of emails on the first of the month. A <Term>Job</Term> is the object for
+that. It runs a pod until the work is done, and then it stops.
+
+```yaml
+kind: Job
+metadata:
+  name: invoices
+spec:
+  backoffLimit: 6
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: invoices
+          image: shop/invoices:1.4
+```
+
+There's a pod template again, but no `replicas`. A Job doesn't care how many pods
+are running, it cares how many have finished. Exit 0 and that's a success, the
+pod stays behind as `Completed` and the Job is Complete. Exit with anything else
+and it's a failure, so the Job makes a new pod and tries again. It waits a bit
+longer each time, 10 seconds, then 20, then 40, up to six minutes, and once it's
+had more than `backoffLimit` failures it gives up and the Job is Failed.
+
+`restartPolicy` is either `Never` or `OnFailure`. With `OnFailure` a failed
+container gets restarted inside the same pod. With `Never` every attempt is a
+brand new pod, which is pretty much always what you want, since the failed ones
+stick around and you can still read their logs.
+
+## On a schedule
+
+A <Term>CronJob</Term> is a Job template with a clock attached:
+
+```yaml
+kind: CronJob
+metadata:
+  name: report
+spec:
+  schedule: "0 2 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: report
+              image: shop/report:3.1
+```
+
+The schedule is just plain cron syntax, so that's 2:00 every night. When the time
+comes, the CronJob controller creates a Job from `jobTemplate`, and from there
+it's just a Job like any other. A CronJob never runs a pod itself, it's the same
+layering as a Deployment and its ReplicaSets, one object making another.
+
+## Five jobs
+
+<RunSheet />
+
+## Splitting the work
+
+A Job can also run the work in pieces. `completions` is how many pods have to
+succeed before it counts as done, and `parallelism` is how many run at once:
+
+```yaml
+spec:
+  completions: 50
+  parallelism: 5
+  completionMode: Indexed
+```
+
+That's fifty pods, five at a time. With `completionMode: Indexed` each pod gets a
+number from 0 to 49 in `JOB_COMPLETION_INDEX`, so pod 17 knows it's handling
+chunk 17. It never gets told there are fifty though, nothing passes `completions`
+down to the pod. If your code needs the total to work out its slice, just put it
+in the template yourself as an env var, and keep it in step with `completions`
+by hand.
+
+Without Indexed the pods are all the same, and it's up to them not to grab the
+same work, usually by pulling from a queue.
+
+## What's left behind
+
+```text
+$ kubectl get cronjobs
+NAME     SCHEDULE    TIMEZONE   SUSPEND   ACTIVE   LAST SCHEDULE   AGE
+report   0 2 * * *   <none>     False     0        7h              40d
+
+$ kubectl get jobs
+NAME              STATUS     COMPLETIONS   DURATION   AGE
+report-29821080   Complete   1/1           11m        7h
+report-29819640   Complete   1/1           12m        31h
+report-29818200   Failed     0/1           2d7h       2d7h
+report-29816760   Complete   1/1           11m        3d7h
+```
+
+The number on the end of a Job's name is the minute it was scheduled for, counted
+from 1970. So every run gets its own name, and if the controller ever tries to
+create the same run twice, the second attempt just fails because that name's
+taken. The pods then get the usual random bit on the end, like
+`report-29821080-qq8wz`.
+
+`DURATION` on the failed one isn't a typo. A Job only gets a completion time when
+it succeeds, so for anything else `kubectl` just counts from when it started to
+now.
+
+Finished Jobs don't go away by themselves. A CronJob keeps the last three that
+succeeded and the last one that failed, that's `successfulJobsHistoryLimit` and
+`failedJobsHistoryLimit`, and deletes anything older. A Job you made by hand
+stays until you delete it, unless you set `ttlSecondsAfterFinished` to have it
+cleaned up that long after it ends. Don't be in a rush to tidy them though, a
+finished pod is the only place its logs still exist.
+
+## When it doesn't fire
+
+The CronJob controller can miss a run, because it was restarting during an
+upgrade or the control plane was having a bad hour. When it comes back it notices
+and starts the Job late, once, rather than catching up on every run it missed.
+`startingDeadlineSeconds` is how late is too late. Set it to 600 and a run that
+couldn't start within ten minutes of its time is just skipped.
+
+The docs are also honest that a CronJob creates a Job "approximately once" per
+schedule, and that on a bad day it can be two or none. So whatever a CronJob runs
+has to be safe to run twice, same as anything else a Job runs.

@@ -85,6 +85,8 @@ a track in batches.
 | `src/components/courses/StaleSet.astro` | Mounts the stale set. Styles in `src/styles/staleset.css`, under `.ss`. |
 | `src/scripts/courses/changes/` | The lesson 11 change desk: `rounds.ts` (five requests as data), `engine.ts` (the template rule, the pod names, the findings), `changes.ts` (runner and view). |
 | `src/components/courses/ChangeDesk.astro` | Mounts the change desk (lesson 11). Styles in `src/styles/changes.css`, under `.cd`. |
+| `src/scripts/courses/runsheet/` | The lesson 12 run sheet: `rounds.ts` (five tasks and their worlds as data), `engine.ts` (Deployment, Job, CronJob and time zone simulations, findings, manifests), `runsheet.ts` (runner, view and timeline). |
+| `src/components/courses/RunSheet.astro` | Mounts the run sheet. Styles in `src/styles/runsheet.css`, under `.rs`. |
 | `src/pages/courses/` | The four routes. |
 
 Routes: `/courses`, `/courses/<track>`, `/courses/<track>/glossary`,
@@ -600,6 +602,47 @@ lifetime tied to them" finding for a container that needs another pod's director
 or another pod's loopback. Without it, splitting the API from its log shipper
 produced a failure and two compliments in the same list.
 
+## Lesson 12's run sheet
+
+The design is in [the roadmap](docs/kubernetes-track-roadmap.md#lesson-12-the-run-sheet).
+It is the packing's rule again (no answer key, consequences computed) applied to
+time instead of arrangement, and three things will break quietly.
+
+**Every round's `start` has to fail.** `start` is the spec somebody writes first,
+and pressing Run on it untouched is the first thing every reader does. If a round's
+starting spec ever clears, that round teaches nothing and nothing complains.
+
+**Good or bad is read off the mechanism, never off the setting.** The deadline
+round is the example worth keeping: a `DeadlineExceeded` is praised when the pod
+was hung at the moment it landed and billed when the pod was still making
+progress. Keying it off `activeDeadlineSeconds` values instead would make a new
+choice silently wrong. Same for the stock sync: a skipped run is `flat` and an
+overlap or a kill is `bad` because of what the world says the job writes, not
+because of which policy produced it.
+
+**The simulated numbers match Kubernetes.** Job back-off 10s doubling to six
+minutes, the kubelet's crash back-off 10s doubling to five, an eviction counting
+against `backoffLimit`, `DURATION` counting to now for a Job with no completion
+time, and a CronJob's Jobs named `<name>-<scheduled minute since 1970>`. Lessons 8
+and 9 and the triage rounds used to have five-digit CronJob numbers
+(`report-28492`), and they were corrected to real epoch minutes when lesson 12
+started explaining the number. Anything new that shows a CronJob's Job should
+compute the name rather than invent one.
+
+Replay it outside the browser:
+
+```bash
+pnpm exec esbuild <a harness importing runsheet/rounds.ts + engine.ts> --bundle \
+  --platform=node --format=cjs --outfile=/tmp/rs.cjs
+# then assert, over every combination of every round's fields (2 / 4 / 3 / 3 / 4,
+# 16 in all): every outcome has at least one finding, a cleared outcome has a
+# good finding and an uncleared one has none, each round's `start` fails, and at
+# least one combination per round clears (today exactly one)
+```
+
+Like lessons 7 to 11 it doesn't dispatch `lesson:reveal`; clicking Next completes
+the lesson.
+
 ## Holding content back
 
 Both phase 1 interactives are the answer to something the prose gives away, so
@@ -688,7 +731,7 @@ for f in dist/courses/kubernetes/*/index.html; do
   case "$f" in *glossary*) continue ;; esac    # glossary page has no sidebar panel
   echo "$(basename $(dirname $f)) $(grep -o 'data-term="' $f | wc -l)"
 done
-# expected today: 3 8 11 15 20 22 25 28 31 33 35 across the eleven published lessons
+# expected today: 3 8 11 15 20 22 25 28 31 33 35 37 across the twelve published lessons
 ```
 
 ---
@@ -706,19 +749,19 @@ done
 >   that is what git is for.
 > - Keep claims verifiable. If you did not run it, do not assert it passes.
 
-**Last verified:** 2026-09-12 — `pnpm build` clean, 12 pages indexed (11
+**Last verified:** 2026-09-13 — `pnpm build` clean, 13 pages indexed (12
 published lessons plus the glossary; three more lessons are `draft: true`), no
 `[courses]` warnings, sidebar term counts 3 / 8 / 11 / 15 / 20 / 22 / 25 / 28 /
-31 / 33 / 35, lint at baseline 73 with nothing added. Lesson 2's levels, lesson
-7's cascade, lesson 9's packing, lesson 10's stale set and lesson 11's change desk
-all verified by replaying their engines outside the browser; lesson 8's rounds
-checked for one right answer each, three choices each, and a reply on every
-choice. Lesson 9's packing was replayed over all 80 arrangements across its four
-rounds, and the change desk over all 40 across its five. Published lesson minutes
-total 142.
+31 / 33 / 35 / 37, lint at baseline 73 with nothing added. Lesson 2's levels,
+lesson 7's cascade, lesson 9's packing, lesson 10's stale set, lesson 11's change
+desk and lesson 12's run sheet all verified by replaying their engines outside the
+browser; lesson 8's rounds checked for one right answer each, three choices each,
+and a reply on every choice. Lesson 9's packing was replayed over all 80
+arrangements across its four rounds, the change desk over all 40 across its five,
+and the run sheet over all 16 across its five. Published lesson minutes total 160.
 
 Not verified: no interactive has ever been looked at in a browser by an agent, and
-the change desk and the stale set are the two newest.
+the run sheet, the change desk and the stale set are the three newest.
 
 ### Done
 
@@ -730,7 +773,7 @@ the change desk and the stale set are the two newest.
 - `<Term>` tooltip + `validateTermRefs` forward-reference warnings.
 - Pagefind wired into `build`, scoped by `track` filter, dev fallback message.
 - localStorage progress: resume button, completion ticks, reset.
-- Kubernetes track: 49 glossary terms, official CNCF logo.
+- Kubernetes track: 51 glossary terms, official CNCF logo.
 - **`introducedIn` is the lesson that *explains* a term, not its first
   mention.** The track names things informally well before defining them and
   makes a virtue of it: lesson 9 opens by saying every lesson so far has used
@@ -742,21 +785,21 @@ the change desk and the stale set are the two newest.
   terminology mapping, a controller that repairs the system on its own, and a
   closing screen on eventual consistency.
 - `holdGlossary` frontmatter flag plus the `[data-hold]` reveal mechanism.
-- **Phases 1 and 2 complete, and phase 3 is three of five: lessons 1 to 11
+- **Phases 1 and 2 complete, and phase 3 is four of five: lessons 1 to 12
   published**, each with its interactive: the outage walk, the operator game, the
   cluster map, the object assembly, the request path, the store browser, the
-  controller cascade, the event triage, the pod packing, the stale set and the
-  change desk.
+  controller cascade, the event triage, the pod packing, the stale set, the
+  change desk and the run sheet.
 
 ### In progress
 
-- **Lessons 1 to 11 are written; everything after them is not.** The rest of
+- **Lessons 1 to 12 are written; everything after them is not.** The rest of
   phase 3 onward is planned in the roadmap and unwritten. Lessons 15, 19 and 22
   exist as `draft: true` files carrying prose from an earlier six-lesson version
   of the track: they hold the right `order` and `phase` but the bodies need
   rewriting rather than un-drafting, and their `<Term>` uses still point at the
   old lesson numbering. Do not treat those bodies as reference material.
-- Lesson 12, Jobs and CronJobs, is next, then 13 closes phase 3.
+- Lesson 13, DaemonSets and StatefulSets, is next and closes phase 3.
 
 ### Not built
 
@@ -764,7 +807,7 @@ the change desk and the stale set are the two newest.
   `/courses` with several cards) are untested against real data.
 - No site-wide search — Pagefind covers courses only, see above.
 - No RSS or sitemap-specific handling for courses beyond Astro's defaults.
-- No quizzes, exercises, or code playgrounds outside the eleven interactives.
+- No quizzes, exercises, or code playgrounds outside the twelve interactives.
 - Neither interactive is covered by tests. The outage walk's `stages.ts` is
   checked by the esbuild replay above, which covers the data invariants but not
   `walk.ts`'s rendering.
@@ -780,9 +823,12 @@ the change desk and the stale set are the two newest.
 - The change desk's engine is replayed over all 40 arrangements (see below), which
   covers the rule, the names and the findings but not `changes.ts`'s rendering. The
   stale set's three acts are replayed the same way, covering the loop but not its
-  view. **Nobody has looked at either rendered panel in a browser**, so their
-  layouts, the change desk's template tint, the stale set's stale-pod marking and
-  both dark palettes are unverified by eye.
+  view. The run sheet's engine is replayed over all 16 combinations, which covers
+  the simulations and findings but not `runsheet.ts`'s timeline. **Nobody has
+  looked at any of the three rendered panels in a browser**, so their layouts, the
+  change desk's template tint, the stale set's stale-pod marking, the run sheet's
+  bar positions and narrow-screen timeline, and all three dark palettes are
+  unverified by eye.
 - No per-lesson "last updated" date; the schema has no date field at all.
 
 ### Gotchas learned
@@ -840,6 +886,20 @@ Each of these cost a real debugging cycle. Full explanations are inline above.
     to think about rather than a list to fix.
 
 ### Log
+
+- **2026-09-13** — **Lesson 12 written: phase 3 is four lessons of five.** Jobs
+  (count completions rather than running pods, back-off, `backoffLimit`,
+  `restartPolicy`), CronJobs as a Job template on a clock, `completions` and
+  `parallelism` with Indexed mode, what the number in a CronJob's Job names is,
+  history limits and `ttlSecondsAfterFinished`, missed runs and
+  `startingDeadlineSeconds`. Its interactive is the run sheet: five tasks, each
+  starting from the spec somebody would write first, run against a scripted
+  stretch of time and drawn as a timeline. A migration shipped as a Deployment,
+  invoices sent twice by a retry, a hung export with no deadline, overlapping
+  hourly syncs, and a digest scheduled in UTC. Designed in the roadmap. Glossary
+  gains `Job` and `CronJob` at 12. Lessons 8 and 9 and the triage rounds carried
+  CronJob names with five-digit numbers that no controller generates, corrected to
+  real scheduled minutes since 1970. Lesson 12 is 18 minutes.
 
 - **2026-09-12** — **Phase 3 reordered bottom up, and lesson 10 split into two.**
   Was 10 Deployments / 11 "ReplicaSets and rolling updates", now 10 ReplicaSets /

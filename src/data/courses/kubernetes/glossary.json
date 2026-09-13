@@ -214,6 +214,27 @@
     "long": "A count and a pod template. It counts rather than tracks, so the pods are interchangeable and replacing one means a new pod with a new name. Changing its template does nothing to the pods it has already made, which is the reason deployments exist."
   },
   {
+    "term": "Job",
+    "introducedIn": 12,
+    "short": "Runs pods until the work finishes, and replaces the ones that fail.",
+    "long": "It counts pods that exited 0 rather than pods that are running. A failed pod is replaced after a growing delay until there have been more than `backoffLimit` failures, and an evicted pod counts as failed. A replacement starts the command from the beginning, so anything a Job runs has to be safe to run twice. A process that hangs never fails, which is what `activeDeadlineSeconds` is for.",
+    "related": [
+      "CronJob",
+      "Pod template",
+      "Pod",
+      "Idempotent"
+    ]
+  },
+  {
+    "term": "CronJob",
+    "introducedIn": 12,
+    "short": "Creates a Job from a template on a cron schedule.",
+    "long": "It never runs a pod itself, and each Job it makes is named after the minute it was scheduled for. It has no idea how long a run takes, so a new run starts on top of one that is still going unless `concurrencyPolicy` says otherwise, and the schedule is read on the controller's clock, usually UTC, unless `timeZone` is set.",
+    "related": [
+      "Job"
+    ]
+  },
+  {
     "term": "StatefulSet",
     "introducedIn": 13,
     "short": "Like a deployment, but each pod keeps a stable identity and its own storage.",

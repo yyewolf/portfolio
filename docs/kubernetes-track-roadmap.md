@@ -18,7 +18,7 @@ frontmatter and inherits the depth from it.
 
 | Depth | Phases | Lessons | Shipped |
 |---|---|---|---|
-| Core | 1 to 4 | 1 to 18 | 1 to 11 |
+| Core | 1 to 4 | 1 to 18 | 1 to 12 |
 | Practical | 5 to 9 | 19 to 37 | none |
 | Deep dive | 10 to 13 | 38 to 51 | none |
 
@@ -93,7 +93,7 @@ template change makes a new ReplicaSet and drains the old one, which is what
 turns "every pod got replaced" from a rule into a consequence, and it explains
 the middle segment of a pod name instead of pointing at it.
 
-9, 10 and 11 are shipped. Their interactives are described at the bottom of this
+9 to 12 are shipped. Their interactives are described at the bottom of this
 file.
 
 Phase 4, networking
@@ -469,6 +469,49 @@ the panel can do that no sentence about it matches: the reader sees where the
 walls are. `selector` is rendered because a Deployment without one is not a
 Deployment, and nothing anywhere discusses it, since labels and selectors are
 lesson 15.
+
+## Lesson 12, the run sheet
+
+Five tasks, and for each one the reader edits a spec, runs it against a scripted
+stretch of time, and reads a timeline of what the pods and Jobs did. Every task
+starts from the spec somebody would write first, so pressing Run straight away is
+the expected first move and it always goes wrong in a way worth seeing.
+
+Each task is decided by one thing, and none of them is phrased as a question
+about the field that decides it:
+
+1. Run the migration. It starts out as a copied Deployment, which restarts the
+   container every time the migration exits 0, until it sits in
+   `CrashLoopBackOff`. The fix is the kind.
+2. Send the invoices. A node drain evicts the pod 600 invoices in. With retries
+   on, the replacement starts the list from the top and 600 customers get two;
+   with `backoffLimit: 0`, 400 get none. The only clean answer is a change to the
+   command (`--skip-sent`), which is the lesson: Kubernetes can make work
+   finish, only your code can make it safe to repeat.
+3. Push the orders export. Monday is a normal 40-minute run, Tuesday hangs. No
+   deadline leaves Tuesday `Running` forever; ten minutes kills Monday while it's
+   healthy; two hours is right. The engine decides which by whether the pod was
+   hung when the deadline landed, not by the number.
+4. Sync the stock every hour. The warehouse is six times slower for part of the
+   afternoon, so the 14:00 sync runs past 15:00. `Allow` overlaps, `Replace` kills
+   a sync halfway through rewriting the file, `Forbid` skips an hour, and the
+   brief says skipping is fine.
+5. The morning digest. `0 9 * * *` with no `timeZone` lands at 11:00 in Paris in
+   September and 10:00 in November; `0 7` is right until the clocks change. Only
+   `timeZone: Europe/Paris` holds on both dates. Conversions go through `Intl`,
+   so the daylight saving shift is the real one.
+
+Two things hold it up:
+
+- *Findings are written about mechanisms, never settings.* A pod was evicted, a
+  replacement started from item zero, two Jobs overlapped, a deadline ran out
+  while work was still progressing. Nothing in `engine.ts` knows which choice is
+  the intended one, the same rule as the packing and the change desk.
+- *The numbers are the real ones.* Job back-off doubles from 10 seconds to six
+  minutes and the kubelet's from 10 seconds to five, an eviction counts against
+  `backoffLimit`, a failed Job's `DURATION` counts to now, and a CronJob's Job is
+  named after its scheduled minute since 1970. The timeline is only worth
+  anything if a reader who later meets the real thing recognises it.
 
 ## The simulation engine
 

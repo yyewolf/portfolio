@@ -134,7 +134,7 @@ web    3/3     3            3           11d`,
         age: "14m",
         type: "Warning",
         reason: "FailedScheduling",
-        object: "pod/report-nightly-28492-lm4x",
+        object: "pod/report-nightly-29598317-lm4xk",
         message:
           "0/3 nodes are available: 3 Insufficient cpu. preemption: not helpful for scheduling",
         count: 847,
@@ -165,8 +165,8 @@ web    3/3     3            3           11d`,
     ],
     truth: {
       command: "kubectl get pods -l job-name=report-nightly",
-      body: `NAME                          READY   STATUS    RESTARTS   AGE
-report-nightly-28492-lm4x     0/1     Pending   0          14m`,
+      body: `NAME                            READY   STATUS    RESTARTS   AGE
+report-nightly-29598317-lm4xk   0/1     Pending   0          14m`,
       reading:
         "One pod. Pending, and it has been Pending since it was created.",
     },
@@ -184,7 +184,7 @@ report-nightly-28492-lm4x     0/1     Pending   0          14m`,
         type: "Normal",
         reason: "SawCompletedJob",
         object: "cronjob/cleanup",
-        message: "Saw completed job: cleanup-28491, status: Complete",
+        message: "Saw completed job: cleanup-29598300, status: Complete",
       },
       {
         age: "21m",
