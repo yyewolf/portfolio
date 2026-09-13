@@ -42,10 +42,10 @@ There's no `replicas`. The count is however many nodes you have, and it changes
 when they do. Its controller walks the nodes, and any node without one of its
 pods gets one, pinned to that node.
 
-That's for stuff that's about the machine rather than your app: something
-shipping the node's log files, a metrics agent reading its CPU and disk, the
-network plugin that hands pods their addresses. Look in `kube-system` on pretty
-much any cluster and you'll find a few you never installed.
+That's for stuff that's about the machine itself: something shipping the node's
+log files, a metrics agent reading its CPU and disk, the network plugin that
+hands pods their addresses. Look in `kube-system` on pretty much any cluster and
+you'll find a few you never installed.
 
 Put a `nodeSelector` in the template and it only counts the nodes that match, so
 a GPU driver installer runs on the GPU nodes and nowhere else.
@@ -90,17 +90,16 @@ spec:
             storage: 20Gi
 ```
 
-The pods aren't called `db-6c8f4b-k2r8s`. They're `db-0`, `db-1` and `db-2`, and
-those names are the whole point. `db-0` is made first, and `db-1` doesn't start
-until `db-0` is running and ready. Scaling down goes the other way, highest
-number first. And when `db-1` goes away, the pod that replaces it is `db-1`
-again.
+The pods are called `db-0`, `db-1` and `db-2`, and those names are the whole
+point. `db-0` is made first, and `db-1` doesn't start until `db-0` is running
+and ready. Scaling down goes the other way, highest number first. And when
+`db-1` goes away, the pod that replaces it is `db-1` again.
 
 `volumeClaimTemplates` gives each pod its own disk, named after it: `data-db-0`,
-`data-db-1`, `data-db-2`. The disk belongs to the name rather than to the pod,
-so a new `db-1` gets `data-db-1` back with everything that was on it. Scaling
-down doesn't delete disks either. Take the set down to two and `data-db-2` just
-sits there until a `db-2` comes back for it.
+`data-db-1`, `data-db-2`. The disk belongs to the name, so a new `db-1` gets
+`data-db-1` back with everything that was on it. Scaling down doesn't delete
+disks either. Take the set down to two and `data-db-2` just sits there until a
+`db-2` comes back for it.
 
 `serviceName` gives every pod a DNS name of its own, like `db-0.db`, and that's
 why the stable names matter. A Postgres replica that's been told to follow

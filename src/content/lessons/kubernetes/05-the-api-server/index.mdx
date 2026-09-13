@@ -84,8 +84,8 @@ metadata:
   uid: 6b1c0b1e-3a7a-4b5c-9f0f-2a5f0f2b8e11
 ```
 
-The <Term>resourceVersion</Term> isn't a version of your app or a count of your
-edits. It marks *when* in the cluster's history this object was last written.
+The <Term>resourceVersion</Term> marks *when* in the cluster's history this
+object was last written. It's got nothing to do with your app's version.
 
 Underneath it's one counter that every write in the cluster bumps, so the numbers
 only go up and a bigger one always means later. The field is still documented as

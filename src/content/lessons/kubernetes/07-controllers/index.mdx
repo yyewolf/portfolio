@@ -33,14 +33,14 @@ loop forever:
 That's the whole thing. Notice what's not in it: no memory of what it did last
 time, and no description of what just changed.
 
-## It gets handed a name, not a change
+## It gets handed a name
 
 This is the important bit. A controller's watch tells it *which* object is worth
 looking at. It doesn't tell it what happened to that object, and the controller
 doesn't care.
 
-So the queue doesn't hold events, it holds names. That has consequences that look
-like small engineering details and really aren't:
+So the queue holds names. That has consequences that look like small engineering
+details and really aren't:
 
 | Because the queue holds names | You get |
 |---|---|
@@ -88,9 +88,8 @@ modified; please apply your changes to the latest version and try again
 ```
 
 At which point the controller doesn't reconcile the conflict, or merge, or retry
-the write. It puts the name back on the queue and starts again from a fresh read.
-A conflict isn't really an error here, it's the system telling a loop to go
-around one more time.
+the write. It puts the name back on the queue and starts again from a fresh
+read. A conflict here just tells the loop to go around one more time.
 
 ## Nobody is in charge
 
@@ -109,13 +108,12 @@ doesn't know why a pod exists and doesn't ask.
 
 Stopping one loop doesn't make another cover for it. Stop the ReplicaSet
 controller and delete a pod, and the pod stays gone. Nothing else notices,
-because nothing else was watching for that. The system doesn't degrade gracefully
-into somebody else's job, it just stops making progress on that one thing, and
-starts again the moment the loop does.
+because nothing else was watching for that. Progress on that one thing just
+stops, and starts again the moment the loop does.
 
-And settled is the normal state, not a special one. Most of the time every loop
-looks, finds nothing to do, and goes back to sleep. Work is the exception. A
-cluster at rest isn't idle, it's being continuously re-checked and found correct.
+And settled is the normal state. Most of the time every loop looks, finds
+nothing to do, and goes back to sleep. Work is the exception. A cluster at rest
+is being re-checked all the time and found correct.
 
 ## Deleting is a loop too
 
@@ -144,10 +142,9 @@ not its name.
 
 ## Where they actually run
 
-Most of the built-in controllers aren't separate programs. They're compiled into
-one binary, the controller manager, and started as goroutines inside it. That's
-an implementation convenience and nothing more: they still only communicate
-through objects in the API server.
+Most of the built-in controllers are compiled into one binary, the controller
+manager, and started as goroutines inside it. That's just for convenience. They
+still only talk to each other through objects in the API server.
 
 Run several copies for availability and only one of them is active. They elect a
 leader by competing to write to a single object, and the others wait. Two

@@ -197,7 +197,7 @@ export const rounds: Round[] = [
         text: "A Secret",
         right: true,
         reply:
-          "Not because it is encrypted, because by default it is not. Because it is a different kind, and permissions are written against kinds. Like the ConfigMap, it sits there doing nothing until the Deployment asks for it.",
+          "Because it is a different kind, and permissions are written against kinds. By default it is not even encrypted. Like the ConfigMap, it sits there doing nothing until the Deployment asks for it.",
       },
     ],
     manifest: {

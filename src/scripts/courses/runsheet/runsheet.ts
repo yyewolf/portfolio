@@ -234,7 +234,7 @@ ${o.terminal.lines.map(esc).join("\n")}</pre>`;
         <p class="rs-kicker">Five tasks later</p>
         <h3 class="rs-title">What a Job actually promises</h3>
         <p class="rs-plain">
-          A Job promises the work finishes. It doesn't promise it runs once. It retries
+          A Job promises the work finishes, even if that means running it more than once. It retries
           whatever fails, a drained node counts as failing, and a retry starts your
           command from the top, so the fix for doing things twice lives in your code.
           It also can't tell a stuck process from a slow one, which is what a deadline

@@ -40,15 +40,14 @@ You've done this job already, by hand, for about ten minutes in lesson 2.
 
 ## It counts, it doesn't track
 
-Here's the part that really trips people up. The controller isn't keeping tabs
-on three particular pods. It counts how many exist and compares that to a
-number.
+Here's the part that really trips people up. The controller just counts how many
+pods exist and compares that to a number. Which three they are never comes into
+it.
 
 So the pods are interchangeable, and they're interchangeable all the way down.
-Delete one and you don't get it back, you get a fourth pod with a new name and a
-new address. "Put that one back" isn't an operation that exists anywhere.
-There's nothing to put back. There's a count that's one short and a controller
-that fixes counts.
+Delete one and you get a fourth pod, with a new name and a new address. "Put
+that one back" isn't an operation that exists anywhere. There's nothing to put
+back. There's a count that's one short and a controller that fixes counts.
 
 Which pods are its own, then? Each one it creates gets an
 <Term>owner reference</Term> pointing at the set, and the count is a count of pods
@@ -64,10 +63,9 @@ You can apply the YAML at the top of this lesson and it'll work just fine. Then
 the first time you ship a new version you'll be deleting pods one at a time,
 watching the count, hoping nothing busy happens while you're down to one.
 
-That isn't a gap in the object though, it's the object being exactly one thing.
-Keeping a count steady is all a ReplicaSet is for, and something that kept the
-count steady *and* made decisions about versions would be two objects welded
-together.
+That's just the object being exactly one thing. Keeping a count steady is all a
+ReplicaSet is for, and something that kept the count steady *and* made decisions
+about versions would be two objects welded together.
 
 So there are two objects, and this is the lower one. The other sits a layer up,
 and all it does is make these and decide what their counts should be.

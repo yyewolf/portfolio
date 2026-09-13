@@ -155,12 +155,11 @@ correct order of operations.
 
 Because everything works by looking and closing gaps, there's always a moment
 between something breaking and something noticing. During that moment the system
-is wrong. It isn't failing: it's wrong and converging at the same time.
+is wrong and converging at the same time.
 
-That window isn't a defect to engineer away, it's the cost of the design that
-makes the rest of it survivable, and it's what <Term>eventual consistency</Term>
-means in practice here. So the useful question during an incident is rarely "is
-it correct". It's:
+That window is the price of the design that makes the rest of it survivable, and
+it's what <Term>eventual consistency</Term> means in practice here. So the
+useful question during an incident is rarely "is it correct". It's:
 
 - Is the gap closing?
 - Is it closing fast enough?
@@ -174,8 +173,8 @@ apart.
 
 > Never build anything that acts on an event.
 
-Not a script, not an operator, not an alert that fires on a single line in the
-feed. Anything acting on the arrival of an event inherits every row of that
+That goes for scripts, operators, and alerts that fire on a single line in the
+feed too. Anything acting on the arrival of an event inherits every row of that
 table.
 
 Alert on conditions and on status, which describe now and which don't expire. Use

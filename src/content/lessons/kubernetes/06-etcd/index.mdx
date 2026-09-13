@@ -34,10 +34,9 @@ There's no privileged back channel. Everything in there that you didn't write wa
 written by a program making a request to the API server exactly like you did, and
 passing the same six gates.
 
-The key layout isn't an interface either. It's an implementation detail of the
-API server and it has changed before. Nothing should ever read these keys
-directly, and the one time you'll see them is in the error messages of somebody
-who tried.
+The key layout is an implementation detail of the API server too, and it has
+changed before. Nothing should ever read these keys directly, and the one time
+you'll see them is in the error messages of somebody who tried.
 
 ## Revisions are a clock
 
@@ -91,8 +90,8 @@ accepting writes, so the API server can no longer accept a change, which means:
   node needed to ask permission to keep doing what it was doing.
 
 That's the split between deciding and doing, showing up as an outage. A cluster
-that has lost its memory is frozen, not dead. It stops changing but it keeps
-serving traffic the whole time.
+that has lost its memory just freezes. It stops changing, but it keeps serving
+traffic the whole time.
 
 ## Everything else is derivable
 

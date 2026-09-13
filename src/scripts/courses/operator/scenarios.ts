@@ -116,7 +116,7 @@ export const scenarios: Scenario[] = [
       },
     ],
     debrief: [
-      "The specification is a number, not a minimum.",
+      "The specification is an exact number.",
       "Four is as wrong as two. The interesting part is that the fix ran in the opposite direction and you worked that out from the same two panels.",
     ],
   },

@@ -30,12 +30,12 @@ spec:
           image: shop/invoices:1.4
 ```
 
-There's a pod template again, but no `replicas`. A Job doesn't care how many pods
-are running, it cares how many have finished. Exit 0 and that's a success, the
-pod stays behind as `Completed` and the Job is Complete. Exit with anything else
-and it's a failure, so the Job makes a new pod and tries again. It waits a bit
-longer each time, 10 seconds, then 20, then 40, up to six minutes, and once it's
-had more than `backoffLimit` failures it gives up and the Job is Failed.
+There's a pod template again, but no `replicas`. A Job counts how many pods have
+finished. Exit 0 and that's a success, the pod stays behind as `Completed` and
+the Job is Complete. Exit with anything else and it's a failure, so the Job
+makes a new pod and tries again. It waits a bit longer each time, 10 seconds,
+then 20, then 40, up to six minutes, and once it's had more than `backoffLimit`
+failures it gives up and the Job is Failed.
 
 `restartPolicy` is either `Never` or `OnFailure`. With `OnFailure` a failed
 container gets restarted inside the same pod. With `Never` every attempt is a
@@ -62,10 +62,10 @@ spec:
               image: shop/report:3.1
 ```
 
-The schedule is just plain cron syntax, so that's 2:00 every night. When the time
-comes, the CronJob controller creates a Job from `jobTemplate`, and from there
-it's just a Job like any other. A CronJob never runs a pod itself, it's the same
-layering as a Deployment and its ReplicaSets, one object making another.
+The schedule is just plain cron syntax, so that's 2:00 every night. When the
+time comes, the CronJob controller creates a Job from `jobTemplate`, and from
+there it's just a Job like any other. It's the same layering as a Deployment and
+its ReplicaSets, one object making another.
 
 ## Five jobs
 

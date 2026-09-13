@@ -122,13 +122,13 @@ same name, same IP, same node, just a higher restart count. That's
 <Term>CrashLoopBackOff</Term>, and the backoff is simply the delay growing
 between attempts so a container that dies instantly doesn't become a busy loop.
 
-That's something that happens to you though, it isn't something you do. There's
-no `kubectl restart`. The kubelet restarts a container when its process exits,
-and that's the only trigger there is. If you actually want one restarted you go
-in and make the process exit, with `kubectl exec` and a kill, or you delete the
-whole pod and let something else make a new one. The second isn't a restart at
-all, it's a different pod with a different name and a different address. And the
-`kubectl rollout restart` you might have seen is that second thing, done in bulk.
+That's something that happens to you though. There's no `kubectl restart`. The
+kubelet restarts a container when its process exits, and that's the only trigger
+there is. If you actually want one restarted you go in and make the process
+exit, with `kubectl exec` and a kill, or you delete the whole pod and let
+something else make a new one. That second way gets you a different pod, with a
+different name and a different address. And the `kubectl rollout restart` you
+might have seen is that second thing, done in bulk.
 
 Lesson 4 said there's no real command for restarting something. This is what that
 meant.

@@ -75,7 +75,7 @@ const requests: Request[] = [
       {
         gate: "Mutating admission",
         verdict: "changed",
-        note: "Your file did not mention a rollout strategy, a grace period, or an image pull policy. The stored object has all three. Defaults are applied here, not by whatever reads the object later.",
+        note: "Your file did not mention a rollout strategy, a grace period, or an image pull policy. The stored object has all three. Defaults are applied here, before anything else ever reads the object.",
       },
       {
         gate: "Schema validation",
@@ -94,7 +94,7 @@ const requests: Request[] = [
       },
     ],
     outcome:
-      "Six gates, and the only one that touched a machine was the last, which touched a database. Creating an object is the end of this story, not the beginning of a deployment.",
+      "Six gates, and the only one that touched a machine was the last, which touched a database. Creating an object is where this story ends.",
   },
   {
     id: "expired",
@@ -206,7 +206,7 @@ const requests: Request[] = [
       {
         gate: "Storage",
         verdict: "pass",
-        note: "Written. Reading it back gives you the object with the extra field, not the one you sent.",
+        note: "Written. Read it back and you get the object with the extra field in it.",
       },
     ],
     outcome:

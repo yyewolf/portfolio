@@ -36,14 +36,12 @@ spec:
 ```
 
 Same fields as a ReplicaSet, same shape, `replicas` sitting outside the template
-in the same place. The difference isn't in the file at all, it's what the
-controller does with it.
+in the same place. The difference is all in what the controller does with it.
 
-A Deployment doesn't make pods, it makes
-<Term term="ReplicaSet">ReplicaSets</Term>. One per version of the template, and
-it decides what each of their counts should be. Pods are somebody else's job a
-layer further down. That's basically the whole design, and everything else in
-this lesson falls out of it.
+A Deployment makes <Term term="ReplicaSet">ReplicaSets</Term>, one per version
+of the template, and it decides what each of their counts should be. Pods are
+somebody else's job a layer further down. That's basically the whole design, and
+everything else in this lesson falls out of it.
 
 ## Changing it
 
@@ -65,9 +63,9 @@ running is untouched, because nothing about it has been asked to change.
 When you change anything inside the template, there is no set for that template
 yet, so it makes one. New set, count starting at zero. Then it raises the new
 set's count and lowers the old one's until the old one is empty. Every pod gets
-replaced, and not because a pod can't be edited: quite a lot of a running pod
-can be changed, and more of it every release. It's that pods belong to sets, and
-the pods you had belong to the set you're draining.
+replaced, because pods belong to sets and the pods you had belong to the set
+you're draining. Quite a lot of a running pod could be edited in place, and more
+of it every release, but a Deployment never reaches for any of that.
 
 That's also where the pod name comes from. `web-6c8f4b-k2r8s` is the Deployment,
 then the ReplicaSet, then the pod. The middle piece is a hash of the template,
@@ -77,8 +75,8 @@ hash can't tell them apart.
 
 ## Rolling updates
 
-It doesn't swap the two counts in one go, it walks them. Two numbers decide how
-far apart they're allowed to get:
+It walks the two counts a few pods at a time. Two numbers decide how far apart
+they're allowed to get:
 
 ```yaml
 strategy:
@@ -141,4 +139,4 @@ from the old one, nobody noticing.
 one pod belongs to the new set. That pod isn't coming up, so the rollout stopped
 there. Nothing is going to fix itself and nothing is going to get worse either:
 three old pods taking traffic and one new one failing in a corner. A broken
-release looks like a stuck number, not like an outage.
+release looks like a stuck number.

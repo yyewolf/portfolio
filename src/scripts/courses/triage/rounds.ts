@@ -148,7 +148,7 @@ web    3/3     3            3           11d`,
         text: "Eight hundred and forty-seven",
         right: false,
         reply:
-          "That is the number the line is designed to make you feel. It is a field on a single object, not a count of anything that exists.",
+          "That is the number the line is designed to make you feel. It is one field on one object.",
       },
       {
         text: "One, and it has been wrong for fourteen minutes",
@@ -171,7 +171,7 @@ report-nightly-29598317-lm4xk   0/1     Pending   0          14m`,
         "One pod. Pending, and it has been Pending since it was created.",
     },
     lesson:
-      "Repeats are folded into one object with a count, so a large number is a duration rather than a magnitude. It tells you how long something has been retrying, and retrying is what everything here does when it cannot make progress.",
+      "Repeats are folded into one object with a count, so a large number is really a duration. It tells you how long something has been retrying, and retrying is what everything here does when it cannot make progress.",
   },
 
   {
@@ -284,7 +284,7 @@ Conditions:
         text: "No, because warnings are only informational",
         right: false,
         reply:
-          "Right conclusion, wrong reason, and the reason is what matters. Warnings often do mean something. This one is dismissible because the object says otherwise, not because of its type.",
+          "Right conclusion, wrong reason, and the reason is what matters. Warnings often do mean something. This one is dismissible because the object says otherwise.",
       },
     ],
     truth: {
@@ -299,7 +299,7 @@ Conditions:
       reading: "Ready. It has been for about twenty-five seconds.",
     },
     lesson:
-      "The newest line in a feed is not the current state, it is the most recent thing to have happened. Those are different claims, and sorting by time makes them look like the same one.",
+      "The newest line in a feed is the most recent thing to have happened, which is a different claim from what is true right now. Sorting by time makes the two look like the same one.",
   },
 
   {
@@ -370,6 +370,6 @@ Conditions:
         "Two of three, and it stopped progressing half an hour ago. The old pods are still up, which is why nobody has noticed.",
     },
     lesson:
-      "Even when the event is correct and urgent, it is not the thing you act on. It told you where to look, the object told you what was true, and the fix was a change to the record that both of them came from.",
+      "Even when the event is correct and urgent, you act on the object. The event told you where to look, the object told you what was true, and the fix was a change to the record that both of them came from.",
   },
 ];

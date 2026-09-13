@@ -996,7 +996,7 @@ class Game {
     this.screen(`
       <p class="op-lede">A reconciler watches the current state of a system and takes actions that
       move it toward a desired state.</p>
-      <p>It does not run once. It runs again after every change, including its own, because the
+      <p>It runs again after every change, including its own, because the
       world does not hold still while you work. Level five was that lesson with the timing turned
       against you, and the stale panel was that lesson every single level.</p>
       <p>Kubernetes is built out of these loops. Most of the moving parts inside it are doing what

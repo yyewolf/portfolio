@@ -38,7 +38,7 @@ export const acts: Act[] = [
     action: "Set the template image to 2.9",
     happened:
       "Nothing. The controller counted three pods, wanted three pods, and went back to sleep.",
-    note: "The template is the instructions for making a pod, not a description of the pods that exist. All three are still running 2.8 and nothing anywhere disagrees with that.",
+    note: "The template is only the instructions for making a pod. All three are still running 2.8 and nothing anywhere disagrees with that.",
   },
   {
     n: 2,
