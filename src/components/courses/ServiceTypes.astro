@@ -1,0 +1,215 @@
+---
+// The three Service types side by side, for lesson 16.
+//
+// Server-rendered, like the cluster map: every type's diagram and its caption are
+// real markup, so the figure works with JavaScript off (all three stack up),
+// Pagefind indexes the captions, and the switch is real buttons. The script only
+// collapses the three to one at a time.
+//
+// One cluster drawn the same way for every type, and only the path changes: where
+// the request comes from, what it enters through, and the same Service rules at
+// the end of it, whether kube-proxy or the network plugin wrote them. That's the
+// point of the figure. Each type is the one before it plus one more way in, and
+// they all finish in those rules.
+//
+// The dots are SVG <animateMotion> along the same path the line draws, so there's
+// no layout to measure and nothing to keep in sync. Layering does the rest: dots
+// are drawn after the node outlines and before everything with a fill, so a dot
+// disappears into the load balancer, the node's port and the rules as it passes
+// through them. Reduced motion hides the dots and leaves the lit path.
+//
+// Tailwind `dark:` utilities rather than a stylesheet, the same as ClusterSplit.
+
+type Kind = "ClusterIP" | "NodePort" | "LoadBalancer";
+
+interface View {
+  kind: Kind;
+  path: string;
+  /** Which of the outside pieces this type uses. The rest are drawn faint. */
+  uses: { browser: boolean; laptop: boolean; lb: boolean; port: boolean; shop: boolean };
+  from: string;
+  address: string;
+  use: string;
+  desc: string;
+}
+
+const views: View[] = [
+  {
+    kind: "ClusterIP",
+    path: "M371 196 V112 H455 V196 H474",
+    uses: { browser: false, laptop: false, lb: false, port: false, shop: true },
+    from: "Pods inside the cluster, and nothing else.",
+    address: "10.96.44.120:80, or web.shop by name.",
+    use: "Almost everything. Anything only other workloads call, and whatever sits behind an Ingress or a Gateway, which is most of what faces the internet too.",
+    desc: "The shop pod on node-a connects to the Service's ClusterIP. The Service rules on node-a rewrite the destination to a web pod, here the one on node-b, and the packet goes straight there.",
+  },
+  {
+    kind: "NodePort",
+    path: "M130 248 H262 V150 H371 V112 H455 V256 H474",
+    uses: { browser: false, laptop: true, lb: false, port: true, shop: false },
+    from: "Anything that can reach a node's address, on the same network as the nodes or through a VPN.",
+    address: "Any node's address on 31742, like 192.168.0.11:31742.",
+    use: "Clusters with no cloud load balancer, putting a load balancer you run yourself in front of the nodes, or poking at something while testing. Rarely on its own in production, since clients would need node addresses and nodes come and go.",
+    desc: "A laptop on the nodes' network connects to node-a's address on port 31742. The Service rules on node-a send it to a web pod, which can be on another node.",
+  },
+  {
+    kind: "LoadBalancer",
+    path: "M130 62 H270 V150 H371 V112 H455 V256 H474",
+    uses: { browser: true, laptop: false, lb: true, port: true, shop: false },
+    from: "Wherever the cloud's load balancer is reachable from, usually the whole internet.",
+    address: "203.0.113.25:80, the load balancer's own address.",
+    use: "One Service that needs its own address from outside, especially traffic that isn't HTTP, like a game server or an MQTT broker. Each one is a separate load balancer on the bill, which is why HTTP apps usually share one through an Ingress or a Gateway.",
+    desc: "A browser on the internet connects to the cloud load balancer, which forwards to port 31742 on a node, the NodePort the Service gets by default. From there the Service rules send it to a web pod.",
+  },
+];
+
+const faint = (on: boolean): string => (on ? "" : "opacity-30");
+---
+
+<figure class="not-prose my-8" data-service-types>
+  <div class="mb-3 hidden flex-wrap gap-2" data-st-switch role="group" aria-label="Service type">
+    {
+      views.map((v, i) => (
+        <button
+          type="button"
+          data-st-kind={v.kind}
+          aria-pressed={i === 0 ? "true" : "false"}
+          class="rounded-md border border-gray-200 px-3 py-1 font-mono text-sm text-gray-700 hover:border-blue-500 aria-pressed:border-blue-500 aria-pressed:bg-blue-50 aria-pressed:text-blue-700 dark:border-gray-700 dark:text-gray-300 dark:aria-pressed:border-blue-400 dark:aria-pressed:bg-blue-950 dark:aria-pressed:text-blue-300">
+          {v.kind}
+        </button>
+      ))
+    }
+  </div>
+
+  {
+    views.map((v) => (
+      <div data-st-view={v.kind} class="mb-6 rounded-xl border border-gray-200 dark:border-gray-800">
+        <p class="border-b border-gray-200 px-4 py-2 font-mono text-sm font-semibold text-gray-900 dark:border-gray-800 dark:text-gray-100">
+          type: {v.kind}
+        </p>
+        <div class="overflow-x-auto px-2 pt-2">
+          <svg
+            viewBox="0 0 640 330"
+            role="img"
+            aria-label={`type: ${v.kind}. ${v.desc}`}
+            class="mx-auto block h-auto w-full min-w-[480px] max-w-[640px]">
+            {/* the cluster and its two nodes, outlines only so dots stay visible over them */}
+            <rect x="280" y="14" width="348" height="304" rx="14" fill="none" stroke-dasharray="6 5" stroke-width="1.5" class="stroke-gray-300 dark:stroke-gray-700" />
+            <text x="292" y="36" font-size="12" class="fill-gray-500 dark:fill-gray-400">cluster</text>
+            <g fill="none" stroke-width="1.5" class="stroke-gray-300 dark:stroke-gray-700">
+              <rect x="296" y="46" width="150" height="256" rx="10" />
+              <rect x="464" y="46" width="150" height="256" rx="10" />
+            </g>
+            <g font-size="13" font-weight="600" class="fill-gray-900 dark:fill-gray-100">
+              <text x="308" y="68">node-a</text>
+              <text x="476" y="68">node-b</text>
+            </g>
+            <g font-size="10" font-family="ui-monospace, monospace" class="fill-gray-500 dark:fill-gray-400">
+              <text x="308" y="84">192.168.0.11</text>
+              <text x="476" y="84">192.168.0.12</text>
+            </g>
+
+            {/* the path, then the dots on it */}
+            <path d={v.path} fill="none" stroke-width="2.5" stroke-linejoin="round" class="stroke-blue-500 dark:stroke-blue-400" />
+            <g class="st-dots fill-blue-600 dark:fill-blue-300">
+              {[0, 1, 2].map((k) => (
+                <circle r="5" opacity="0">
+                  <animateMotion dur="3s" begin={`${k}s`} repeatCount="indefinite" path={v.path} />
+                  <animate attributeName="opacity" dur="3s" begin={`${k}s`} repeatCount="indefinite" values="0;1;1;0" keyTimes="0;0.05;0.9;1" />
+                </circle>
+              ))}
+            </g>
+
+            {/* everything with a fill, drawn over the dots */}
+            <g stroke-width="1.5" class="fill-white stroke-gray-300 dark:fill-gray-950 dark:stroke-gray-700">
+              <g class={faint(v.uses.browser)}>
+                <rect x="20" y="40" width="110" height="44" rx="8" />
+              </g>
+              <g class={faint(v.uses.laptop)}>
+                <rect x="20" y="226" width="110" height="44" rx="8" />
+              </g>
+              <g class={faint(v.uses.lb)}>
+                <rect x="160" y="40" width="96" height="44" rx="8" />
+              </g>
+              <rect x="306" y="98" width="130" height="28" rx="6" />
+              <rect x="474" y="98" width="130" height="28" rx="6" />
+              <g class={faint(v.uses.shop)}>
+                <rect x="306" y="176" width="130" height="40" rx="7" />
+              </g>
+              <rect x="306" y="236" width="130" height="40" rx="7" />
+              <rect x="474" y="176" width="130" height="40" rx="7" />
+              <rect x="474" y="236" width="130" height="40" rx="7" />
+              <g class={faint(v.uses.port)}>
+                <rect x="284" y="140" width="52" height="20" rx="5" />
+                <rect x="560" y="140" width="52" height="20" rx="5" />
+              </g>
+            </g>
+
+            <g text-anchor="middle" font-size="12" class="fill-gray-900 dark:fill-gray-100">
+              <text x="75" y="66" class={faint(v.uses.browser)}>a browser</text>
+              <text x="75" y="252" class={faint(v.uses.laptop)}>your laptop</text>
+              <text x="208" y="66" class={faint(v.uses.lb)}>cloud LB</text>
+              <text x="371" y="201" class={faint(v.uses.shop)}>shop</text>
+              <text x="371" y="255">web</text>
+              <text x="539" y="195">web</text>
+              <text x="539" y="255">web</text>
+            </g>
+            <g text-anchor="middle" font-size="10" font-family="ui-monospace, monospace" class="fill-gray-500 dark:fill-gray-400">
+              <text x="75" y="102" class={faint(v.uses.browser)}>on the internet</text>
+              <text x="75" y="288" class={faint(v.uses.laptop)}>on the nodes' network</text>
+              <text x="208" y="102" class={faint(v.uses.lb)}>203.0.113.25</text>
+              <text x="371" y="116">rules for 10.96.44.120</text>
+              <text x="539" y="116">rules for 10.96.44.120</text>
+              <text x="310" y="154" class={faint(v.uses.port)}>:31742</text>
+              <text x="586" y="154" class={faint(v.uses.port)}>:31742</text>
+              <text x="371" y="269">10.244.1.23</text>
+              <text x="539" y="209">10.244.2.14</text>
+              <text x="539" y="269">10.244.2.51</text>
+            </g>
+          </svg>
+        </div>
+        <dl class="grid gap-x-4 gap-y-1 border-t border-gray-200 px-4 py-3 text-sm sm:grid-cols-[9rem_1fr] dark:border-gray-800">
+          <dt class="text-gray-500 dark:text-gray-400">Reachable from</dt>
+          <dd class="text-gray-900 dark:text-gray-100">{v.from}</dd>
+          <dt class="text-gray-500 dark:text-gray-400">Address</dt>
+          <dd class="font-mono text-[0.82rem] text-gray-900 dark:text-gray-100">{v.address}</dd>
+          <dt class="text-gray-500 dark:text-gray-400">Use it for</dt>
+          <dd class="text-gray-900 dark:text-gray-100">{v.use}</dd>
+        </dl>
+      </div>
+    ))
+  }
+</figure>
+
+<style>
+  @media (prefers-reduced-motion: reduce) {
+    .st-dots {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  // Progressive enhancement only: without this, all three types are on the page
+  // one after another. Arrow-function consts because TS narrowing doesn't reach
+  // hoisted declarations (AGENTS.md gotcha 4).
+  const setup = (): void => {
+    const root = document.querySelector<HTMLElement>("[data-service-types]");
+    const bar = root?.querySelector<HTMLElement>("[data-st-switch]");
+    if (!root || !bar) return;
+    const views = Array.from(root.querySelectorAll<HTMLElement>("[data-st-view]"));
+    const buttons = Array.from(bar.querySelectorAll<HTMLButtonElement>("[data-st-kind]"));
+
+    const show = (kind: string): void => {
+      for (const v of views) v.classList.toggle("hidden", v.dataset.stView !== kind);
+      for (const b of buttons) b.setAttribute("aria-pressed", String(b.dataset.stKind === kind));
+    };
+
+    bar.classList.remove("hidden");
+    bar.classList.add("flex");
+    for (const b of buttons) b.addEventListener("click", () => show(b.dataset.stKind ?? "ClusterIP"));
+    show(buttons[0]?.dataset.stKind ?? "ClusterIP");
+  };
+
+  document.addEventListener("astro:page-load", setup);
+</script>

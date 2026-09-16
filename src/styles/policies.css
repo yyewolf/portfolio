@@ -1,0 +1,492 @@
+/* ---------------------------------------------------------------------------
+ * Lesson 19's policy puzzle. Scoped under `.np`, inside a `not-prose` wrapper so
+ * the article's typography plugin keeps its hands off it. Markup is built at
+ * runtime by src/scripts/courses/policies/policies.ts, so these rules are
+ * global and namespaced by hand.
+ *
+ * Phase 4's four round-based panels (.sv, .dn, .gw, .np) share one shell, so
+ * the first part of each file is the same rules under a different prefix. Change
+ * one and change all four.
+ * ------------------------------------------------------------------------ */
+
+.np {
+  --np-line: #e5e7eb;
+  --np-surface: #ffffff;
+  --np-sunk: #f9fafb;
+  --np-ink: #111827;
+  --np-ink2: #4b5563;
+  --np-muted: #9ca3af;
+  --np-accent: #2563eb;
+  --np-accent-bg: #eff6ff;
+  --np-good: #047857;
+  --np-good-bg: #ecfdf5;
+  --np-bad: #b45309;
+  --np-bad-bg: #fffbeb;
+  --np-key: #7c3aed;
+
+  font-family: inherit;
+  color: var(--np-ink2);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+html.dark .np {
+  --np-line: #1f2937;
+  --np-surface: #030712;
+  --np-sunk: #0b1120;
+  --np-ink: #f9fafb;
+  --np-ink2: #9ca3af;
+  --np-muted: #6b7280;
+  --np-accent: #60a5fa;
+  --np-accent-bg: #0b1a33;
+  --np-good: #6ee7b7;
+  --np-good-bg: #04241c;
+  --np-bad: #fcd34d;
+  --np-bad-bg: #241a04;
+  --np-key: #c4b5fd;
+}
+
+.np *,
+.np *::before,
+.np *::after {
+  box-sizing: border-box;
+}
+
+/* global.css styles the bare `header` element as fixed site chrome. */
+.np header {
+  position: static;
+  inset: auto;
+}
+
+.np p {
+  margin: 0;
+}
+
+.np-shell {
+  border: 1px solid var(--np-line);
+  border-radius: 0.9rem;
+  background: var(--np-surface);
+  overflow: hidden;
+}
+
+.np-head {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--np-line);
+  background: var(--np-sunk);
+}
+
+.np-rail {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.np-rail li {
+  flex: 1;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--np-line);
+  transition: background 0.25s ease;
+}
+
+.np-rail li span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.np-rail li[data-state="done"] {
+  background: var(--np-good);
+}
+
+.np-rail li[data-state="current"] {
+  background: var(--np-accent);
+}
+
+.np-body {
+  padding: 1.1rem 1rem 1.2rem;
+}
+
+.np-intro p + p {
+  margin-top: 0.6rem;
+}
+
+.np-kicker {
+  margin-bottom: 0.3rem !important;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--np-muted);
+}
+
+.np-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--np-ink);
+}
+
+.np-brief {
+  margin: 0 0 1rem;
+  padding: 0.55rem 0.8rem;
+  border-left: 3px solid var(--np-line);
+  border-radius: 0 0.4rem 0.4rem 0;
+  background: var(--np-sunk);
+  font-size: 0.92rem;
+  font-style: normal;
+  color: var(--np-ink);
+}
+
+.np-plain {
+  margin-bottom: 0.7rem !important;
+  font-size: 0.95rem;
+  color: var(--np-ink);
+}
+
+.np-label {
+  margin: 0.9rem 0 0.35rem !important;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--np-muted);
+}
+
+.np-code,
+.np code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92em;
+  color: var(--np-ink);
+  background: none;
+  padding: 0;
+}
+
+/* --- toggles ------------------------------------------------------------- */
+
+.np-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.np-toggle {
+  border: 1px solid var(--np-line);
+  border-radius: 0.4rem;
+  background: var(--np-surface);
+  color: var(--np-ink);
+  padding: 0.25rem 0.6rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.np-toggle:hover:not(:disabled) {
+  border-color: var(--np-accent);
+}
+
+.np-toggle[aria-pressed="true"] {
+  border-color: var(--np-accent);
+  background: var(--np-accent-bg);
+  color: var(--np-accent);
+  font-weight: 600;
+}
+
+.np-toggle:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.np-toggle[data-plain="yes"] {
+  font-family: inherit;
+}
+
+/* --- panels -------------------------------------------------------------- */
+
+.np-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+
+.np-panel {
+  min-width: 0;
+  border: 1px solid var(--np-line);
+  border-radius: 0.6rem;
+  overflow: hidden;
+}
+
+.np-panel-head {
+  padding: 0.35rem 0.7rem;
+  border-bottom: 1px solid var(--np-line);
+  background: var(--np-sunk);
+  font-size: 0.72rem;
+  color: var(--np-muted);
+}
+
+.np-yaml,
+.np-term {
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  overflow-x: auto;
+  list-style: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.74rem;
+  line-height: 1.6;
+  color: var(--np-ink2);
+}
+
+.np-yaml li,
+.np-term li {
+  white-space: pre;
+}
+
+.np-term li:first-child {
+  color: var(--np-muted);
+}
+
+.np-key {
+  color: var(--np-key);
+  font-weight: 600;
+}
+
+.np-dash {
+  color: var(--np-muted);
+}
+
+/* --- results ------------------------------------------------------------- */
+
+.np-findings {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.np-finding {
+  padding: 0.35rem 0 0.35rem 0.75rem;
+  border-left: 2px solid var(--np-line);
+  font-size: 0.85rem;
+  color: var(--np-ink);
+}
+
+.np-finding + .np-finding {
+  margin-top: 0.35rem;
+}
+
+.np-finding[data-tone="good"] {
+  border-left-color: var(--np-good);
+}
+
+.np-finding[data-tone="bad"] {
+  border-left-color: var(--np-bad);
+}
+
+.np-note {
+  margin-top: 0.8rem !important;
+  padding: 0.55rem 0.8rem;
+  border-radius: 0.5rem;
+  background: var(--np-good-bg);
+  font-size: 0.87rem;
+  color: var(--np-ink);
+}
+
+/* --- controls ------------------------------------------------------------ */
+
+.np-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.np-btn {
+  border: 1px solid var(--np-line);
+  border-radius: 0.5rem;
+  background: var(--np-surface);
+  color: var(--np-ink);
+  padding: 0.45rem 0.9rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.np-btn:hover:not(:disabled) {
+  border-color: var(--np-accent);
+}
+
+.np-btn:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.np-btn[data-tone="primary"] {
+  border-color: var(--np-accent);
+  background: var(--np-accent);
+  color: #fff;
+}
+
+html.dark .np-btn[data-tone="primary"] {
+  color: #04121f;
+}
+
+.np-btn:focus-visible,
+.np-toggle:focus-visible {
+  outline: 2px solid var(--np-accent);
+  outline-offset: 2px;
+}
+
+.np-restart {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--np-muted);
+  font: inherit;
+  font-size: 0.78rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.np-restart:hover {
+  color: var(--np-ink);
+}
+
+/* --- lesson 19 ----------------------------------------------------------- */
+
+.np-policy {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 0.7rem;
+  margin-top: 0.9rem;
+  padding-top: 0.2rem;
+}
+
+.np-policy + .np-policy {
+  border-top: 1px dashed var(--np-line);
+}
+
+.np-policy-edit {
+  min-width: 0;
+}
+
+.np-policy-edit .np-label {
+  margin-top: 0.5rem !important;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.8rem;
+  color: var(--np-ink);
+}
+
+.np-dir {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--np-line);
+  border-radius: 0.5rem;
+}
+
+.np-dir[data-iso="yes"] {
+  border-color: var(--np-accent);
+}
+
+.np-fixed {
+  font-size: 0.75rem;
+  color: var(--np-muted);
+}
+
+.np-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0.45rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.np-entry {
+  width: 100%;
+  text-align: left;
+  font-size: 0.78rem;
+}
+
+.np-dir[data-iso="no"] .np-entry {
+  border-style: dashed;
+}
+
+.np-results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--np-line);
+  border-radius: 0.6rem;
+  overflow: hidden;
+}
+
+.np-results li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 8.5rem 7.5rem;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.35rem 0.7rem;
+  border-left: 3px solid var(--np-good);
+  font-size: 0.8rem;
+}
+
+.np-results li + li {
+  border-top: 1px solid var(--np-line);
+}
+
+.np-results li[data-ok="no"] {
+  border-left-color: var(--np-bad);
+  background: var(--np-bad-bg);
+}
+
+.np-results li[data-ok="todo"] {
+  border-left-color: var(--np-line);
+}
+
+.np-conn {
+  min-width: 0;
+  color: var(--np-ink);
+}
+
+.np-ns {
+  font-size: 0.72rem;
+  color: var(--np-muted);
+}
+
+.np-want {
+  font-size: 0.74rem;
+  color: var(--np-muted);
+}
+
+.np-got {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--np-ink);
+}
+
+.np-note-plain {
+  font-size: 0.88rem;
+}
+
+@media (max-width: 40rem) {
+  .np-results li {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .np-conn {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .np-rail li {
+    transition: none;
+  }
+}

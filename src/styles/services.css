@@ -1,0 +1,495 @@
+/* ---------------------------------------------------------------------------
+ * Lesson 16's service desk. Scoped under `.sv`, inside a `not-prose` wrapper so
+ * the article's typography plugin keeps its hands off it. Markup is built at
+ * runtime by src/scripts/courses/services/services.ts, so these rules are
+ * global and namespaced by hand.
+ *
+ * Phase 4's four round-based panels (.sv, .dn, .gw, .np) share one shell, so
+ * the first part of each file is the same rules under a different prefix. Change
+ * one and change all four.
+ * ------------------------------------------------------------------------ */
+
+.sv {
+  --sv-line: #e5e7eb;
+  --sv-surface: #ffffff;
+  --sv-sunk: #f9fafb;
+  --sv-ink: #111827;
+  --sv-ink2: #4b5563;
+  --sv-muted: #9ca3af;
+  --sv-accent: #2563eb;
+  --sv-accent-bg: #eff6ff;
+  --sv-good: #047857;
+  --sv-good-bg: #ecfdf5;
+  --sv-bad: #b45309;
+  --sv-bad-bg: #fffbeb;
+  --sv-key: #7c3aed;
+
+  font-family: inherit;
+  color: var(--sv-ink2);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+html.dark .sv {
+  --sv-line: #1f2937;
+  --sv-surface: #030712;
+  --sv-sunk: #0b1120;
+  --sv-ink: #f9fafb;
+  --sv-ink2: #9ca3af;
+  --sv-muted: #6b7280;
+  --sv-accent: #60a5fa;
+  --sv-accent-bg: #0b1a33;
+  --sv-good: #6ee7b7;
+  --sv-good-bg: #04241c;
+  --sv-bad: #fcd34d;
+  --sv-bad-bg: #241a04;
+  --sv-key: #c4b5fd;
+}
+
+.sv *,
+.sv *::before,
+.sv *::after {
+  box-sizing: border-box;
+}
+
+/* global.css styles the bare `header` element as fixed site chrome. */
+.sv header {
+  position: static;
+  inset: auto;
+}
+
+.sv p {
+  margin: 0;
+}
+
+.sv-shell {
+  border: 1px solid var(--sv-line);
+  border-radius: 0.9rem;
+  background: var(--sv-surface);
+  overflow: hidden;
+}
+
+.sv-head {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--sv-line);
+  background: var(--sv-sunk);
+}
+
+.sv-rail {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sv-rail li {
+  flex: 1;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--sv-line);
+  transition: background 0.25s ease;
+}
+
+.sv-rail li span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.sv-rail li[data-state="done"] {
+  background: var(--sv-good);
+}
+
+.sv-rail li[data-state="current"] {
+  background: var(--sv-accent);
+}
+
+.sv-body {
+  padding: 1.1rem 1rem 1.2rem;
+}
+
+.sv-intro p + p {
+  margin-top: 0.6rem;
+}
+
+.sv-kicker {
+  margin-bottom: 0.3rem !important;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sv-muted);
+}
+
+.sv-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--sv-ink);
+}
+
+.sv-brief {
+  margin: 0 0 1rem;
+  padding: 0.55rem 0.8rem;
+  border-left: 3px solid var(--sv-line);
+  border-radius: 0 0.4rem 0.4rem 0;
+  background: var(--sv-sunk);
+  font-size: 0.92rem;
+  font-style: normal;
+  color: var(--sv-ink);
+}
+
+.sv-plain {
+  margin-bottom: 0.7rem !important;
+  font-size: 0.95rem;
+  color: var(--sv-ink);
+}
+
+.sv-label {
+  margin: 0.9rem 0 0.35rem !important;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sv-muted);
+}
+
+.sv-code,
+.sv code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92em;
+  color: var(--sv-ink);
+  background: none;
+  padding: 0;
+}
+
+/* --- toggles ------------------------------------------------------------- */
+
+.sv-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sv-toggle {
+  border: 1px solid var(--sv-line);
+  border-radius: 0.4rem;
+  background: var(--sv-surface);
+  color: var(--sv-ink);
+  padding: 0.25rem 0.6rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.sv-toggle:hover:not(:disabled) {
+  border-color: var(--sv-accent);
+}
+
+.sv-toggle[aria-pressed="true"] {
+  border-color: var(--sv-accent);
+  background: var(--sv-accent-bg);
+  color: var(--sv-accent);
+  font-weight: 600;
+}
+
+.sv-toggle:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.sv-toggle[data-plain="yes"] {
+  font-family: inherit;
+}
+
+/* --- panels -------------------------------------------------------------- */
+
+.sv-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+
+.sv-panel {
+  min-width: 0;
+  border: 1px solid var(--sv-line);
+  border-radius: 0.6rem;
+  overflow: hidden;
+}
+
+.sv-panel-head {
+  padding: 0.35rem 0.7rem;
+  border-bottom: 1px solid var(--sv-line);
+  background: var(--sv-sunk);
+  font-size: 0.72rem;
+  color: var(--sv-muted);
+}
+
+.sv-yaml,
+.sv-term {
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  overflow-x: auto;
+  list-style: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.74rem;
+  line-height: 1.6;
+  color: var(--sv-ink2);
+}
+
+.sv-yaml li,
+.sv-term li {
+  white-space: pre;
+}
+
+.sv-term li:first-child {
+  color: var(--sv-muted);
+}
+
+.sv-key {
+  color: var(--sv-key);
+  font-weight: 600;
+}
+
+.sv-dash {
+  color: var(--sv-muted);
+}
+
+/* --- results ------------------------------------------------------------- */
+
+.sv-findings {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sv-finding {
+  padding: 0.35rem 0 0.35rem 0.75rem;
+  border-left: 2px solid var(--sv-line);
+  font-size: 0.85rem;
+  color: var(--sv-ink);
+}
+
+.sv-finding + .sv-finding {
+  margin-top: 0.35rem;
+}
+
+.sv-finding[data-tone="good"] {
+  border-left-color: var(--sv-good);
+}
+
+.sv-finding[data-tone="bad"] {
+  border-left-color: var(--sv-bad);
+}
+
+.sv-note {
+  margin-top: 0.8rem !important;
+  padding: 0.55rem 0.8rem;
+  border-radius: 0.5rem;
+  background: var(--sv-good-bg);
+  font-size: 0.87rem;
+  color: var(--sv-ink);
+}
+
+/* --- controls ------------------------------------------------------------ */
+
+.sv-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.sv-btn {
+  border: 1px solid var(--sv-line);
+  border-radius: 0.5rem;
+  background: var(--sv-surface);
+  color: var(--sv-ink);
+  padding: 0.45rem 0.9rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sv-btn:hover:not(:disabled) {
+  border-color: var(--sv-accent);
+}
+
+.sv-btn:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.sv-btn[data-tone="primary"] {
+  border-color: var(--sv-accent);
+  background: var(--sv-accent);
+  color: #fff;
+}
+
+html.dark .sv-btn[data-tone="primary"] {
+  color: #04121f;
+}
+
+.sv-btn:focus-visible,
+.sv-toggle:focus-visible {
+  outline: 2px solid var(--sv-accent);
+  outline-offset: 2px;
+}
+
+.sv-restart {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--sv-muted);
+  font: inherit;
+  font-size: 0.78rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.sv-restart:hover {
+  color: var(--sv-ink);
+}
+
+/* --- lesson 16 ----------------------------------------------------------- */
+
+.sv-wide {
+  margin-top: 1rem;
+}
+
+.sv-pods {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sv-pod {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.45rem 0.7rem;
+}
+
+.sv-pod + .sv-pod {
+  border-top: 1px solid var(--sv-line);
+}
+
+.sv-pod-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.1rem 0.6rem;
+}
+
+.sv-pod-name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.74rem;
+  color: var(--sv-ink);
+}
+
+.sv-pod-port {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.68rem;
+  color: var(--sv-muted);
+}
+
+.sv-pod[data-ready="no"] .sv-pod-port {
+  color: var(--sv-bad);
+}
+
+.sv-plabels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.sv-plabel {
+  border: 1px solid var(--sv-line);
+  border-radius: 0.3rem;
+  padding: 0 0.35rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.66rem;
+  color: var(--sv-ink2);
+}
+
+.sv-plabel[data-asked="yes"] {
+  border-color: var(--sv-accent);
+  background: var(--sv-accent-bg);
+  color: var(--sv-accent);
+}
+
+.sv-pstate {
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.sv-pstate[data-in="yes"] {
+  color: var(--sv-good);
+}
+
+.sv-pstate[data-in="wait"] {
+  color: var(--sv-bad);
+}
+
+.sv-pstate[data-in="no"] {
+  color: var(--sv-muted);
+  font-weight: 400;
+}
+
+.sv-requests {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: req;
+}
+
+.sv-requests li {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--sv-line);
+  border-left: 3px solid var(--sv-good);
+  border-radius: 0.4rem;
+}
+
+.sv-requests li[data-ok="no"] {
+  border-left-color: var(--sv-bad);
+  background: var(--sv-bad-bg);
+}
+
+.sv-req-to {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.7rem;
+  color: var(--sv-muted);
+}
+
+.sv-req-got {
+  font-size: 0.8rem;
+  color: var(--sv-ink);
+}
+
+.sv-note-plain {
+  font-size: 0.88rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sv-rail li {
+    transition: none;
+  }
+}

@@ -1,0 +1,42 @@
+---
+// Mount point for lesson 17's name lookup. The intro is server-rendered so the
+// lesson still says something without JavaScript. Everything after the start
+// button is built at runtime by src/scripts/courses/resolver/resolver.ts.
+import "@styles/resolver.css";
+---
+
+<div data-resolver>
+  <div class="dn not-prose my-8">
+    <div data-dn-stage>
+      <div class="dn-shell">
+        <div class="dn-body">
+          <div class="dn-intro">
+            <p>
+              Four things a pod needs to reach. Type the name you'd put in its config,
+              and watch the pod's resolver work through it one query at a time.
+            </p>
+            <div class="dn-foot">
+              <button type="button" class="dn-btn" data-tone="primary" data-go="start"
+                >Start</button
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <noscript>
+      <p class="dn-note-plain mt-3">
+        This needs JavaScript. The short version: a bare name like api finds the
+        Service in the pod's own namespace, even when you meant another one, so write
+        api.shop across namespaces. A headless Service answers with every pod, so
+        name the pod, like db-0.db. And a name like api.stripe.com goes through the
+        whole search list first, which a trailing dot skips.
+      </p>
+    </noscript>
+  </div>
+</div>
+
+<script>
+  import "@scripts/courses/resolver/resolver";
+</script>

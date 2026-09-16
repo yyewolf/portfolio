@@ -1,0 +1,43 @@
+---
+// Mount point for lesson 18's route table. The intro is server-rendered so the
+// lesson still says something without JavaScript. Everything after the start
+// button is built at runtime by src/scripts/courses/routes/routes.ts.
+import "@styles/routes.css";
+---
+
+<div data-routes>
+  <div class="gw not-prose my-8">
+    <div data-gw-stage>
+      <div class="gw-shell">
+        <div class="gw-body">
+          <div class="gw-intro">
+            <p>
+              One Gateway, one hostname, and four changes the team needs. Edit the
+              route, send the requests, and see which rule each one matched and what
+              the backend was handed.
+            </p>
+            <div class="gw-foot">
+              <button type="button" class="gw-btn" data-tone="primary" data-go="start"
+                >Start</button
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <noscript>
+      <p class="gw-note-plain mt-3">
+        This needs JavaScript. The short version: an exact match only ever matches one
+        path and a prefix matches whole segments, a backend that lives under a path
+        needs that path rewritten away, two backends with no weights split traffic in
+        half, and a listener that takes routes from every namespace lets an older
+        route somewhere else win the tie.
+      </p>
+    </noscript>
+  </div>
+</div>
+
+<script>
+  import "@scripts/courses/routes/routes";
+</script>

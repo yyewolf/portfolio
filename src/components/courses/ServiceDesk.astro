@@ -1,0 +1,43 @@
+---
+// Mount point for lesson 16's service desk. The intro is server-rendered so the
+// lesson still says something without JavaScript. Everything after the start
+// button is built at runtime by src/scripts/courses/services/services.ts.
+import "@styles/services.css";
+---
+
+<div data-services>
+  <div class="sv not-prose my-8">
+    <div data-sv-stage>
+      <div class="sv-shell">
+        <div class="sv-body">
+          <div class="sv-intro">
+            <p>
+              Four Services somebody needs working, each one as it was first written.
+              Change the selector, the port or the type, send some requests, and see
+              where they actually went.
+            </p>
+            <div class="sv-foot">
+              <button type="button" class="sv-btn" data-tone="primary" data-go="start"
+                >Start</button
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <noscript>
+      <p class="sv-note-plain mt-3">
+        This needs JavaScript. The short version: a selector that's too broad sends
+        some requests to pods that answer wrong, one that's too narrow leaves pods out,
+        a missing targetPort sends traffic to a port nothing listens on, and only a
+        LoadBalancer is reachable from the internet when the nodes have private
+        addresses.
+      </p>
+    </noscript>
+  </div>
+</div>
+
+<script>
+  import "@scripts/courses/services/services";
+</script>

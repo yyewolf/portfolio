@@ -259,48 +259,57 @@
   {
     "term": "ClusterIP",
     "introducedIn": 16,
-    "short": "The default service type: reachable only from inside the cluster.",
+    "short": "The default kind of Service: a virtual address reachable only from inside the cluster.",
+    "long": "No pod or node has the address and nothing listens on it, which is why it can't be pinged. It only works because kube-proxy's rules on every node rewrite connections to it.",
     "related": [
       "Service",
-      "Ingress"
+      "kube-proxy",
+      "NodePort"
     ]
   },
   {
     "term": "Label",
     "introducedIn": 16,
     "short": "A key/value tag attached to an object, used for grouping and selection.",
+    "long": "Pods usually get theirs from the template of whatever made them. Labels mean nothing to Kubernetes on their own; they matter because selectors on Services, Deployments and policies pick pods by them.",
     "related": [
-      "Selector"
+      "Selector",
+      "Service"
     ]
   },
   {
     "term": "Selector",
     "introducedIn": 16,
     "short": "A label query that decides which pods an object applies to.",
+    "long": "A pod matches when it has every label the selector lists, whatever else it has and whatever created it. It's asked again every time pods change, so a new pod with the right labels is picked up straight away.",
     "related": [
+      "Label",
       "Service",
-      "Label"
+      "EndpointSlice"
     ]
   },
   {
     "term": "Service",
     "introducedIn": 16,
     "short": "A stable name and address for a changing set of pods.",
-    "long": "Pods come and go with new IPs. A service gives them one virtual IP and DNS name, and load balances across whichever pods currently match its selector.",
+    "long": "It picks its pods with a selector, and the EndpointSlice controller keeps a list of their addresses. Connections to the Service's address are sent to one of the ready pods on that list, picked per connection, by rules kube-proxy or the network plugin puts on every node.",
     "related": [
       "ClusterIP",
       "Selector",
+      "EndpointSlice",
+      "kube-proxy",
       "Pod"
     ]
   },
   {
     "term": "Ingress",
     "introducedIn": 18,
-    "short": "Rules for routing external HTTP traffic to services inside the cluster.",
-    "long": "An ingress object is inert on its own. An ingress controller watches those objects and configures a real proxy to match.",
+    "short": "Rules for routing external HTTP traffic to Services by hostname and path.",
+    "long": "The object is inert on its own. An ingress controller watches Ingresses and configures a real proxy to match. Anything beyond hosts, paths and TLS is done with annotations that differ per controller, and the API is frozen in favour of the Gateway API.",
     "related": [
-      "Service",
-      "Controller"
+      "Ingress controller",
+      "Gateway API",
+      "Service"
     ]
   },
   {
@@ -540,6 +549,124 @@
     "related": [
       "Pod",
       "Container"
+    ]
+  },
+  {
+    "term": "Pod network",
+    "introducedIn": 15,
+    "short": "The flat network every pod gets an address on, where any pod can reach any other without NAT.",
+    "long": "Each node gets a range of addresses and every pod on it gets one from that range, handed out by the network plugin. Addresses aren't rewritten between pods, so a pod sees its real address and so does whoever it talks to. An address lasts exactly as long as its pod.",
+    "related": [
+      "Pod",
+      "Node",
+      "Service"
+    ]
+  },
+  {
+    "term": "EndpointSlice",
+    "introducedIn": 16,
+    "short": "The list of pod addresses behind a Service, kept up to date by a controller.",
+    "long": "Each address is marked ready or not, and only ready ones get traffic. A large Service is split over several slices, 100 addresses each by default. When a Service misbehaves, its slices are the first thing to look at.",
+    "related": [
+      "Service",
+      "Selector",
+      "kube-proxy"
+    ]
+  },
+  {
+    "term": "kube-proxy",
+    "introducedIn": 16,
+    "short": "The agent on every node that turns Services into rules in the node's kernel.",
+    "long": "It watches Services and EndpointSlices and writes iptables or nftables rules, so a connection to a Service's address has its destination rewritten to one of the pods before it leaves the node. Nothing is actually proxied. On many clusters the network plugin does this job instead, often with eBPF, and kube-proxy isn't installed at all.",
+    "related": [
+      "Service",
+      "EndpointSlice",
+      "ClusterIP"
+    ]
+  },
+  {
+    "term": "NodePort",
+    "introducedIn": 16,
+    "short": "A Service that also opens the same port, between 30000 and 32767, on every node.",
+    "long": "Traffic to any node's address on that port lands on the Service. It's only reachable from wherever the nodes' addresses are, which is often nowhere public.",
+    "related": [
+      "ClusterIP",
+      "LoadBalancer",
+      "Service"
+    ]
+  },
+  {
+    "term": "LoadBalancer",
+    "introducedIn": 16,
+    "short": "A Service that asks the cloud for an external load balancer in front of it.",
+    "long": "By default it also gets a NodePort, and the load balancer sends traffic to that port on the nodes. `allocateLoadBalancerNodePorts: false` skips the NodePort for load balancers that don't need one, like those sending straight to pod addresses. On hardware with nothing to answer the request, like a bare metal cluster without MetalLB, its external address stays pending.",
+    "related": [
+      "NodePort",
+      "ClusterIP",
+      "Ingress"
+    ]
+  },
+  {
+    "term": "CoreDNS",
+    "introducedIn": 17,
+    "short": "The DNS server inside the cluster, answering for Services and the pods of headless Services.",
+    "long": "It runs as a Deployment in kube-system behind a Service still called kube-dns, and every pod's resolv.conf points at it. A Service is `<name>.<namespace>.svc.cluster.local`, and short names work because of the search list the kubelet writes into each pod.",
+    "related": [
+      "Service",
+      "Headless Service"
+    ]
+  },
+  {
+    "term": "Headless Service",
+    "introducedIn": 17,
+    "short": "A Service with no ClusterIP, whose name resolves to the addresses of its pods.",
+    "long": "Set with `clusterIP: None`. kube-proxy ignores it, and DNS answers with every ready pod instead. It's what a StatefulSet's `serviceName` points at, which gives each of its pods a name like `db-0.db`.",
+    "related": [
+      "Service",
+      "CoreDNS",
+      "StatefulSet"
+    ]
+  },
+  {
+    "term": "Ingress controller",
+    "introducedIn": 18,
+    "short": "A proxy running in the cluster that watches Ingress objects and configures itself from them.",
+    "long": "It usually sits behind one LoadBalancer Service that every Ingress shares. `ingressClassName` on an Ingress says which controller it's meant for.",
+    "related": [
+      "Ingress",
+      "LoadBalancer",
+      "Controller"
+    ]
+  },
+  {
+    "term": "Gateway API",
+    "introducedIn": 18,
+    "short": "The successor to Ingress, split into objects for whoever owns each part.",
+    "long": "A GatewayClass names the implementation, a Gateway is the entrypoint the platform team owns (ports, TLS, which namespaces may attach), and routes like HTTPRoute are each app team's rules. It's installed as CRDs rather than built in.",
+    "related": [
+      "HTTPRoute",
+      "Ingress"
+    ]
+  },
+  {
+    "term": "HTTPRoute",
+    "introducedIn": 18,
+    "short": "An app team's HTTP routing rules, attached to a Gateway.",
+    "long": "Rules match on path, headers or query parameters and send traffic to Services, with weights for splits and filters for rewrites and redirects. When several rules match, an exact path beats a prefix, a longer prefix beats a shorter one, and then the older route wins.",
+    "related": [
+      "Gateway API",
+      "Service"
+    ]
+  },
+  {
+    "term": "NetworkPolicy",
+    "introducedIn": 19,
+    "short": "Rules for which connections the pods it selects will accept or make.",
+    "long": "A pod accepts and sends anything until a policy selecting it covers a direction, and then only what some rule allows. Rules only ever allow, the network plugin enforces them, and on a plugin that doesn't support them they silently do nothing.",
+    "related": [
+      "Pod network",
+      "Label",
+      "Selector"
     ]
   }
 ]

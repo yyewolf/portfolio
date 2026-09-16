@@ -1,0 +1,42 @@
+---
+// Mount point for lesson 15's address board. The intro is server-rendered so the
+// lesson still says something without JavaScript, and so the opening copy lives
+// in one place. Everything after the button is built at runtime by
+// src/scripts/courses/addresses/addresses.ts.
+import "@styles/addresses.css";
+---
+
+<div data-addresses>
+  <div class="ab not-prose my-8">
+    <div data-ab-stage>
+      <div class="ab-shell">
+        <div class="ab-intro">
+          <p>
+            Three nodes, a shop and an api. Somebody copied the api pod's address
+            into shop's config, and shop sends it a request every couple of seconds.
+            Do things to the cluster and watch where the requests end up.
+          </p>
+          <div class="ab-foot">
+            <button type="button" class="ab-btn" data-tone="primary" data-go="start"
+              >Open the cluster</button
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <noscript>
+      <p class="ab-note mt-3">
+        This board needs JavaScript. The short version: shop reaches the api pod on
+        another node directly, and the api pod sees shop's own address. Crash the
+        api container and it still works, because it's the same pod. Delete the pod,
+        ship a new version or remove its node, and the replacement comes up with a
+        different address while shop keeps sending to the old one.
+      </p>
+    </noscript>
+  </div>
+</div>
+
+<script>
+  import "@scripts/courses/addresses/addresses";
+</script>

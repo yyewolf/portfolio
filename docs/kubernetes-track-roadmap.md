@@ -18,11 +18,11 @@ frontmatter and inherits the depth from it.
 
 | Depth | Phases | Lessons | Shipped |
 |---|---|---|---|
-| Core | 1 to 4 | 1 to 19 | 1 to 14 |
+| Core | 1 to 4 | 1 to 19 | 1 to 19 |
 | Practical | 5 to 9 | 20 to 38 | none |
 | Deep dive | 10 to 13 | 39 to 52 | none |
 
-Lessons 16, 20 and 23 exist as `draft: true` files carrying prose from the
+Lessons 20 and 23 exist as `draft: true` files carrying prose from the
 earlier six-lesson version of the track. They are numbered for their new slots,
 but they need rewriting rather than just un-drafting. Their `<Term>` uses still
 point at the old lesson numbering, so expect `[courses]` warnings when they are
@@ -107,8 +107,13 @@ Phase 4, networking
 | 18 | Ingress and the Gateway API | operate |
 | 19 | Network policies | operate |
 
-19 is a puzzle. Allow frontend to backend and frontend to database, deny
-internet to database, and the reader writes the policy.
+19 is a puzzle. Lock the database to the backend, deny the database the
+internet, and the reader writes the policy. The original sketch said frontend to
+database, which is an architecture the lesson shouldn't be teaching, so the
+backend is the one that talks to it.
+
+15 to 19 are shipped. The address board is described below, and the four
+round-based panels after it.
 
 ### Practical
 
@@ -559,6 +564,103 @@ sized to the node count instead of a DaemonSet, a Deployment with a sleep loop
 instead of a CronJob. The rule behind all six is stated once, on the closing
 screen, as two questions: is it supposed to finish, and does it matter which
 machine or which copy it is.
+
+## Lesson 15, the address board
+
+Free play, like the lesson 13 board, drawn as a small network diagram. Three
+nodes side by side on the node network, each with its range printed on it, and a
+shop pod whose config holds an api pod's address. shop sends a request every
+couple of seconds, and each one is a dot: out of shop's pod, down to its node,
+along the node network, up into whichever node owns that range, into the pod and
+back as a reply. A request that gets lost stops where it got lost and says why,
+with no route to host at a node that has nothing on that address and a timeout at
+the gateway when no node owns the range any more.
+
+The first version was a report: a hop-by-hop list and a counter on every pod
+after each action. It said everything and showed nothing, and the dots replaced
+it. Keep the controls sparse: global actions in one bar, pod actions only once a
+pod is clicked, and a node's remove as a × on the node.
+
+The actions are the ordinary life of a Deployment: delete the api pod, crash its
+container, ship a new version, scale, add or remove a node, and point shop at a
+different pod. A crash keeps the address, everything else makes a pod and so a new
+address, and the request to the old one either finds no route or reaches a node
+where nothing has it. Pointing shop somewhere new is a template change, so it
+replaces shop's own pod too, by the same rule the change desk is about.
+
+Two rules hold it up:
+
+- *The trace reads the world, never the action.* `send()` takes an address and
+  walks the routes, so any sequence of actions gets a true account.
+- *Addresses come out of the node's range in order.* That's how host-local
+  allocation works, and it means a pod's address says which node it's on. It also
+  means the board never reuses an address within a session, so address reuse is
+  a sentence in the prose rather than something the board fakes.
+
+## Phase 4's round panels
+
+Lessons 16 to 19 share one shape, which is the change desk's: a brief that says
+what has to be true afterwards, controls for exactly the fields that round is
+about, a manifest generated from the reader's own choices, and a result computed
+by an engine that has no answer key. Any setup that routes correctly clears, and
+every setup gets sentences about what it actually did.
+
+Lesson 16 also has a figure before the desk, `ServiceTypes.astro`: the same two
+nodes drawn for each type, with only the path changing. A pod calling a
+ClusterIP, a laptop on a node's port, a browser through the cloud load balancer,
+all ending in the same kube-proxy rules, with a caption each for where it's
+reachable from and what it's for. It's a figure, so it has no rounds.
+
+**Lesson 16, the service desk.** Four Services, each as it was first written. The
+reader edits the selector, `targetPort` and type, sends eight requests, and reads
+the EndpointSlice as kubectl prints it and where each request went.
+
+1. The front end's selector is `app: shop`, which the api pods have too, so some
+   requests get a 404 from the api.
+2. The docs Service has no `targetPort`, so traffic goes to 80 and nothing listens.
+   A number and a named port both clear.
+3. The canary is left out because the selector asks for `track: stable`. The fix
+   is removing a label.
+4. Webhooks from the internet, with private nodes. ClusterIP never arrives,
+   NodePort has nowhere public to arrive at, LoadBalancer works.
+
+**Lesson 17, the name lookup.** The reader types the host name into a real input,
+and the resolver walks the pod's search list query by query. Free text is the
+point: the zone and the resolver are modelled, so whatever spelling someone tries
+gets the true sequence of queries and the true answer.
+
+1. `api` from shop. The warm-up that puts the search list on screen.
+2. `api` from billing resolves, to billing's own api. Nothing errors.
+3. `db` is headless and answers with all three pods, db-1 included. `db-0.db`.
+4. `api.stripe.com` takes four queries because it has two dots. A trailing dot
+   takes one.
+
+**Lesson 18, the route table.** An HTTPRoute on one Gateway, with the Gateway API's
+real precedence: exact beats prefix, the longest prefix wins, then the oldest
+route. Each round unlocks one kind of edit.
+
+1. Rules. `Exact /api/orders` misses `/api/orders/41`, and a prefix matches whole
+   segments, so `/api` leaves `/apidocs` alone.
+2. Rewrites. search answers at its own root and gets handed `/search?q=boots`.
+3. Weights. Two backends default to 1 each, half the traffic on the canary.
+   A hundred requests at 9 and 1 are exactly 90 and 10.
+4. `allowedRoutes`. `Same` attaches nothing, `All` lets a months-old demo route in
+   sandbox win `/` on age, `Selector` is right.
+
+**Lesson 19, the policy puzzle.** Policies are edited by switching rule entries on
+and isolating directions, with the entries being rules people really write. The
+rounds build on each other and each starts from a working answer to the last.
+
+1. Isolation. Only the backend reaches the database. `namespaceSelector: {}` is the
+   tempting wrong entry.
+2. One dash. Prometheus in, Grafana out, from the same namespace. The one-entry
+   AND clears and the two-entry OR lets Grafana in, and the generated YAML shows
+   the dash that makes the difference.
+3. Egress with no rules on the database. Replies to accepted connections still
+   flow, which people don't expect.
+4. The backend's egress, started for the reader. It breaks DNS, so both named
+   connections fail until 53 to kube-dns is allowed, and "anywhere on 443" has to
+   narrow to the provider's range.
 
 ## The simulation engine
 

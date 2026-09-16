@@ -2,22 +2,146 @@
 track: kubernetes
 order: 16
 phase: 4
-minutes: 10
-tags: [networking]
 title: Services
 description: "How traffic finds a pod whose IP address changed thirty seconds ago."
-modes: []
-draft: true
+minutes: 20
+tags: [networking]
+modes: [operate]
+draft: false
 ---
 
-Pods get new IP addresses every time they are replaced, which makes them
-useless to point a client at. A <Term>Service</Term> solves that: one stable
-name and address in front of a changing set of pods.
+import ServiceDesk from "@components/courses/ServiceDesk.astro";
+import ServiceTypes from "@components/courses/ServiceTypes.astro";
 
-Which pods it covers is decided by a <Term>selector</Term> matching their
-<Term term="Label">labels</Term> rather than by naming them.
+A <Term>Service</Term> gives a set of pods one address that stays put, however
+often the pods behind it get replaced:
 
-The default service type is <Term>ClusterIP</Term>, reachable only from inside
-the cluster. To let outside HTTP traffic in, you add an <Term>Ingress</Term>.
+```yaml
+kind: Service
+metadata:
+  name: web
+spec:
+  selector:
+    app: shop
+    tier: web
+  ports:
+    - port: 80
+      targetPort: 8080
+```
 
-> Placeholder body.
+Clients connect to the Service on port 80, and the connection lands on port 8080
+of one of the pods.
+
+## Which pods
+
+Nothing in there actually names a pod. Pods carry
+<Term term="Label">labels</Term>, which are just key/value pairs in their
+metadata, and they get them from the template of whatever made them. The Service has a
+<Term>selector</Term>, and a pod is in if it has every label the selector lists.
+
+That's the same `selector` every Deployment in this track has had. It's a query,
+and it gets asked again every time pods change, so a pod that shows up with the
+right labels is in straight away and one that loses them is out.
+
+The answer gets written down. The EndpointSlice controller watches Services and
+pods, and for each Service it keeps an <Term>EndpointSlice</Term> listing the
+addresses of the pods that match, each one marked ready or not. Only the ready
+ones get traffic. A big Service gets several slices, since one holds 100
+addresses by default.
+
+## An address nobody has
+
+The Service gets a <Term>ClusterIP</Term>, like `10.96.44.120`, from a range set
+aside for Services. No pod has that address, no node has it, and nothing listens
+on it. You can't even ping it.
+
+By default, what makes it work is <Term>kube-proxy</Term>, a DaemonSet running
+on every node. It watches Services and EndpointSlices and turns them into iptables or
+nftables rules in the node's kernel. When a pod opens a connection to
+`10.96.44.120:80`, those rules rewrite the destination to one of the ready pods,
+say `10.244.2.14:8080`, picked at random, before the packet even leaves the
+node. Nothing actually gets proxied, whatever the name says. kube-proxy
+basically writes the rules and stays out of the way.
+
+So Services do rewrite addresses, even though the pod network underneath
+doesn't.
+
+That pick happens once per connection. A client that keeps one connection open
+for hours, which is what gRPC and most HTTP/2 clients do, talks to the same pod
+the whole time, even after you've added more.
+
+## When the network plugin does it
+
+On a lot of clusters there's no kube-proxy at all, and the network plugin
+handles Services as well as the pod network. Cilium, Calico in its eBPF mode,
+Antrea and OVN-Kubernetes can all do it, and so do managed setups built on them,
+like GKE's Dataplane V2 or AKS with Azure CNI powered by Cilium. That's the
+plugin going further than the CNI spec asks, since CNI itself only covers giving
+pods their network.
+
+They read the same Services and EndpointSlices, so nothing you write changes.
+What changes is how the pick happens. Cilium, for example, does it in eBPF the
+moment the pod calls `connect()`, so the connection is made straight to the pod's
+address and the ClusterIP never even shows up on the wire. It also skips walking
+a long list of iptables rules, which really starts to matter once a cluster has
+thousands of Services.
+
+To see which one your cluster runs:
+
+```bash
+kubectl -n kube-system get daemonset kube-proxy
+```
+
+If that comes back not found, something else is doing the job, and it's usually
+the network plugin.
+
+## Types
+
+Everything so far is `type: ClusterIP`, the default, and it's only reachable
+from inside the cluster. The other two are built on top of it, and each one
+basically adds a way in from further out. Wherever traffic comes in, it ends up
+in the same Service rules on the node.
+
+<ServiceTypes />
+
+A <Term>NodePort</Term> Service gets a ClusterIP, and also a port between 30000
+and 32767 that's opened on every node, whether or not that node runs one of its
+pods. Pick the number yourself with `nodePort`, or let Kubernetes pick one.
+
+A <Term>LoadBalancer</Term> Service asks for a load balancer in front of it, and
+something has to actually make one. On a cloud, the cloud controller manager sees
+the Service, creates one, and writes its address back into the Service's status.
+On your own hardware nothing answers, so it just sits at `<pending>` unless
+you've installed something like MetalLB to play the cloud's part.
+
+By default a LoadBalancer Service also gets a NodePort, and that's what the load
+balancer sends traffic to. It isn't required though. Set
+`allocateLoadBalancerNodePorts: false` and no node port gets opened, which is
+fine when the load balancer never uses one: cloud load balancers that send
+straight to pod addresses, like AWS's in IP mode or GKE's container-native load
+balancing, or MetalLB, which sends to the load balancer's own address and lets
+the node's Service rules take it from there.
+
+```text
+$ kubectl get svc
+NAME    TYPE           CLUSTER-IP     EXTERNAL-IP    PORT(S)        AGE
+web     ClusterIP      10.96.44.120   <none>         80/TCP         12d
+admin   NodePort       10.96.73.18    <none>         80:30412/TCP   3d
+hooks   LoadBalancer   10.96.150.33   203.0.113.25   80:31742/TCP   1h
+```
+
+Traffic that comes in on a node can be sent to a pod on a different node, and
+when it is, the node rewrites the source address too, so the reply comes back
+the same way. The pod then sees the node's address instead of the client's.
+Setting `externalTrafficPolicy: Local` keeps the client's address, and the price
+is that a node only sends to pods on itself, so a node with none of them drops
+the traffic. Cloud load balancers check for that and stop sending to those nodes.
+
+There's also `type: ExternalName`, which is the odd one out. It has no selector,
+no ClusterIP and no rules. Its DNS name is just an alias for a name somewhere
+else, like `db.example.net`, so pods can use a cluster name for something that
+lives outside.
+
+## Getting it wrong
+
+<ServiceDesk />

@@ -1,0 +1,44 @@
+---
+// Mount point for lesson 19's policy puzzle. The intro is server-rendered so the
+// lesson still says something without JavaScript. Everything after the start
+// button is built at runtime by src/scripts/courses/policies/policies.ts.
+import "@styles/policies.css";
+---
+
+<div data-policies>
+  <div class="np not-prose my-8">
+    <div data-np-stage>
+      <div class="np-shell">
+        <div class="np-body">
+          <div class="np-intro">
+            <p>
+              A shop with a front end, a backend and a database, and a monitoring
+              namespace next door. Four things security wants locked down, one after
+              the other. Write the policies, then test every connection that matters.
+            </p>
+            <div class="np-foot">
+              <button type="button" class="np-btn" data-tone="primary" data-go="start"
+                >Start</button
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <noscript>
+      <p class="np-note-plain mt-3">
+        This needs JavaScript. The short version: a pod accepts everything until a
+        policy selects it, and then only what some rule allows. A namespaceSelector and
+        a podSelector in one entry both have to match, while two entries let in
+        anything matching either. A database with isolated egress and no rules still
+        answers the connections it accepts. And a pod whose egress is isolated can't
+        look up any name until port 53 to kube-dns is allowed.
+      </p>
+    </noscript>
+  </div>
+</div>
+
+<script>
+  import "@scripts/courses/policies/policies";
+</script>

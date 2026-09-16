@@ -1,0 +1,175 @@
+---
+track: kubernetes
+order: 18
+phase: 4
+title: Ingress and the Gateway API
+description: One address for the whole cluster, and rules about which URL goes to which Service.
+minutes: 19
+tags: [networking]
+modes: [operate]
+draft: false
+---
+
+import RouteTable from "@components/courses/RouteTable.astro";
+
+A LoadBalancer Service is one load balancer for one Service, and all it knows
+about is addresses and ports. A shop with a front end, an api and a search
+service would need three of them, three addresses, and three things to pay for,
+and none of them could send `/api` one way and `/` another.
+
+What you want instead is one entrypoint that reads the HTTP request and picks a
+Service by hostname and path. If you've put Traefik in front of containers with
+Docker Compose, you've already used one. Traefik watches the Docker socket, reads
+labels off your containers, and turns them into routes:
+
+```yaml
+services:
+  traefik:
+    image: traefik:v3
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  api:
+    image: shop/api:3.1
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.api.rule=Host(`shop.example.com`) && PathPrefix(`/api`)
+      - traefik.http.routers.api.entrypoints=web
+      - traefik.http.services.api.loadbalancer.server.port=8080
+```
+
+Kubernetes has the same thing, and two APIs for describing it.
+
+## Ingress
+
+The older one is <Term>Ingress</Term>:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shop
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [shop.example.com]
+      secretName: shop-tls
+  rules:
+    - host: shop.example.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 80
+```
+
+That object does nothing by itself. It's just a record, like every other object.
+An <Term>ingress controller</Term> is what makes it real: a proxy like NGINX,
+Traefik or HAProxy, running as pods, that watches Ingress objects and
+reconfigures itself to match. The controller sits behind one LoadBalancer
+Service, and every Ingress in the cluster shares it. `ingressClassName` says
+which controller an Ingress is for, since a cluster can run more than one.
+
+Ingress only really covers hosts, paths and TLS. Everything else people need,
+like rewriting a path, splitting traffic for a canary, timeouts or auth, got
+bolted on as annotations, and every controller invented its own:
+
+```yaml
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+```
+
+So an Ingress written for one controller is basically only portable on paper.
+The API is stable and isn't going anywhere, but it's frozen, and new features
+don't land in it. ingress-nginx, the most common controller by far, was retired
+in March 2026. Existing installs keep running, they just don't get releases or
+security fixes any more.
+
+## The Gateway API
+
+Its replacement is the <Term>Gateway API</Term>, which splits the same thing
+into objects owned by different people:
+
+- a GatewayClass says which controller implements it, and comes with the
+  controller
+- a Gateway is the entrypoint itself: which ports, which protocols, which
+  hostnames, which TLS certificates, and which namespaces may attach routes to it.
+  The platform team owns that one
+- an <Term>HTTPRoute</Term> is an app team's rules for their own traffic, in their
+  own namespace, attached to a Gateway by name
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: shop
+  namespace: shop
+spec:
+  parentRefs:
+    - name: public
+      namespace: infra
+  hostnames:
+    - shop.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+      backendRefs:
+        - name: api
+          port: 80
+```
+
+The things that used to be annotations are fields now. Rewrites and redirects
+are filters on a rule, traffic splits are weights on its backends, and matching
+on headers or query parameters is part of `matches`. Every implementation reads
+them the same way, so the core of a route moves between controllers unchanged.
+
+You install it as a set of CRDs, though most managed clusters and most
+controllers pretty much come with them already.
+
+## Next to Traefik
+
+Back to that compose file. Pretty much every piece of it has a counterpart:
+
+| Traefik on Docker | Kubernetes |
+|---|---|
+| Traefik watching the Docker socket | the ingress controller, or Gateway implementation, watching the API server |
+| the `web` entrypoint on port 80 | a listener on a Gateway |
+| a router's `rule` label | an Ingress rule, or an HTTPRoute's `matches` |
+| the service's `loadbalancer.server.port` | a backend Service and its port |
+| a middleware, like `stripprefix` | an annotation on an Ingress, or a filter on an HTTPRoute |
+
+The big difference is where the rules live. With Docker they're labels on the
+container they route to, so the rules come and go with that container, and one
+compose file holds the proxy and everything behind it. In Kubernetes they're an
+object of their own that points at a Service, so pods can be replaced all day
+without the route noticing. With the Gateway API the entrypoint is split out
+too, so the team running the proxy and the team writing the routes don't have to
+touch the same file.
+
+And you can keep Traefik. It runs in Kubernetes as a controller too, and there
+it reads Ingresses, Gateway API routes, or its own IngressRoute objects instead
+of container labels. Same proxy, it just watches a different API.
+
+## Routing the shop
+
+<RouteTable />

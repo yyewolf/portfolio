@@ -20,7 +20,6 @@
   {
     "number": 4,
     "title": "Networking",
-    "summary": "Every pod gets an IP address, and the rest of this phase exists because that address will not last.",
     "depth": "core",
     "accent": "orange"
   },

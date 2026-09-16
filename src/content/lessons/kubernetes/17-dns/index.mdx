@@ -1,0 +1,86 @@
+---
+track: kubernetes
+order: 17
+phase: 4
+title: DNS
+description: Every Service gets a name, and a short name means something different depending on which pod is asking.
+minutes: 15
+tags: [networking]
+modes: [operate]
+draft: false
+---
+
+import NameLookup from "@components/courses/NameLookup.astro";
+
+Every Service gets a name in the cluster's DNS, so nobody has to copy a
+ClusterIP around either:
+
+```text
+api.shop.svc.cluster.local
+```
+
+That's the Service, its namespace, `svc`, and the cluster's domain, which is
+`cluster.local` unless whoever built the cluster changed it.
+
+## Who answers
+
+<Term>CoreDNS</Term> does. It runs as a Deployment in `kube-system`, behind a
+Service that's still called `kube-dns` for historical reasons. It watches Services
+and EndpointSlices like everything else does, and answers straight out of what
+it's seen.
+
+The kubelet writes every pod's `/etc/resolv.conf` to point at it:
+
+```text
+nameserver 10.96.0.10
+search shop.svc.cluster.local svc.cluster.local cluster.local
+options ndots:5
+```
+
+## Short names
+
+Nobody really types `api.shop.svc.cluster.local`. You type `api`, and the
+`search` line fills in the rest. The resolver tries
+`api.shop.svc.cluster.local`, then `api.svc.cluster.local`, then
+`api.cluster.local`, and stops at the first one that answers. `api.billing`
+works the same way and just gets its answer on the second try.
+
+`ndots:5` decides when that happens. A name with fewer than five dots goes
+through the search list before it's tried as written, and a name with five or
+more is tried as written first. It's set that high so that anything shaped like
+a cluster name gets searched, and the price is that pretty much every name on
+the internet gets searched too.
+
+## Headless Services
+
+Set `clusterIP: None` and you get a <Term>headless Service</Term>. There's no
+ClusterIP, nothing for kube-proxy to do, and the name answers with the address
+of every ready pod behind it instead:
+
+```yaml
+kind: Service
+metadata:
+  name: db
+spec:
+  clusterIP: None
+  selector:
+    app: db
+  ports:
+    - port: 5432
+```
+
+That's what a StatefulSet's `serviceName` points at. Its pods also get a name
+each under that Service, like `db-0.db.shop.svc.cluster.local`, which follows
+the pod number whatever address the pod has today.
+
+## How long an answer lasts
+
+CoreDNS gives answers about the cluster a five second TTL. For a ClusterIP that
+barely matters, since the address outlives every pod behind it. For a headless
+Service it really does, because the answer is a list of pod addresses. A client
+that resolves once when it starts and holds on to the result, which plenty of
+connection pools do, keeps talking to pods that are long gone.
+
+## Looking things up
+
+<NameLookup />

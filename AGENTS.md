@@ -91,6 +91,17 @@ a track in batches.
 | `src/components/courses/SameEvent.astro` | Mounts the board. Styles in `src/styles/sameevent.css`, under `.se`. |
 | `src/scripts/courses/picker/` | The lesson 14 recap: `rounds.ts` (six workloads and a reply for every choice), `picker.ts` (runner and view). |
 | `src/components/courses/PickWorkload.astro` | Mounts the picker. Styles in `src/styles/picker.css`, under `.pw`. |
+| `src/scripts/courses/addresses/` | The lesson 15 address board: `engine.ts` (nodes and their ranges, the allocator, both Deployments, the route trace), `addresses.ts` (runner, the diagram, and the request dots). |
+| `src/components/courses/AddressBoard.astro` | Mounts the address board. Styles in `src/styles/addresses.css`, under `.ab`. |
+| `src/scripts/courses/services/` | The lesson 16 service desk: `rounds.ts` (four Services and their pods as data), `engine.ts` (selection, the EndpointSlice, ports, types, requests, findings), `services.ts` (runner and view). |
+| `src/components/courses/ServiceDesk.astro` | Mounts the service desk. Styles in `src/styles/services.css`, under `.sv`. |
+| `src/components/courses/ServiceTypes.astro` | Lesson 16's Service types figure: one SVG per type with the traffic path lit and `<animateMotion>` dots, and a switch. Server-rendered, Tailwind utilities, all three stack up without JavaScript. |
+| `src/scripts/courses/resolver/` | The lesson 17 name lookup: `rounds.ts` (the zone and four lookups), `engine.ts` (search list, `ndots`, the cluster's records, judging), `resolver.ts` (runner and view). |
+| `src/components/courses/NameLookup.astro` | Mounts the name lookup. Styles in `src/styles/resolver.css`, under `.dn`. |
+| `src/scripts/courses/routes/` | The lesson 18 route table: `rounds.ts` (four changes as data), `engine.ts` (attachment, matching and precedence, weights, rewrites, the backends, manifests), `routes.ts` (runner and view). |
+| `src/components/courses/RouteTable.astro` | Mounts the route table. Styles in `src/styles/routes.css`, under `.gw`. |
+| `src/scripts/courses/policies/` | The lesson 19 policy puzzle: `rounds.ts` (the endpoints, the rule entries, four requirements), `engine.ts` (isolation, peer matching, DNS, findings, manifests), `policies.ts` (runner and view). |
+| `src/components/courses/PolicyPuzzle.astro` | Mounts the policy puzzle. Styles in `src/styles/policies.css`, under `.np`. |
 | `src/pages/courses/` | The four routes. |
 
 Routes: `/courses`, `/courses/<track>`, `/courses/<track>/glossary`,
@@ -690,6 +701,92 @@ every choice, the triage's contract.
 
 Neither 13 nor 14 dispatches `lesson:reveal`.
 
+## Phase 4's interactives
+
+The designs are in [the roadmap](docs/kubernetes-track-roadmap.md#lesson-15-the-address-board).
+Lesson 15 is free play like lesson 13; 16 to 19 are round panels with the change
+desk's contract: the round states what has to hold afterwards, the engine computes
+consequences with no answer key, and every setup gets at least one sentence. None
+of the five dispatches `lesson:reveal`.
+
+**The four round panels share one stylesheet shell under four prefixes.** The first
+part of `services.css`, `resolver.css`, `routes.css` and `policies.css` is the same
+rules (tokens, shell, rail, brief, toggles, panels, YAML, findings, buttons) with
+`.sv`, `.dn`, `.gw` or `.np` in front, and each file's own rules follow a
+`lesson 1N` divider. They were generated from one template so they'd stay
+identical. Change a shared rule in one and change it in all four, or the panels
+drift apart visually and nothing complains.
+
+**The address board's dots are measured, never laid out by hand.** `fire()` takes
+the engine's trace (`ending` and `dst` say how far the packet got) and builds
+waypoints from the rendered pods, each node's `.ab-nic` port and the `.ab-bus`
+line, then animates a dot along them with the Web Animations API. So a CSS change
+that moves a node moves the dots with it, and the canvas scrolls sideways under
+34rem instead of wrapping, because wrapped nodes would leave the network line
+under only some of them. Clearing the dots bumps a generation counter, and a dot
+from an earlier generation never starts its reply. Without that, an action taken
+mid-flight gets a reply dot racing back from a pod that has just been deleted.
+Requests only flow while the board is on screen and the tab is visible, and with
+reduced motion there are no dots, only the mark where each request ended.
+
+**The address board never reuses an address, on purpose.** Allocation is
+host-local's: the next unused host after the last one handed out, per node. So
+within a session a stale address always ends in "no route to host" or a timeout,
+never in some other pod answering. The prose says reuse happens eventually, which
+is true, and the board doesn't fake it with an allocator no plugin uses. If you
+ever add reuse, the trace already handles a non-api pod holding the address
+(connection refused), so it's a change to `allocate()` only.
+
+**A good finding is downgraded when the round isn't cleared.** The service desk and
+the route table both turn `good` into `flat` at the end of `run()` if anything
+failed, the change desk's rule: a true sentence next to a failure mustn't read as
+praise. The replays assert `cleared` if and only if a `good` finding exists, which
+is what catches a new finding that forgets this.
+
+**The resolver takes free text, so its judging can't assume a spelling.** `judge()`
+only compares the answer set and the query count against the round. The
+"your own namespace came first" explanation is only given when the name really was
+expanded in the pod's namespace and another namespace has a Service by that name.
+Anything else wrong gets "a real answer, just for something else". A URL or a
+host:port is refused with a sentence rather than resolved, because the resolver
+never sees those.
+
+**The route table's weights are exact over its sample.** `pick()` walks request
+slots with a stride coprime to the sample size, so 100 requests at 9:1 are 90 and
+10 every time. A random pick would make round 3 clear or fail on luck at 9:1 and
+the reader would learn nothing from it.
+
+**The policy puzzle's UI keeps one invariant the engine relies on.** An entry that's
+on always has its direction isolated: switching an entry on isolates its direction,
+and un-isolating a direction switches its entries off. The engine ignores entries
+under a direction nothing isolates, which is what the real API does with
+`policyTypes`, and the invariant means the reader never sees a rule in the YAML
+that silently does nothing. `ipBlock` is matched against addresses outside the
+cluster only, since what it does with pod addresses depends on the plugin, and no
+round's checks depend on that.
+
+Replay them outside the browser, one esbuild bundle per engine:
+
+```bash
+pnpm exec esbuild <a harness importing the engine (and rounds)> --bundle \
+  --platform=node --format=cjs --outfile=/tmp/x.cjs
+# addresses: 300 random walks of 40 actions from `options(w)`; after each, no two
+#   pods share an address, every address is inside its node's range, shop has one
+#   pod and api has `replicas` on the current version, `happened` is never empty,
+#   no created pod has an address a removed one had, and pointing shop at a pod
+#   always reaches it. The opening request must reach api.
+# services: every selector subset x targetPort x type per round (30 in all);
+#   every outcome has a finding, cleared iff a good finding, uncleared has a bad
+#   one, each start fails, at least one setup clears.
+# resolver: ~25 spellings per round, valid and not (URLs, host:port, empty, a..b,
+#   trailing dots, FQDNs); same finding contract, `first` never clears.
+# routes: round 1 every ordered list of 1 to 3 rules over match x path x backend
+#   (1,884), round 2 every rewrite combination, round 3 every weight pair, round 4
+#   every allowedRoutes; same contract, plus no "undefined" in any finding.
+# policies: every subset of entries x isolation toggles that respects the UI
+#   invariant (389 in all); same contract, and no "undefined" in the YAML.
+```
+
 ## Holding content back
 
 Both phase 1 interactives are the answer to something the prose gives away, so
@@ -778,7 +875,7 @@ for f in dist/courses/kubernetes/*/index.html; do
   case "$f" in *glossary*) continue ;; esac    # glossary page has no sidebar panel
   echo "$(basename $(dirname $f)) $(grep -o 'data-term="' $f | wc -l)"
 done
-# expected today: 3 8 11 15 20 22 25 28 31 33 35 37 39 39 across the fourteen published lessons
+# expected today: 3 8 11 15 20 22 25 28 31 33 35 37 39 39 40 48 50 54 55 across the nineteen published lessons
 ```
 
 ---
@@ -796,10 +893,12 @@ done
 >   that is what git is for.
 > - Keep claims verifiable. If you did not run it, do not assert it passes.
 
-**Last verified:** 2026-09-13 — `pnpm build` clean, 15 pages indexed (14
-published lessons plus the glossary; three more lessons are `draft: true`), no
+**Last verified:** 2026-09-16 — `pnpm build` clean, 20 pages indexed (19
+published lessons plus the glossary; two more lessons are `draft: true`), no
 `[courses]` warnings, sidebar term counts 3 / 8 / 11 / 15 / 20 / 22 / 25 / 28 /
-31 / 33 / 35 / 37 / 39 / 39, lint at baseline 73 with nothing added. Lesson 2's levels,
+31 / 33 / 35 / 37 / 39 / 39 / 40 / 48 / 50 / 54 / 55, lint at baseline 73 with
+nothing added. Phase 4's five engines replayed as described under Phase 4's
+interactives. Lesson 2's levels,
 lesson 7's cascade, lesson 9's packing, lesson 10's stale set, lesson 11's change
 desk and lesson 12's run sheet all verified by replaying their engines outside the
 browser; lesson 8's rounds checked for one right answer each, three choices each,
@@ -807,11 +906,10 @@ and a reply on every choice. Lesson 9's packing was replayed over all 80
 arrangements across its four rounds, the change desk over all 40 across its five,
 and the run sheet over all 16 across its five. Lesson 13's board was random-walked
 over 8,000 actions and lesson 14's picker rounds checked for one right choice and
-a reply each. Published lesson minutes total 187.
+a reply each. Published lesson minutes total 269.
 
 Not verified: no interactive has ever been looked at in a browser by an agent, and
-the picker, the board, the run sheet, the change desk and the stale set are the
-five newest.
+phase 4's five (the address board's animation above all) are the newest.
 
 ### Done
 
@@ -823,7 +921,7 @@ five newest.
 - `<Term>` tooltip + `validateTermRefs` forward-reference warnings.
 - Pagefind wired into `build`, scoped by `track` filter, dev fallback message.
 - localStorage progress: resume button, completion ticks, reset.
-- Kubernetes track: 52 glossary terms, official CNCF logo.
+- Kubernetes track: 63 glossary terms, official CNCF logo.
 - **`introducedIn` is the lesson that *explains* a term, not its first
   mention.** The track names things informally well before defining them and
   makes a virtue of it: lesson 9 opens by saying every lesson so far has used
@@ -835,21 +933,22 @@ five newest.
   terminology mapping, a controller that repairs the system on its own, and a
   closing screen on eventual consistency.
 - `holdGlossary` frontmatter flag plus the `[data-hold]` reveal mechanism.
-- **Phases 1 to 3 complete: lessons 1 to 14 published**, each with its
-  interactive: the outage walk, the operator game, the cluster map, the object
-  assembly, the request path, the store browser, the controller cascade, the
-  event triage, the pod packing, the stale set, the change desk, the run sheet,
-  the side-by-side board and the workload picker.
+- **Phases 1 to 4 complete, which is all of Core: lessons 1 to 19 published**,
+  each with its interactive: the outage walk, the operator game, the cluster map,
+  the object assembly, the request path, the store browser, the controller
+  cascade, the event triage, the pod packing, the stale set, the change desk, the
+  run sheet, the side-by-side board, the workload picker, the address board, the
+  service desk, the name lookup, the route table and the policy puzzle.
 
 ### In progress
 
-- **Lessons 1 to 14 are written; everything after them is not.** The rest of
-  phase 3 onward is planned in the roadmap and unwritten. Lessons 16, 20 and 23
+- **Lessons 1 to 19 are written; everything after them is not.** Phase 5 onward
+  is planned in the roadmap and unwritten. Lessons 20 and 23
   exist as `draft: true` files carrying prose from an earlier six-lesson version
   of the track: they hold the right `order` and `phase` but the bodies need
   rewriting rather than un-drafting, and their `<Term>` uses still point at the
   old lesson numbering. Do not treat those bodies as reference material.
-- Lesson 15, Pod networking, is next and opens phase 4.
+- Lesson 20, Configuration, is next and opens phase 5 and the Practical tier.
 
 ### Not built
 
@@ -857,7 +956,7 @@ five newest.
   `/courses` with several cards) are untested against real data.
 - No site-wide search — Pagefind covers courses only, see above.
 - No RSS or sitemap-specific handling for courses beyond Astro's defaults.
-- No quizzes, exercises, or code playgrounds outside the fourteen interactives.
+- No quizzes, exercises, or code playgrounds outside the nineteen interactives.
 - Neither interactive is covered by tests. The outage walk's `stages.ts` is
   checked by the esbuild replay above, which covers the data invariants but not
   `walk.ts`'s rendering.
@@ -876,8 +975,11 @@ five newest.
   view. The run sheet's engine is replayed over all 16 combinations, which covers
   the simulations and findings but not `runsheet.ts`'s timeline. The lesson 13
   board's engine is random-walked (below), which covers the controllers but not
-  `sameevent.ts`'s grid. **Nobody has looked at any of the five newest rendered
-  panels in a browser**, so their layouts, the change desk's template tint, the
+  `sameevent.ts`'s grid. Phase 4's five engines are replayed the same way and
+  none of their views are covered: the address board's dot waypoints and timing,
+  the route table's request grid under 40rem and the policy cards' two-column
+  layout are unverified by eye. **Nobody has looked at any of the ten newest
+  rendered panels in a browser**, so their layouts, the change desk's template tint, the
   stale set's stale-pod marking, the run sheet's bar positions and narrow-screen
   timeline, the board's card layout under 44rem, the picker, and all five dark
   palettes are unverified by eye.
@@ -938,6 +1040,28 @@ Each of these cost a real debugging cycle. Full explanations are inline above.
     to think about rather than a list to fix.
 
 ### Log
+
+- **2026-09-16** — **Phase 4 written: Core is done at nineteen lessons.** Lesson 15,
+  pod networking: one address per pod, the three rules, the plugin and per-node
+  ranges, and how long an address lasts. Its board went through two versions in
+  the same session; the report-style first one was replaced by the animated
+  diagram on request, see the roadmap. Lesson 16, Services, rewritten from its
+  draft: selectors and labels, the EndpointSlice, a ClusterIP nothing listens on,
+  kube-proxy's rules picking per connection, and the three types. Lesson 17, DNS:
+  CoreDNS, resolv.conf, the search list and `ndots:5`, headless Services and the
+  five second TTL. Lesson 18, Ingress and the Gateway API: controllers, annotations,
+  ingress-nginx's retirement in March 2026, GatewayClass, Gateway and HTTPRoute.
+  Lesson 19, network policies: isolation plus allows, plugin enforcement, peer
+  shapes, default deny. The roadmap's lesson 19 puzzle changed from frontend to
+  database to backend to database. Glossary gains `Pod network`, `EndpointSlice`,
+  `kube-proxy`, `NodePort`, `LoadBalancer`, `CoreDNS`, `Headless Service`,
+  `Ingress controller`, `Gateway API`, `HTTPRoute` and `NetworkPolicy`, and
+  rewrites `Label`, `Selector`, `Service`, `ClusterIP` and `Ingress`. Minutes: 10,
+  20, 15, 19, 18. Lesson 16 was expanded afterwards on request: a figure per type
+  showing where traffic comes in, `externalTrafficPolicy`, `ExternalName`, and a
+  section on network plugins that replace kube-proxy and handle Services
+  themselves. Lesson 18 gained a comparison with Traefik on Docker: a compose
+  file, a mapping table, and where the rules live.
 
 - **2026-09-13** — **Phase 3 finished, with a recap, and the track is now 52
   lessons.** Lesson 13 is DaemonSets and StatefulSets: no count and one pod per

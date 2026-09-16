@@ -1,0 +1,91 @@
+---
+track: kubernetes
+order: 19
+phase: 4
+title: Network policies
+description: Every pod can reach every other pod until something says otherwise, and what says otherwise only ever allows.
+minutes: 18
+tags: [networking, security]
+modes: [operate]
+draft: false
+---
+
+import PolicyPuzzle from "@components/courses/PolicyPuzzle.astro";
+
+Out of the box, every pod can open a connection to every other pod in the
+cluster, in any namespace, on any port. That's just the flat network doing what
+it promised. A <Term>NetworkPolicy</Term> is how you narrow it down:
+
+```yaml
+kind: NetworkPolicy
+metadata:
+  name: database
+  namespace: shop
+spec:
+  podSelector:
+    matchLabels:
+      app: database
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: backend
+      ports:
+        - protocol: TCP
+          port: 5432
+```
+
+`podSelector` picks which pods in the namespace it's about. `policyTypes` says
+which directions it covers, and those pods then refuse everything in that
+direction except what's listed under `ingress`. Egress works the same way, with
+`to` instead of `from`.
+
+## Who enforces it
+
+The network plugin does, on every node. Kubernetes stores the object and that's
+it, so on a plugin that doesn't do policies, like Flannel on its own, the API
+server happily takes your NetworkPolicy, `kubectl get` shows it, and it does
+absolutely nothing. So check that before you rely on one.
+
+It also really only knows about addresses, ports and protocols. It can say the
+backend may reach the database on 5432, and it has no idea which queries go over
+that connection or which HTTP paths get called. Some plugins, Cilium for
+example, add objects of their own for that.
+
+## Who a rule is about
+
+The items under `from` and `to` come in three shapes:
+
+- a `podSelector` picks pods with those labels, in the policy's own namespace
+- a `namespaceSelector` picks every pod in the namespaces with those labels. Every
+  namespace gets a `kubernetes.io/metadata.name` label with its own name, so you
+  can pick one by name
+- an `ipBlock` is a range of addresses, meant for things outside the cluster
+
+## Locking the shop down
+
+<PolicyPuzzle />
+
+## Starting from deny
+
+A policy only changes the pods it selects, so anything nobody wrote a policy for
+stays wide open. That's why most namespaces start with one that selects every
+pod and allows nothing:
+
+```yaml
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: shop
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+```
+
+Every connection the namespace needs then gets written as an allow on top of it,
+DNS first. It's a bit more to write, but it basically means a new pod that shows
+up gets nothing until somebody decides it should.

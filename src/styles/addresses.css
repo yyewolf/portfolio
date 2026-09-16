@@ -1,0 +1,548 @@
+/* ---------------------------------------------------------------------------
+ * Lesson 15's address board. Scoped under `.ab`, inside a `not-prose` wrapper
+ * so the article's typography plugin keeps its hands off it. Markup is built at
+ * runtime by src/scripts/courses/addresses/addresses.ts, so these rules are
+ * global and namespaced by hand.
+ *
+ * The canvas is a diagram: nodes side by side, the node network as a line under
+ * them, and an overlay the request dots travel across. The dots are positioned
+ * from measured coordinates, so anything that moves a node or a pod also moves
+ * where the dots go, and the canvas scrolls sideways on a narrow screen rather
+ * than wrapping, which would break the line under the nodes.
+ * ------------------------------------------------------------------------ */
+
+.ab {
+  --ab-line: #e5e7eb;
+  --ab-surface: #ffffff;
+  --ab-sunk: #f9fafb;
+  --ab-ink: #111827;
+  --ab-ink2: #4b5563;
+  --ab-muted: #9ca3af;
+  --ab-accent: #2563eb;
+  --ab-accent-bg: #eff6ff;
+  --ab-good: #059669;
+  --ab-good-bg: #ecfdf5;
+  --ab-bad: #d97706;
+  --ab-bad-bg: #fffbeb;
+  --ab-wire: #d1d5db;
+
+  font-family: inherit;
+  color: var(--ab-ink2);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+html.dark .ab {
+  --ab-line: #1f2937;
+  --ab-surface: #030712;
+  --ab-sunk: #0b1120;
+  --ab-ink: #f9fafb;
+  --ab-ink2: #9ca3af;
+  --ab-muted: #6b7280;
+  --ab-accent: #60a5fa;
+  --ab-accent-bg: #0b1a33;
+  --ab-good: #34d399;
+  --ab-good-bg: #04241c;
+  --ab-bad: #fbbf24;
+  --ab-bad-bg: #241a04;
+  --ab-wire: #374151;
+}
+
+.ab *,
+.ab *::before,
+.ab *::after {
+  box-sizing: border-box;
+}
+
+/* global.css styles the bare `header` element as fixed site chrome. */
+.ab header {
+  position: static;
+  inset: auto;
+}
+
+.ab p {
+  margin: 0;
+}
+
+.ab code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92em;
+  color: var(--ab-ink);
+  background: none;
+  padding: 0;
+}
+
+.ab-shell {
+  border: 1px solid var(--ab-line);
+  border-radius: 0.9rem;
+  background: var(--ab-surface);
+  overflow: hidden;
+}
+
+.ab-intro {
+  padding: 1.1rem 1rem 1.2rem;
+}
+
+.ab-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.7rem;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--ab-line);
+  background: var(--ab-sunk);
+}
+
+.ab-title {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ab-muted);
+}
+
+.ab .ab-config {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ab-accent);
+}
+
+/* --- the diagram --------------------------------------------------------- */
+
+.ab-scroll {
+  overflow-x: auto;
+}
+
+.ab-canvas {
+  position: relative;
+  min-width: 34rem;
+  padding: 1rem 1rem 0.4rem;
+}
+
+.ab-nodes {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 1rem;
+}
+
+.ab-node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+  min-height: 9.5rem;
+  padding: 0.5rem 0.55rem 1.4rem;
+  border: 1px solid var(--ab-line);
+  border-radius: 0.6rem;
+  background: var(--ab-sunk);
+}
+
+.ab-node-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ab-node-name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--ab-ink);
+}
+
+.ab-range {
+  margin-top: -0.35rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.68rem;
+  color: var(--ab-muted);
+}
+
+.ab-x {
+  border: 0;
+  background: none;
+  padding: 0 0.2rem;
+  color: var(--ab-muted);
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ab-x:hover {
+  color: var(--ab-bad);
+}
+
+.ab-pods {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ab-pod {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  width: 100%;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--ab-line);
+  border-radius: 0.45rem;
+  background: var(--ab-surface);
+  color: var(--ab-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.ab-pod:hover {
+  border-color: var(--ab-accent);
+}
+
+.ab-pod[aria-pressed="true"] {
+  border-color: var(--ab-accent);
+  box-shadow: 0 0 0 2px var(--ab-accent-bg);
+}
+
+/* The pod whose address is in the config gets a quiet marker on its edge. */
+.ab-pod[data-target="yes"] {
+  box-shadow: inset 3px 0 0 var(--ab-accent);
+}
+
+.ab-pod[data-target="yes"][aria-pressed="true"] {
+  box-shadow:
+    inset 3px 0 0 var(--ab-accent),
+    0 0 0 2px var(--ab-accent-bg);
+}
+
+.ab-pod[data-hit="yes"] {
+  border-color: var(--ab-good);
+  background: var(--ab-good-bg);
+}
+
+.ab-pod-app {
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--ab-ink2);
+}
+
+.ab-pod[data-app="shop"] .ab-pod-app {
+  color: var(--ab-accent);
+}
+
+.ab-pod-ver {
+  font-weight: 400;
+  color: var(--ab-muted);
+}
+
+.ab-pod-ip {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Where the node meets the network: a small port on its bottom edge. */
+.ab-nic {
+  position: absolute;
+  left: 50%;
+  bottom: -0.3rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border: 2px solid var(--ab-wire);
+  border-radius: 999px;
+  background: var(--ab-surface);
+  transform: translateX(-50%);
+}
+
+.ab-nic span {
+  position: absolute;
+  top: -1.15rem;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.6rem;
+  color: var(--ab-muted);
+}
+
+.ab-bus {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.1rem;
+  padding-top: 0.35rem;
+  border-top: 2px solid var(--ab-wire);
+}
+
+.ab-bus-label {
+  font-size: 0.66rem;
+  color: var(--ab-muted);
+}
+
+.ab-gateway {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.66rem;
+  color: var(--ab-muted);
+}
+
+.ab-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.ab-dot {
+  position: absolute;
+  top: -0.3rem;
+  left: -0.3rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: var(--ab-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ab-accent) 25%, transparent);
+  will-change: transform;
+}
+
+.ab-dot[data-kind="reply"] {
+  background: var(--ab-good);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ab-good) 25%, transparent);
+}
+
+.ab-burst {
+  position: absolute;
+  top: 0;
+  left: 0;
+  animation: ab-fade 1.4s ease forwards;
+}
+
+.ab-burst-x {
+  position: absolute;
+  top: -0.45rem;
+  left: -0.45rem;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 999px;
+  background: var(--ab-bad);
+  animation: ab-pop 0.5s ease-out;
+}
+
+.ab-burst-text {
+  position: absolute;
+  top: -1.9rem;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: 0.05rem 0.4rem;
+  border-radius: 0.3rem;
+  background: var(--ab-bad-bg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--ab-ink);
+}
+
+@keyframes ab-pop {
+  from {
+    transform: scale(0.3);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes ab-fade {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* --- controls ------------------------------------------------------------ */
+
+.ab-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 3rem;
+  padding: 0.55rem 1rem;
+  border-top: 1px solid var(--ab-line);
+}
+
+.ab-bar-what code {
+  font-size: 0.75rem;
+  color: var(--ab-ink2);
+}
+
+.ab-bar-end {
+  display: flex;
+  gap: 0.8rem;
+  margin-left: auto;
+}
+
+.ab-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--ab-ink);
+}
+
+.ab-stepper .ab-btn {
+  min-width: 2rem;
+  padding-inline: 0.5rem;
+}
+
+.ab-btn {
+  border: 1px solid var(--ab-line);
+  border-radius: 0.5rem;
+  background: var(--ab-surface);
+  color: var(--ab-ink);
+  padding: 0.3rem 0.7rem;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ab-btn:hover:not(:disabled) {
+  border-color: var(--ab-accent);
+}
+
+.ab-btn:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.ab-btn[data-tone="primary"] {
+  border-color: var(--ab-accent);
+  background: var(--ab-accent);
+  color: #fff;
+}
+
+html.dark .ab-btn[data-tone="primary"] {
+  color: #04121f;
+}
+
+.ab-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--ab-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ab-link:hover {
+  color: var(--ab-ink);
+}
+
+.ab-btn:focus-visible,
+.ab-link:focus-visible,
+.ab-pod:focus-visible,
+.ab-x:focus-visible {
+  outline: 2px solid var(--ab-accent);
+  outline-offset: 2px;
+}
+
+/* --- status -------------------------------------------------------------- */
+
+.ab-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 5.2rem;
+  padding: 0.7rem 1rem 0.85rem;
+  border-top: 1px solid var(--ab-line);
+  background: var(--ab-sunk);
+}
+
+.ab-hint,
+.ab-happened {
+  font-size: 0.86rem;
+  color: var(--ab-ink);
+}
+
+.ab-hint {
+  color: var(--ab-ink2);
+}
+
+.ab-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 0.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  color: var(--ab-good);
+}
+
+.ab-result[data-ok="no"] {
+  color: var(--ab-bad);
+}
+
+.ab-result code {
+  color: inherit;
+}
+
+.ab-result-mark {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.ab-tally {
+  display: inline-flex;
+  gap: 0.15rem;
+  margin-left: auto;
+}
+
+.ab-tally i {
+  width: 0.35rem;
+  height: 0.8rem;
+  border-radius: 0.15rem;
+  background: var(--ab-good);
+}
+
+.ab-tally i[data-ok="no"] {
+  background: var(--ab-bad);
+}
+
+.ab-why {
+  font-size: 0.8rem;
+  color: var(--ab-ink2);
+}
+
+.ab-note {
+  font-size: 0.88rem;
+}
+
+.ab-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ab-pod {
+    transition: none;
+  }
+
+  .ab-burst,
+  .ab-burst-x {
+    animation: none;
+  }
+}

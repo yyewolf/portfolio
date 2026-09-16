@@ -1,0 +1,80 @@
+---
+track: kubernetes
+order: 15
+phase: 4
+title: Pod networking
+description: Every pod gets a real address that any other pod can reach, for exactly as long as that pod exists.
+minutes: 10
+tags: [networking]
+modes: [visualize]
+draft: false
+---
+
+import AddressBoard from "@components/courses/AddressBoard.astro";
+
+Every pod gets its own IP address, and any pod in the cluster can reach any
+other pod on it. Across nodes, with no port mapping and nothing rewriting the
+address on the way. That flat network is the <Term>pod network</Term>.
+
+```text
+$ kubectl get pods -o wide
+NAME                 READY   STATUS    RESTARTS   AGE   IP            NODE
+shop-9npmlm-hwxdr    1/1     Running   0          2d    10.244.1.23   node-a
+api-nddzmc-lgsc5     1/1     Running   0          2d    10.244.2.41   node-b
+api-nddzmc-q7tnm     1/1     Running   0          2d    10.244.3.17   node-c
+```
+
+## Coming from Docker
+
+With plain Docker, a container gets an address on a bridge that only its own
+machine knows about. To reach it from anywhere else you publish a port with `-p
+8080:80`, and the machine forwards traffic from its own address to the
+container. Two containers can't both publish 8080 on the same machine, so you
+end up juggling port numbers.
+
+Kubernetes just doesn't do any of that. It has three rules:
+
+- every pod gets an address that's unique across the whole cluster
+- every pod can reach every other pod on that address, whatever node either one
+  is on, without NAT
+- whatever runs on a node, like the kubelet, can reach every pod on that node
+
+So a pod sees its real address, and whoever it talks to sees that same address
+as the sender. And since every pod has an address of its own, every pod can
+listen on 8080 and nobody's fighting over it.
+
+## Who actually does it
+
+Kubernetes writes those rules down and then implements none of them. A network
+plugin does, and it's usually one of the DaemonSets sitting in `kube-system`:
+Calico, Cilium, Flannel and so on. They all follow a spec called CNI, which is
+how the kubelet asks the plugin for a network when it starts a pod.
+
+Each node gets a range of its own, commonly a /24 like `10.244.2.0/24`. When a
+pod starts, the plugin creates its network interface, gives it an address from
+that node's range and plugs it into the node. Then every other node has to learn
+that `10.244.2.0/24` lives behind node-b. Some plugins simply add routes for
+that. Others wrap each packet inside one addressed to node-b, for networks that
+won't carry pod addresses between machines, and that's what an overlay like
+VXLAN is. On a cloud, the plugin often skips both and hands pods real addresses
+from the cloud's own network.
+
+The pod can't tell which one it got. It has an address, and it sends to
+addresses.
+
+## Following one request
+
+<AddressBoard />
+
+## How long an address lasts
+
+As long as the pod, and pods don't last very long. Every rollout, every eviction
+and every node that goes away makes new pods with new addresses, so a Deployment
+that's just doing its job changes them all the time.
+
+The old address also gets handed out again eventually. Some plugins take a
+while, some reuse addresses pretty quickly. So an address you wrote down can
+stop working, and later on it can start answering as some other pod entirely.
+
+Reaching a pod is easy. Knowing which address to use is the hard part, and
+with two copies of api there isn't even one right answer to write down.
