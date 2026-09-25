@@ -1038,6 +1038,16 @@ Each of these cost a real debugging cycle. Full explanations are inline above.
     the Kubernetes track, nearly all of them common English words (service, event,
     volume, label, condition, secret) or the deliberate cases, so read it as a list
     to think about rather than a list to fix.
+11. **Astro keeps the source's indentation before a tag inside `<pre>`.** The store
+    browser had `<pre>` and `<code>` on separate lines, prettily indented, and the
+    newline plus twelve spaces between them went into the built HTML untouched,
+    which `<pre>` renders as a first-line indent on every stored object. Nothing
+    complains: `astro check`, lint and the build all pass, and the value strings in
+    the frontmatter are correctly indented, so the bug lives in the gap between the
+    tags and only shows in the rendered panel. Write `<pre class="..."><code>...` on
+    one line, or check the built HTML with `grep -o 'sb-value">.\{0,20\}'` if a
+    server-rendered panel ever looks misindented. The runtime panels in `.ts` files
+    interpolate the whole `<pre>...</pre>` themselves and cannot catch this.
 
 ### Log
 
