@@ -3,6 +3,7 @@ import { getCollection } from "astro:content";
 import Container from "@components/Container.astro";
 import PageLayout from "@layouts/PageLayout.astro";
 import Link from "@components/Link.astro";
+import LatestPlays from "@components/LatestPlays.astro";
 import { dateRange } from "@lib/utils";
 import { SITE, HOME, SOCIALS } from "@consts";
 
@@ -127,6 +128,8 @@ const certifications = await Promise.all(
           ))}
         </div>
       </section>
+
+      <LatestPlays />
 
       <section class="mb-16 animate-fade-up">
         <div class="flex flex-wrap gap-y-2 items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-2 mb-6">

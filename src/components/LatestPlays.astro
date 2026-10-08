@@ -1,0 +1,272 @@
+---
+// My latest Beat Saber plays, pulled from SSArchiver in the browser.
+//
+// The section ships hidden and only appears once the API answers with at least
+// one archived replay, so a down archiver costs nothing but a missing section.
+// ArcViewer is a WebGL app of a few dozen MB, so nothing loads until the reader
+// asks: the stage shows the selected play with a button, and the viewer iframe
+// only goes in after that click, behind a loader until it's ready. From then on
+// picking another play swaps the iframe straight away. Only one exists at a time.
+import Link from "@components/Link.astro";
+import { PLAYS } from "@consts";
+---
+
+<section
+  data-plays
+  data-api={PLAYS.API}
+  data-player={PLAYS.PLAYER}
+  data-count={PLAYS.COUNT}
+  class="mb-16 animate-fade-up w-full"
+  hidden
+>
+  <div class="flex flex-wrap gap-y-2 items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-2 mb-6">
+    <h3 class="text-2xl font-bold text-black dark:text-white">
+      My Hobby: Beat Saber
+    </h3>
+    <Link href={`${PLAYS.API}/p/${PLAYS.PLAYER}`} external underline={false} class="px-4 py-1 rounded-full text-sm bg-gray-100 dark:bg-gray-800 hover:bg-blue-100 hover:dark:bg-blue-900 transition-colors">
+      See all plays →
+    </Link>
+  </div>
+
+  <div data-plays-stage class="relative aspect-video overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800 bg-[#101116] shadow-sm">
+    <img data-plays-poster alt="" class="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-md" />
+    <div data-plays-prompt class="absolute inset-0 flex items-center justify-center p-4">
+      <div class="flex w-full max-w-sm items-center gap-4 rounded-xl border border-white/10 bg-gray-950/70 p-4 shadow-xl backdrop-blur-md">
+        <img data-plays-prompt-cover alt="" class="h-16 w-16 shrink-0 rounded-lg object-cover" />
+        <div class="min-w-0">
+          <p data-plays-prompt-title class="truncate font-semibold text-white"></p>
+          <p data-plays-prompt-meta class="truncate text-xs text-gray-400"></p>
+          <button
+            data-plays-start
+            type="button"
+            class="mt-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-medium text-gray-900 transition-colors hover:bg-blue-100"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+            Watch replay
+          </button>
+        </div>
+      </div>
+    </div>
+    <div data-plays-loader role="status" class="absolute inset-0 hidden flex-col items-center justify-center gap-3 text-sm text-gray-300">
+      <span class="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white motion-reduce:animate-none" aria-hidden="true"></span>
+      Loading replay…
+    </div>
+  </div>
+
+  <p data-plays-caption class="mt-3 min-h-[1.25rem] text-sm text-gray-600 dark:text-gray-400"></p>
+
+  <div data-plays-strip class="relative mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2"></div>
+</section>
+
+<script>
+  type Score = {
+    id: number;
+    accuracy: number;
+    pp: number;
+    full_combo: boolean;
+    set_at: string;
+    url: string;
+    leaderboard?: { song_name: string; song_author: string; difficulty: string; cover_url: string };
+    replay: { state: string; embed_url?: string };
+  };
+
+  type Play = {
+    id: number;
+    song: string;
+    author: string;
+    difficulty: string;
+    cover: string;
+    accuracy: number;
+    pp: number;
+    fc: boolean;
+    setAt: Date;
+    url: string;
+    embed: string;
+  };
+
+  const toPlay = (s: Score): Play | null =>
+    s.replay.embed_url && s.leaderboard
+      ? {
+        id: s.id,
+        song: s.leaderboard.song_name,
+        author: s.leaderboard.song_author,
+        difficulty: s.leaderboard.difficulty,
+        cover: s.leaderboard.cover_url,
+        accuracy: s.accuracy,
+        pp: s.pp,
+        fc: s.full_combo,
+        setAt: new Date(s.set_at),
+        url: s.url,
+        embed: s.replay.embed_url,
+      }
+      : null;
+
+  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+  const ago = (d: Date): string => {
+    const secs = (d.getTime() - Date.now()) / 1000;
+    const steps: [Intl.RelativeTimeFormatUnit, number][] = [
+      ["year", 31536000], ["month", 2592000], ["week", 604800], ["day", 86400], ["hour", 3600], ["minute", 60],
+    ];
+    for (const [unit, size] of steps) {
+      if (Math.abs(secs) >= size) return rtf.format(Math.round(secs / size), unit);
+    }
+    return "just now";
+  };
+
+  const el = <T extends HTMLElement>(n: T, cls = "", text = ""): T => {
+    if (cls) n.className = cls;
+    if (text) n.textContent = text;
+    return n;
+  };
+
+  const facts = (p: Play): string[] =>
+    [p.difficulty, `${(p.accuracy * 100).toFixed(2)}%`, p.fc ? "FC" : "", p.pp > 0 ? `${p.pp.toFixed(0)}pp` : ""]
+      .filter(Boolean);
+
+  // Torn down before every ClientRouter swap, so a pending fetch or a running
+  // viewer doesn't outlive the page.
+  let teardown: (() => void) | null = null;
+
+  const setup = async (): Promise<void> => {
+    teardown?.();
+    teardown = null;
+    const root = document.querySelector<HTMLElement>("[data-plays]");
+    const stage = root?.querySelector<HTMLElement>("[data-plays-stage]");
+    const poster = root?.querySelector<HTMLImageElement>("[data-plays-poster]");
+    const prompt = root?.querySelector<HTMLElement>("[data-plays-prompt]");
+    const promptCover = root?.querySelector<HTMLImageElement>("[data-plays-prompt-cover]");
+    const promptTitle = root?.querySelector<HTMLElement>("[data-plays-prompt-title]");
+    const promptMeta = root?.querySelector<HTMLElement>("[data-plays-prompt-meta]");
+    const start = root?.querySelector<HTMLButtonElement>("[data-plays-start]");
+    const loader = root?.querySelector<HTMLElement>("[data-plays-loader]");
+    const caption = root?.querySelector<HTMLElement>("[data-plays-caption]");
+    const strip = root?.querySelector<HTMLElement>("[data-plays-strip]");
+    if (!root || !stage || !poster || !prompt || !promptCover || !promptTitle || !promptMeta || !start || !loader || !caption || !strip) {
+      return;
+    }
+
+    const abort = new AbortController();
+    teardown = () => abort.abort();
+
+    let plays: Play[];
+    try {
+      const url = `${root.dataset.api}/api/v1/players/${root.dataset.player}/scores?state=archived&per_page=${root.dataset.count}`;
+      const res = await fetch(url, { signal: abort.signal });
+      if (!res.ok) return;
+      const body = (await res.json()) as { items: Score[] };
+      plays = body.items.map(toPlay).filter((p): p is Play => p !== null);
+    } catch {
+      return;
+    }
+    if (plays.length === 0) return;
+    root.hidden = false;
+
+    const quiet = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let started = false;
+    let current = 0;
+    let frame: HTMLIFrameElement | null = null;
+
+    const unmount = (): void => {
+      frame?.remove();
+      frame = null;
+    };
+
+    const loading = (on: boolean): void => {
+      loader.classList.toggle("hidden", !on);
+      loader.classList.toggle("flex", on);
+    };
+
+    const mount = (): void => {
+      unmount();
+      prompt.classList.toggle("hidden", started);
+      prompt.classList.toggle("flex", !started);
+      loading(started);
+      if (!started) return;
+      const p = plays[current];
+      const f = el(document.createElement("iframe"), "absolute inset-0 h-full w-full border-0 opacity-0 transition-opacity duration-700");
+      f.src = `${p.embed}?autoplay=1&ui=0&loop=1`;
+      f.title = `${p.song} replay`;
+      f.allow = "autoplay; fullscreen";
+      f.allowFullscreen = true;
+      f.addEventListener("load", () => {
+        f.classList.remove("opacity-0");
+        loading(false);
+      }, { once: true });
+      stage.append(f);
+      frame = f;
+    };
+
+    const cards = plays.map((p, i) => {
+      const card = el(document.createElement("button"),
+        "group flex w-60 shrink-0 snap-start items-center gap-3 rounded-lg border p-2 text-left transition-colors",
+      );
+      card.type = "button";
+      const img = el(document.createElement("img"), "h-12 w-12 shrink-0 rounded object-cover");
+      img.src = p.cover;
+      img.alt = "";
+      img.loading = "lazy";
+      const text = el(document.createElement("span"), "min-w-0");
+      text.append(
+        el(document.createElement("span"), "block truncate text-sm font-semibold text-black dark:text-white", p.song),
+        el(document.createElement("span"), "block truncate text-xs text-gray-500", `${facts(p).join(" · ")}`),
+      );
+      card.append(img, text);
+      card.addEventListener("click", () => select(i));
+      card.addEventListener("keydown", (e) => {
+        const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+        if (!step) return;
+        e.preventDefault();
+        const next = (i + step + plays.length) % plays.length;
+        select(next);
+        cards[next].focus();
+      });
+      return card;
+    });
+    strip.replaceChildren(...cards);
+
+    const select = (i: number): void => {
+      current = i;
+      const p = plays[i];
+      cards.forEach((c, j) => {
+        const on = j === i;
+        c.setAttribute("aria-pressed", String(on));
+        c.classList.toggle("border-blue-500", on);
+        c.classList.toggle("bg-blue-50", on);
+        c.classList.toggle("dark:bg-blue-900/20", on);
+        c.classList.toggle("border-gray-200", !on);
+        c.classList.toggle("dark:border-gray-800", !on);
+        c.classList.toggle("hover:border-blue-300", !on);
+      });
+      strip.scrollTo({ left: cards[i].offsetLeft - strip.offsetLeft, behavior: quiet ? "auto" : "smooth" });
+
+      poster.src = p.cover;
+      promptCover.src = p.cover;
+      promptTitle.textContent = p.song;
+      promptMeta.textContent = `${p.author} · ${facts(p).join(" · ")}`;
+      const link = el(document.createElement("a"), "font-semibold text-black dark:text-white hover:text-blue-600 dark:hover:text-blue-400", p.song);
+      link.href = p.url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      caption.replaceChildren(link, ` by ${p.author} · ${facts(p).join(" · ")} · ${ago(p.setAt)}`);
+      mount();
+    };
+
+    start.addEventListener("click", () => {
+      started = true;
+      mount();
+    }, { signal: abort.signal });
+
+    teardown = () => {
+      abort.abort();
+      unmount();
+    };
+
+    select(0);
+  };
+
+  document.addEventListener("astro:page-load", () => void setup());
+  document.addEventListener("astro:before-swap", () => {
+    teardown?.();
+    teardown = null;
+  });
+</script>

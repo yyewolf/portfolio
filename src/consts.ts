@@ -57,3 +57,10 @@ export const SOCIALS: Socials = [
     HREF: "mailto:contact@yewolf.fr"
   }
 ];
+
+// Beat Saber replays archived by SSArchiver, shown on the homepage.
+export const PLAYS = {
+  API: "https://ssarchiver.yewolf.fr",
+  PLAYER: "76561198038925092",
+  COUNT: 8,
+};
