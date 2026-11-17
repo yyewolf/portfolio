@@ -1,0 +1,431 @@
+---
+title: "Making my own PCB & LTE/SMS Gateway"
+description: "A JLCPCB adventure that came out a bit out of the blue"
+date: "Nov 16 2026"
+---
+
+import Mermaid from "@components/Mermaid.astro";
+import { Image } from "astro:assets";
+import smsScreenshot from "./image-1.png";
+import rpiSetup from "./image.png";
+import esp32Stock from "./esp32s3-stock.png";
+import modemStock from "./a7670e-stock.png";
+import xray from "./xray-1.png";
+import unboxing from "./unboxing.png";
+import boardsAndPcba from "./boards-and-pcba.png";
+import esp32Pcba from "./esp32-pcba-closeup.png";
+import esp32Trace from "./esp32-trace-closeup.png";
+import modemPcba from "./modem-pcba-closeup.png";
+import modemTrace from "./modem-trace-closeup.png";
+import checkingResistance from "./checking-resistance.png";
+import poweredOn from "./pcb-powered-on.png";
+import adminPage from "./admin-page.png";
+import assemblyNoLid from "./assembly-without-top.png";
+import assemblyLid from "./assembly-with-top.png";
+import billPage from "./bill-page.png";
+import playback from "./playback.mp4";
+import kicadEditResistor from "./kicad-edit-resistor-value.png";
+import kicadTraceModem from "./kicad-click-on-trace-near-modem.png";
+
+## Preface
+
+Its been a while hasn't it ? :D
+
+I'll begin this article with a simple disclaimer: this article is sponsored by JLCPCB (and is also my first ever sponsored article, yaaay!!)
+
+However, they have given me full freedom to write whatever I want and keep my full freedom of speech, so that's pretty neat.
+
+A little bit of context is necessary here however, this project does not stems from nowhere so we'll have to go back in time a little bit.
+
+In october 2025, I made [golte](https://github.com/yyewolf/golte) which was, as the description states, "a cursed SMS - Discord Bridge application".
+
+Picture yourself this:
+
+1. you wanna be able to send sms (← this is a bit irrational, but i just wanted that so get over it.)
+2. you're a cheap-ass and you don't want to pay services to send SMS
+3. i mean that's basically it
+
+Sooo I quickly gathered what I had laying around and made this acursed abomination : 
+
+<Image src={rpiSetup} alt="janky-ass rpi2 setup in a 3d printed case" class="mx-auto max-w-sm" />
+
+Before you ask, yes I have very questionable hardware at hand:
+
+ - RPI 2 (yes it still exists)
+ - A no-name power supply that supplies 5V 5A (so 25W) from 220V@50Hz
+ - A7670E that I actually had to buy for the project (shaaame)
+ - A fan
+ - Hopes and dreams
+
+And yes it works on straight-up wall power, because trust me i can do electrishitty
+
+## The idea
+
+JLCPCB contacted me and said they liked my previous articles (which I didn't even think were read by real people mind you). So I thought about this thing, which ran for almost a year and served my daily digest of notifications like so : 
+
+<Image src={smsScreenshot} alt="sample text conversation with my alt phone number" class="mx-auto max-w-sm" />
+
+this *creation* was connected to my tailscale and re-exposed inside my k8s cluster as a "SMS Gateway", any service that needed to send SMS could just talk to it and boom.
+
+Golte was also the premise of the current project: back then i had the idea of being able to call from Discord any number and basically bridge the two ends. I couldn't do that back then, because the module sucked and had no jack. That meant i had to solder small wires to a jack and somehow add filtering too. And anyway it ended-up working just a little bit, because the RPI2 of all things couldn't handle DAVE (which is the protocol discord uses for E2EE)
+
+Anyway, this project has the following goal:
+ - be a custom PCB (to fit what JLC wanted)
+ - be connected to my tailscale
+ - have an api to send / receive SMS
+ - have an "api" to send / receive calls
+
+Some other stuff are not requirements but are good stuff nonetheless:
+ - be easily updatable
+ - be easily configurable 
+ - be secure
+ - be reproducible 
+
+I knew from the get-go that I would have two samples, so if it works the first batch, I can gift it to a friend :D
+
+Oh, and also, about the DAVE protocol: basically the idea is that the PCB is gonna do the encoding / decoding of G.711 RTP frames, which is somewhat easy for it. Another server is gonna do the adapting, that way the PCB is generic and it's up to the one using it to use it however they want.
+
+I'm also gonna cover that server.
+
+## The parts
+
+Let's begin by picking the parts because that's kinda the first thing I did.
+
+For the compute I picked the ESP32-S3-WROOM-1-N16R8 and the main reason was compatiblity with this library I found: https://github.com/CamM2325/microlink
+
+It basically reimplements the tailscale protocol for ESP and was already tested with the ESP32-S3. I picked the -N16R8 variant which gives 16MB of flash and 8MB of PSRAM, this is pretty useful notably for OTA updates.
+
+I knew from experience that ESP32-S3 was pretty good at audio stuff since I also own this piece of hardware: https://docs.waveshare.com/ESP32-S3-AUDIO-Board which uses an esp32-s3. I also checked JLC's stock to ensure availability.
+
+<Image src={esp32Stock} alt="esp32s3 on stock" class="mx-auto max-w-sm" />
+
+For the modem since I experienced with the A7670E I picked the A7670E-LASE which is the closest match that was available. What I needed to know was the amperage and also the capabilities. I needed LTE to work in France and have the LTE call feature available to make calls.
+
+<Image src={modemStock} alt="modem on stock" class="mx-auto max-w-sm" />
+
+Those modem seem to be pretty rare and also a bit pricy.
+
+The modem outputs analogic signal which needs to be understood by the ESP32-S3. For this work I chose the es8311, which does the actual decoding / encoding. I picked it cuz I also had the chance to experiment with it prior.
+
+That was the somewhat interesting stuff, and now the less interesting but still necessary stuff. The rest of the board is power, usb and wiring, and that part I basically didn't really design because I just found references to base myself off of. 
+
+Power first, two SY8089 bucks. One at 3.3 V for the ESP and the rest of the logic, one at 3.8 V for the modem, and the modem one is the one that matters cuz LTE pulls some nasty current bursts every time it transmits, a linear regulator would just cry on that. For the 3.3 V I took [Silergy's app note](https://www.olimex.com/Products/Components/IC/SY8009A/resources/SY8089AAAC.pdf) (AN_SY8089, fig. 1) and changed basically nothing. The 3.8 V side is SIMCom's own reference, fig. 9 of [their hardware design guide](https://files.waveshare.com/wiki/A7670E-Cat-1-GNSS-HAT/A7672X_A7670X_Series_Hardware_Design_V1.03.pdf), 160k/30k feedback divider and all, I just redrew it.
+
+On that same rail there's a [TPS22965](https://www.ti.com/product/TPS22965) load switch, that's how the ESP gets to hard power-cycle the modem. Wired it after TI's typical application (paragraph 9.2 of the datasheet), quick output discharge included (paragraph 8.3.2.2), since the modem wants VBAT gone before you restart it.
+
+Actually most of the stuff around the modem comes from the same doc, SIMCom's [A7672X/A7670X Series Hardware Design (V1.03)](https://files.waveshare.com/wiki/A7670E-Cat-1-GNSS-HAT/A7672X_A7670X_Series_Hardware_Design_V1.03.pdf). Fig. 4 is the VBAT input with its TVS, bead and bulk caps. The PWRKEY and STATUS timings are in there too, same for the RF and SIM layout rules, which I tried to respect while routing.
+
+The modem speaks 1.8 V tho, the ESP32-S3 speaks 3.3 V, so between the two there's a [TXS0108E](https://www.ti.com/product/TXS0108E) level shifter and 8 lines cross it both ways (the whole UART, RI, STATUS, NETLIGHT). It's literally the part SIMCom recommends so not much of a decision there. OE is tied to the modem's 1.8 V rail, that way it only wakes up when the modem does.
+
+ESP32-S3-WROOM-1 support circuit is fig. 9-1 of [its datasheet](https://documentation.espressif.com/esp32-s3-wroom-1_wroom-1u_datasheet_en.pdf) (22 µF + 100 nF on the supply, 10k + 1 µF on EN), antenna keep-out from [Espressif's hardware design guide](https://www.espressif.com/sites/default/files/documentation/esp32-s3_hardware_design_guidelines_en.pdf). And the es8311 wiring, that's [the Everest datasheet](https://dl.espressif.com/dl/schematics/Audio_ES8311.pdf)'s typical application, including the AGND 0R link, which no chance I find that one on my own.
+
+Last one, usb-c: [the spec](https://www.usb.org/document-library/usb-type-cr-cable-and-connector-specification-release-25) wants separate 5.1k pulldowns on CC1 and CC2, otherwise it never actually turns on. USBLC6 on the data lines is [ST's datasheet](https://www.lcsc.com/datasheet/C7519.pdf) application circuit, and the PTC + SMF5.0A TVS are stuff I found online
+
+That's basically it for the important parts.
+
+## The board
+
+Now it's time to actually draw the thing. Everything is available freely [on github](https://github.com/yyewolf/lte-gateway). The full schematic is also there as [a single PDF](https://github.com/yyewolf/lte-gateway/blob/main/hardware/sms-schematic.pdf) if you want to have it next to my article.
+
+There's five sheets: power, mcu, modem, audio, and a level shifter in the middle. 
+
+For the folks who never opened KiCad, it's two editors: a schematic one and a board one, and you live in the schematic first. You draw symbols and wires, and since a board this size doesn't fit on one screen you split it into sheets, the way you'd split a program into modules. Sheets talk through labels: a net named RXD on the modem sheet and a net named RXD on the mcu sheet are the same wire. Power does the same trick, every +3V3 symbol anywhere in the project is one rail. When it looks done you run ERC, which is a linter for circuits, it yells about unconnected pins and inputs left floating. Mine mostly complained about power flags until I told it where each rail is actually driven from. Editing anything is just click and type, here's a resistor's value being changed:
+
+<Image src={kicadEditResistor} alt="editing a resistor value in the kicad schematic editor" class="mx-auto" />
+
+Then every symbol gets a footprint, the physical package it becomes on the board, you push all of it into the board editor, and every connection turns into a thin dangling line. That cloud of lines is the ratsnest, and the game is turning it into actual copper.
+
+One thing nobody warns you about tho: KiCad doesn't know JLCPCB's catalog. The symbols, footprints and 3D models for the parts I picked all had to be collected, they live in lib/ on the repo.
+
+The board is 4 layers, 99.9 x 99.9 mm (An attempt to reduce size), JLC04161H-7628 (it's just the standard one) stackup, hasl finish. Top and bottom carry the parts and most of the signals, the two inner layers are copper planes, mostly ground, with the 3.3 V rail filling the rest of one of them. The audio section even gets its own little analog ground island on that inner plane, so its ground stays away from everything else's.
+
+Routing is mostly deciding which net deserves what. Nets get grouped in classes with their own width and clearance, skinny for signals, fat for power, then you pour ground over every layer and stitch the pours together with vias. There's also keep-out zones where nothing is allowed to route, mine sit under the ESP32's antenna.
+
+<Image src={kicadTraceModem} alt="a trace selected in the kicad pcb editor near the modem" class="mx-auto" />
+
+The one place with actual math is the LTE antenna feed. It's a 50 ohm trace, and on this stackup that means a specific width with a specific gap to the ground pour on both sides, that's literally what sets the impedance. Get it wrong and part of the signal bounces back before it ever reaches the antenna. Same spirit for the rest: the two USB data lines must stay matched in length, and the audio lines must stay 10 mm away from the bucks' switching nodes and 2 mm from the modem's rail, because a buck converter is a tiny radio station and 8 kHz audio hears everything. KiCad can't guess any of that, so it lives in a rules file (sms.kicad_dru, also on the repo) that DRC enforces. When DRC runs clean you export gerbers, which is all the fab ever sees, no schematic in the package, just machine files describing where the copper goes.
+
+Two details are there purely for bring-up. First, the modem gets its own USB-C, that way I can easily upgrade firmware for the modem if I need to.
+
+Second, the board is covered in test pads and a few 0R links in strategic spots:
+
+ - pull one 0R and you get an ammeter in series with the modem's power rail
+ - a header taps the 3.3 V side of the level shifter, for a cheap logic analyzer
+ - the audio path has pads to probe every stage of a call
+
+This way its easy to "debug" what's happening on the board.
+
+The power sequencing is where it got fun. SIMCom wants VBAT to collapse before you restart the modem. The TPS22965's built-in output discharge is a ~300 ohm resistor, way too slow for that. So there's a small transistor circuit that dumps the ~340 uF on the rail through 22 ohms instead. 90 to 10 percent in about 15 ms.
+
+The firmware side is also straight out of the SIMCom guide: check the input is actually there, enable the switch, wait, pulse PWRKEY for 50 ms. STATUS goes high about 7 seconds later. 
+
+## Off to JLCPCB
+
+Gerbers, BOM and CPL, uploaded. Then comes the order form, and my first pass through it came back at 253.51 €: 226.67 € for the PCB and assembly, 26.83 € of shipping. For a hobby board that's a hard no, so back through the options, cutting everywhere it doesn't hurt:
+
+ - lead-free HASL instead of ENIG which is cheaper
+ - two assembled boards instead of five. I need one that works and one spare, not a small shop.
+ - the board at 99.9 x 99.9 mm, which isn't a quirk: 100 x 100 mm is a price bucket, and we're staying under it.
+
+All three together took about 70 € off the quote.
+
+For assembly I picked the Standard tier, top side only, I originally aimed for Economic tier but the ESP / modem kinda forced the switch there. But that means I get xray during production !
+
+<Image src={xray} alt="jlc's xray of the assembled boards" class="mx-auto max-w-md" />
+
+The flow also comes with a free second pair of eyes: before production, JLC's team checks the fab files on their side for fabricability. A "this pad has no paste" kind of thing.
+
+And then you wait for DHL.
+
+<Image src={unboxing} alt="unboxing with buble wrap still on" class="mx-auto max-w-md" />
+
+Box open. Three bare boards on the left, one assembled on the right: five fabricated, two assembled. The bare ones are spares.
+
+<Image src={boardsAndPcba} alt="the three pcbs on the left and the pcba on the right" class="mx-auto max-w-md" />
+
+Standard assembly earns its keep here. The ESP32 and the modem, assembled and bare, up close:
+
+<div class="not-prose grid grid-cols-2 gap-3">
+  <Image src={esp32Pcba} alt="pcba esp32 up close" class="w-full" />
+  <Image src={esp32Trace} alt="pcb esp32 trace up close" class="w-full" />
+  <Image src={modemPcba} alt="pcba modem up close" class="w-full" />
+  <Image src={modemTrace} alt="pcb modem trace up close" class="w-full" />
+</div>
+
+The joints themselves are in none of those shots: they sit under the module, which is what the X-ray pass was for.
+
+## First power
+
+This is the moment we burn the whole house down. First power on a fresh board should always happen through a meter, and the board is built for it: pull one 0R and the modem rail gets an ammeter in series. Especially when the newest thing on it is a 3.8 V rail feeding a radio.
+
+And uh, I kinda yolo-ed it. I didn't have a power supply, so first power happened on a cheap USB adapter I wouldn't have minded burning, with a small USB power meter in the cable. Board B stayed in its bag until board A proved itself. And before anything saw volts, I did a resistance check on all test pads with my multimeter, that eliminated most possible shorts to ground.
+
+<Image src={checkingResistance} alt="checking resistance on the pcba" class="mx-auto max-w-md" />
+
+First power itself was basically a smooth ride. The modem switch is held off by a pull-down until the firmware asks for it. First power is just the two bucks, the ESP32 and the codec: around 30 to 120 mA at 5 V, green LED on, nothing warm. Then a multimeter tour of the rails: 3.3 V for the logic, 3.8 V on the pre-rail, zero on the modem side where it should be zero.
+
+Then a detour I'd recommend to anyone: instead of flashing the real firmware and hoping, the board got MicroPython and a tiny gw.py script. LEDs blink on command, the ADC reads the rails back, and the I2C scan finds the codec answering at 0x18. One quirk is by design: pressing RESET also cuts the modem's power, so every reset starts from a clean slate.
+
+With the basics proven, the modem gets its turn. gw.modem_on() enabled the switch, pulses PWRKEY, and a few seconds later STATUS is high, right on the schedule from the board section. That's a modem booting. First AT gets an OK. The modem gets locked to LTE only, because its 2G fallback pulls 2 amp bursts. The SIM answers READY, and the first SMS goes out from the board to my phone. An incoming call shows up as RING with my caller ID.
+
+<Image src={poweredOn} alt="the rev 0.6 board, powered on for the first time" class="mx-auto" />
+
+From here on it's the real firmware, which is the part I actually know how to do.
+
+## The firmware
+
+### Tailscale on a microcontroller
+
+Remember why the ESP32-S3 got picked in the first place: microlink, the reverse engineered tailscale implementation for ESP. It's vendored into the repo (MIT, my small patches listed in a VENDORED.txt file).
+
+Underneath it there's a wireguard implementation for [lwip](https://www.nongnu.org/lwip/), the TCP/IP stack made for microcontrollers. Because at the end of the day that's what tailscale is: wireguard with a coordination layer on top.
+
+First boot is a little easy hands-on setup. With no WiFi saved, the board opens its own access point, you can then join it and a config page opens by itself. You throw in your WiFi credentials, a tailscale auth key and a device name, and it reboots as a proper tailnet node with its own keys (you can also setup an api key to talk to the gateway).
+
+One thing to not forget in the tailscale admin console afterwards: disable key expiry on that machine. 
+
+And then it's just another device on my tailnet. Well, kinda. microlink keeps a table of 8 tailnet peers so that means I also have to trick around to get it to actually see what I want it to see.
+
+I added a way to "pin" peers: a pinned peer always gets a slot, and when the table is full the least recently used unpinned peer gets evicted for it. My server is pinned, obviously.
+
+<Image src={adminPage} alt="lte gateway configuration page on the locally available UI" class="mx-auto max-w-md" />
+
+The one other tuning knob: the board is in Europe. So its home DERP relay is Frankfurt instead of microlink's default of Dallas.
+
+This is also where the "be secure" bullet from the goals list gets paid off. The HTTP API refuses anything that doesn't arrive from a 100.x address. The only way to talk to this board is to be on the tailnet with it.
+
+And I turned off microlink's own web config page. It's on by default, listens on every interface including your LAN, has no login, and shows you the auth key. Yeah, you prolly don't want that on...
+
+In exchange you get an admin page on the tailnet for the day to day (status, peers with pin buttons, the firmware update button). Plus a USB console that does the same things, that's just a nice to have and to debug feature.
+
+### SMS
+
+Sending an SMS over LTE sounds trivial but there's a little bit more to it. The firmware talks PDU mode to the modem, which means it builds and parses the SMS packets itself. GSM-7 when the text fits in it, UCS-2 (so, emoji) otherwise. Long texts get split into up to 10 parts with the right headers, that's what allows a phone to reassemble them.
+
+How a text becomes something the modem can actually send:
+
+<Mermaid definition={`
+flowchart TD
+  text["the text you want to send"] --> alphabet{"every char
+  encodable in GSM-7?"}
+  alphabet -->|yes| gsm["GSM-7: 160 chars per part,
+  packed 7 septets into 8 octets"]
+  alphabet -->|no| ucs["UCS-2: 2 bytes per char,
+  70 chars per part, emoji allowed"]
+  gsm --> fits{"fits in a single part?"}
+  ucs --> fits
+  fits -->|no| split["split into up to 10 parts, each gets
+  a UDH header: reference, count, part number"]
+  fits -->|yes| submit["one SMS-SUBMIT PDU"]
+  split --> submit
+  submit --> at["AT+CMGS, and the modem hands
+  it to the service center"]
+`} />
+
+And one part, once it's built, is a stack of fields:
+
+```text
+one part, as the firmware hands it to the modem (SMS-SUBMIT):
+
+  SMSC       the service center number, left out: the modem uses its own
+  1st octet  the type (SMS-SUBMIT) plus flags: UDH present or not,
+             how the validity is expressed
+  TP-MR      message reference, a counter
+  TP-DA      the destination number, digits swapped two by two
+  TP-PID     protocol identifier, zero for plain SMS
+  TP-DCS     data coding scheme: GSM-7 here, 08 for UCS-2
+  TP-VP      validity period, how long the network keeps trying
+  TP-UDL     user data length, counted in septets for GSM-7
+  TP-UDH     multipart only: reference, total parts, this part's number
+  TP-UD      the text itself, seven septets packed into eight bytes
+```
+
+Receiving is the same in reverse. And a multipart that never finishes gets delivered anyway after an hour, with a `"complete": false` flag. Because half a message is still information.
+
+The whole life of a message:
+
+<Mermaid definition={`
+flowchart TD
+  subgraph send ["send"]
+    direction LR
+    api["POST /sms"] --> outbox[("outbox")]
+    outbox --> pdu["PDU encode"] --> modem1["modem"] --> lte["LTE"]
+  end
+  modem1 -.->|"3 attempts, 30 s apart, then failed"| outbox
+  subgraph receive ["receive"]
+    direction LR
+    modem2["modem"] --> parse["PDU parse"] --> inbox[("inbox")] --> ws["WebSocket event"] --> srv["server stores it, then DELETEs it"]
+  end
+`} />
+
+Both the inbox and the outbox live in flash, in a partition of their own. A message queued while the modem was down, or while the board was rebooting, still goes out when things are back.
+
+Every message gets 3 attempts, 30 seconds apart. After that it's marked failed with the modem's actual error, which is way more useful than a generic "it didn't work".
+
+The modem itself gets babysat. If it stops answering AT commands three times in a row, the firmware cuts its power through the load switch from the parts section, then brings it back up with the whole power sequence.
+
+The API is pretty boring. `POST /sms` with a number and a text answers with the id, how many parts it needed and which encoding got used. Incoming messages sit in the flash inbox until you DELETE them, and a WebSocket event gets pushed for each one, so the server never has to poll.
+
+And since the PDU code is the kind of thing you don't want to debug on hardware, it has its own little test suite that compiles on my PC. Flashing a board to test a parser is misery.
+
+### Voice
+
+This is the part I was the most scared of, and it ended up being the coolest one. The A7670E has no digital audio at all: it exposes an analog earpiece output and an analog mic input, like a phone from 2005. So the es8311 sits in the middle and translates.
+
+The modem's speaker output goes through a divider (about -20 dB, because that thing is loud) into the codec's mic input. The codec's line output goes through a much heavier one (about -40 dB, down to mic level) into the modem's mic input.
+
+My schematic notes literally say "divider values are starting points, check levels on the bench", and then I still had the configuration through the modem that was available with AT+CMICGAIN and AT+CLVL.
+
+Here's exactly that: the oscilloscope parked on the modem's voice pins during a real call. No audio in the clip because my phone was in call mode, but the wave moving on screen is my voice.
+
+<video controls autoplay muted loop playsinline src={playback} class="mx-auto max-w-lg" />
+
+From there everything is digital. The codec speaks I2S to the ESP32-S3. The firmware slices the stream into 20 ms frames (160 samples at 8 kHz), packs them as G.711 µ-law and shoots them as RTP at whoever is connected on the events WebSocket. The other direction is the same in reverse, with a 60 to 160 ms jitter buffer in front. That absorbs potential network issues.
+
+The whole audio loop runs on core 0 at high priority, paced by the I2S clock. If you miss a beat then the whole audio becomes choppy and we don't want that.
+
+It's 8 kHz phone audio tunneled through a VPN, so obviously not hi-fi. But it's a phone call, from Discord, which was the entire point.
+
+### Updates without a USB cable
+
+The 16 MB of flash is carved up so there are two 4 MB app slots. Updating means writing the new image into the slot that isn't running, checking its header (right chip, right project) and its checksum, then rebooting into it.
+
+The new firmware starts in a pending state, and it only gets kept once it manages to reach the tailnet.
+
+If it crashes, or it doesn't check in within 5 minutes, the bootloader rolls back to the previous slot on its own. So a bad build can't lock you out of a device that's screwed behind a lid somewhere. Worst case you're back on the old firmware and you try again.
+
+Updating is a one-liner over the tailnet:
+
+```sh
+curl -H "Authorization: Bearer $TOKEN" --data-binary @build/lte_gateway.bin http://lte-gateway/ota
+```
+
+or you click the Update button on the admin page like a normal person. And that's the "be easily updatable" bullet from the goals list, done. The board gets new firmware from my desk, no cable, no opening the case.
+
+## The server
+
+Now, the stuff that wasn't meant to run on the PCB. It's a Go server that lives on my tailnet and bridges the gateway to Discord. It's also where the RPI2 story from the preface finally gets its ending: DAVE, Discord's voice encryption, runs here. On something with actual RAM.
+
+Here's a graph of the whole thing:
+
+<Mermaid definition={`
+flowchart LR
+  phone["phone"] <-->|"SMS and calls over LTE"| gw["the gateway"]
+  subgraph tailnet ["the tailnet"]
+    gw <-->|"REST + WebSocket events"| srv["ltegtw-server"]
+    gw <-.->|"RTP: G.711 µ-law, 8 kHz, 20 ms"| srv
+  end
+  srv <-->|"Opus, DAVE encrypted"| discord["Discord"]
+`} />
+
+SMS first, because it's the simple half. Incoming messages arrive on the WebSocket and get posted as embeds in a Discord channel. Once stored, they get DELETEd from the gateway's flash. Anything that arrived while the server was down is picked up on reconnect.
+
+Replying to an embed (or using `/send`) sends an SMS back, and you can watch it happen. A ⏳ reaction while the network thinks about it. Then ✅ once it's accepted, or ❌ with the actual reason.
+
+Calls are the fun half. An incoming call posts a card with Answer and Reject buttons, and pings whoever is on the notify list. The card follows the call through ringing, in call, ended and missed.
+
+Answering makes the bot join a voice channel, and the caller gets heard in Discord. Everyone allowed in that channel gets mixed down into the single RTP stream going back to the gateway. Outgoing calls join the channel while still dialing, so you hear the ringback from Discord.
+
+The audio bridging itself is one 20 ms clock driving both directions. Pop a frame from the RTP jitter buffer. Encode it to Opus for Discord (Opus does 8 kHz natively, so there's no resampling anywhere). Mix one decoded frame from each Discord speaker into the one RTP packet going back. When the jitter buffer runs dry, it sends silence instead. That way Discord keeps showing the caller as speaking instead of flickering.
+
+And because this machine has RAM to spare, calls get recorded as stereo WAVs. Phone on the left channel, Discord on the right. Posted back into the channel when they fit under the upload limit.
+
+The whole thing ships as a Docker image for amd64 and arm64, published by CI on every push to main. Standing up a second gateway really is a compose file and a config away.
+
+## The case
+
+Last but not least, the enclosure is generated by a script, `case.py` in the repo, using build123d. That means the STLs are build artifacts and every dimension is a parameter.
+
+It's a two-part screwless design: a tray that holds the board on four pegs, and a lid that clips on with six snap hooks and presses the board down at the mounting holes. If the fit is too tight or too loose, you tweak like three constants at the top of the file and re-run it. Which is how every enclosure should work (imho)
+
+The openings are where the design actually went:
+
+ - a recess, so USB-C plugs can actually reach the sockets
+ - a 6.6 mm hole on the side for the SMA bulkhead, connected to the modem through a u.FL pigtail
+ - flexible tabs in the lid that press RESET and BOOT, so the bootloader stays reachable
+ - LED holes: push in a bit of 1.75 mm filament and you get a free light pipe
+ - vents above and below the modem
+
+The SIM holder sits in the middle of the board, so swapping a SIM means pulling the lid. Which is fine tbh.
+
+The finished thing, lid off and lid on:
+
+<div class="not-prose grid grid-cols-2 gap-3">
+  <Image src={assemblyNoLid} alt="assembled board, no lid" class="w-full" />
+  <Image src={assemblyLid} alt="assembled board, lid on" class="w-full" />
+</div>
+
+## What it cost
+
+Let's talk money, since that's usually the first question.
+
+Quotes are one thing, bills are another. The bare boards are 32.85 USD for five of them, which is 6.57 bucks a board, so you fab all the spares you will ever need and it rounds to nothing. The PCBA line is the real one: 175.32 USD for the two assembled boards, parts included. 29.18 USD of DHL shipping. And then customs says hi: 24.89 USD of customs, 8.27 USD of duty. The 180 USD of sponsorship comes off that, and the whole order ends up costing me 90.51 USD out of pocket. Taxes included. Yeah.
+
+<Image src={billPage} alt="the jlc order recap page" class="mx-auto max-w-md" />
+
+The full damage, line by line:
+
+| What | Cost |
+|---|---|
+| 5x bare PCB, 4 layers | $32.85 |
+| PCBA: 2x boards assembled, parts included | $175.32 |
+| shipping, DHL | $29.18 |
+| customs + duty | $33.16 |
+| JLCPCB sponsorship | -$180.00 |
+| board, out of pocket | $90.51 |
+| case, in filament | ~$0.50 |
+| total out of pocket | ~$91 |
+
+The PCBA line is worth opening up though, because the breakdown is the real lesson. The components themselves: 51.54 USD. The extended components fee, the surcharge for the parts JLC doesn't stock in house: 79.05 USD. Feeding my exotic parts to the line cost more than the parts did. The rest is housekeeping: 25.75 of setup, 3.61 of actual machine time for both boards, 6.60 for the X-ray pass under the module, 0.50 for the bag it ships in.
+
+The modem is the reason for that extended fee btw, those modules are rare around here and priced like it. The es8311 and the bucks are pocket change next to it.
+
+## Conclusion
+
+So here we are. The thing I actually wanted exists, it's open source, it's on my tailnet, and it handles my messages without me thinking about it. The golte promise shipped too: I can call a number from Discord. With exactly the audio quality you'd expect from 8 kHz over a VPN, and none of the crashes the RPI2 gave me.
+
+Board B worked the exact same way, so the second sample from the goals list is officially my friend's problem now, bring-up guide included.
+
+What's next: densification. The board is 99.9 x 99.9 mm for the price bucket, the next revision goes smaller and packs what's left tighter. And past that, the real open question: does anyone other than me actually want one of these?
+
+Everything is BSD-3: [the repo](https://github.com/yyewolf/lte-gateway) has the hardware, the firmware, the server and the case. The server image is on ghcr, and the board takes updates over the air. And if the answer to that question is you, the reference designs already did the hard parts. JLC will even assemble it for you before you finish reading this sentence. (not sponsored, ok maybe a little sponsored)

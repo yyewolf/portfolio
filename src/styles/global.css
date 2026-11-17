@@ -166,6 +166,34 @@ article {
   }
 }
 
+/* Click-to-zoom lightbox, wired up by src/scripts/blog/lightbox.ts on blog
+   posts. Every article image gets a zoom cursor; clicking opens a fullscreen
+   overlay closed by clicking anywhere or pressing Escape. */
+img.zoomable {
+  cursor: zoom-in;
+}
+
+#lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.85);
+  cursor: zoom-out;
+}
+
+#lightbox.open {
+  display: flex;
+}
+
+#lightbox img {
+  max-width: 92vw;
+  max-height: 92vh;
+  object-fit: contain;
+}
+
 .animate {
   @apply opacity-0 translate-y-3;
   @apply transition-all duration-700 ease-out;
